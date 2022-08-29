@@ -56,8 +56,8 @@ public class CheckoutDataReady extends UDF {
         return true;
     }
 
-    public static void main(String[] args) throws Exception {
-        CheckoutDataReady checkoutDataReady = new CheckoutDataReady();
-        System.out.println(checkoutDataReady.evaluate(7381L,null,"2022-08-12 18:35:00", "2022-08-12 20:51:00"));
-    }
+//    public static void main(String[] args) throws Exception {
+//        CheckoutDataReady checkoutDataReady = new CheckoutDataReady();
+//        System.out.println(checkoutDataReady.evaluate(7381L,null,"2022-08-12 18:35:00", "2022-08-12 20:51:00"));
+//    }
 }
