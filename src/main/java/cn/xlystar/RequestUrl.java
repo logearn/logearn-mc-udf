@@ -7,10 +7,16 @@ import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * request_url(String url)
@@ -20,11 +26,13 @@ public class RequestUrl extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Cache<String, String> loadingCache;
 
+//    private String DEV_URL = "https://dev.kingdata.work:443/parse";
+    private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/request";
     public RequestUrl() {
         loadingCache = Caffeine.newBuilder()
                 .recordStats()
                 //cache的初始容量
-                .initialCapacity(10000)
+                .initialCapacity(4096)
                 //cache最大缓存数
                 .maximumSize(10000)
                 .build();
@@ -42,13 +50,15 @@ public class RequestUrl extends UDF {
             return result;
         }
         // 2. 发起请求
+        ArrayList<NameValuePair> request_body = new ArrayList<>();
+        request_body.add(new BasicNameValuePair("url",url));
         // 需要返回实体
         ResponseEntity res = new ResponseEntity();
         // 计算请求时间
         long start = System.currentTimeMillis();
 
         try {
-            String result_json = HttpClientUtil.getRequest(url, new ArrayList<>());
+            String result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
             res.setSuccess(result_json);
             log.info("success! " + result_json);
         } catch (Exception e) {

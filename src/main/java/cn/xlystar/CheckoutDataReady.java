@@ -1,15 +1,14 @@
 package cn.xlystar;
 
+import cn.xlystar.entity.SolanaCheckDataPO;
 import cn.xlystar.utils.CustomException;
 import cn.xlystar.utils.HttpClientUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * checkout_data(Integer sum, String begin_time, String end_time)
@@ -26,24 +25,24 @@ public class CheckoutDataReady extends UDF {
     public CheckoutDataReady() {
     }
 
-    public Boolean evaluate(Long sum, String begin_time, String end_time) throws Exception {
+    public Boolean evaluate(Long sum, List<String> pidlists, String begin_time, String end_time) throws Exception {
         // 1. 发起请求
         // 计算请求时间
         long start = System.currentTimeMillis();
 
         int result = -1;
         try {
-            ArrayList<NameValuePair> list = new ArrayList<>();
-            list.add(new BasicNameValuePair("begin_time", begin_time));
-            list.add(new BasicNameValuePair("end_time", end_time));
-
-            String result_json = HttpClientUtil.getRequest(DEV_URL, list);
+            SolanaCheckDataPO solanaCheckDataPO = new SolanaCheckDataPO();
+            solanaCheckDataPO.setBeginTime(begin_time);
+            solanaCheckDataPO.setEndTime(end_time);
+            solanaCheckDataPO.setPids(pidlists);
+            String result_json = HttpClientUtil.postJSON(DEV_URL, JSONObject.toJSONString(solanaCheckDataPO));
             JSONObject parse = JSONObject.parseObject(result_json);
             result = parse.getInteger("data");
 
             log.info("数仓数据总量【SUM】 : {} ", sum);
-            log.info("请求参数：{} ", list);
-            log.info("【HTTPS: CheckoutDataReady】 -- 请求成功 success! 服务端数据总量 【SUM】: {} ", result);
+            log.info("请求参数：{} ", solanaCheckDataPO);
+            log.info("【HTTPS: CheckoutDataReady】 -- 请求成功 success! 采集服务数据总量 【SUM】: {} ", result);
         } catch (Exception e) {
             log.info("【HTTPS: CheckoutDataReady】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", e.getMessage(), DEV_URL);
         }
@@ -59,10 +58,6 @@ public class CheckoutDataReady extends UDF {
 
     public static void main(String[] args) throws Exception {
         CheckoutDataReady checkoutDataReady = new CheckoutDataReady();
-//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-//        System.out.println( sdf.parse("2022-06-24T11:00:00"));
-//        System.out.println( sdf.parse("2022-06-24T11:00:00"));
-//        System.out.println(checkoutDataReady.evaluate(100,"2022-06-24T02:00:00", "2022-06-24T12:00:00"));
-        System.out.println(checkoutDataReady.evaluate(7381L,"2022-06-29T22:10:00", "2022-06-29T22:30:00"));
+        System.out.println(checkoutDataReady.evaluate(7381L,null,"2022-08-12 18:35:00", "2022-08-12 20:51:00"));
     }
 }

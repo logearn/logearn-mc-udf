@@ -55,7 +55,7 @@ public class SolanaParse extends UDF {
         map.put("programid", program_account);
         map.put("data", data);
         Gson gson = new Gson();
-        String reuqest_body = gson.toJson(map, new TypeToken<Map<String, String>>() {
+        String request_body = gson.toJson(map, new TypeToken<Map<String, String>>() {
         }.getType());
 
         // 需要返回实体
@@ -64,7 +64,7 @@ public class SolanaParse extends UDF {
         long start = System.currentTimeMillis();
 
         try {
-            String result_json = HttpClientUtil.postJSON(DEV_URL, reuqest_body);
+            String result_json = HttpClientUtil.postJSON(DEV_URL, request_body);
             JSONObject resultObject = JSONObject.parseObject(result_json);
             parseEntity.setInstruction_name(String.valueOf(((JSONObject) resultObject.get("data")).get("command")));
             parseEntity.setInstruction_parameters(String.valueOf(((JSONObject) resultObject.get("data")).get("body")));
@@ -87,19 +87,19 @@ public class SolanaParse extends UDF {
         return result;
     }
 
-    public static void main(String[] args) {
-        SolanaParse solana_parse = new SolanaParse();
-        for (int i = 0; i < 5; i++) {
-            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn"));
-        }
-//        for (int i = 0; i < 6; i++) {
-//            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
-//        }
+//    public static void main(String[] args) {
+//        SolanaParse solana_parse = new SolanaParse();
 //        for (int i = 0; i < 5; i++) {
-//            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
+//            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn"));
 //        }
-//        System.out.println(solana_parse.evaluate("metaplexMetadata", "1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY"));
-    }
-
+////        for (int i = 0; i < 6; i++) {
+////            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
+////        }
+////        for (int i = 0; i < 5; i++) {
+////            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
+////        }
+////        System.out.println(solana_parse.evaluate("metaplexMetadata", "1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY"));
+//    }
+//
 
 }
