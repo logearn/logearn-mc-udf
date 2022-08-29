@@ -7,16 +7,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * request_url(String url)
