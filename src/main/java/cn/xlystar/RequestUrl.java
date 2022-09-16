@@ -22,8 +22,9 @@ public class RequestUrl extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Cache<String, String> loadingCache;
 
-//    private String DEV_URL = "https://dev.kingdata.work:443/parse";
+    //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
     private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/request";
+
     public RequestUrl() {
         loadingCache = Caffeine.newBuilder()
                 .recordStats()
@@ -47,7 +48,7 @@ public class RequestUrl extends UDF {
         }
         // 2. 发起请求
         ArrayList<NameValuePair> request_body = new ArrayList<>();
-        request_body.add(new BasicNameValuePair("url",url));
+        request_body.add(new BasicNameValuePair("url", url));
         // 需要返回实体
         ResponseEntity res = new ResponseEntity();
         // 计算请求时间
@@ -55,14 +56,14 @@ public class RequestUrl extends UDF {
 
         try {
             String result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
-            res.setSuccess(result_json);
-            log.info("success! " + result_json);
+            JSONObject resultObject = JSONObject.parseObject(result_json);
+            result = String.valueOf(((JSONObject) resultObject.get("data")).get("success"));
+            log.info("success! " + (result.length() > 50 ? result.substring(0, 50) : result));
         } catch (Exception e) {
-            res.setError(e.getMessage());
+            result = e.getMessage();
             log.info("RequestUrl -- error! request_body: { error: \"{}\", url: {} } ", e.getMessage(), url);
         }
 
-        result = JSONObject.toJSONString(res);
         loadingCache.put(url, result);
         log.info("Write Cache: 命中率: {}, 被驱逐的缓存数量: {}, 指标：{}",
                 loadingCache.stats().hitRate(),
@@ -72,10 +73,10 @@ public class RequestUrl extends UDF {
         return result;
     }
 
-//    public static void main(String[] args) {
-//        RequestUrl requestUrl = new RequestUrl();
-//        for (int i = 0; i < 3; i++) {
-//            System.out.println(requestUrl.evaluate("https://ipfs.walken.io/ipfs/QmVG5FVj9W3jwA53DPbCyjSbH85MnAfvPDrbzADsvsqsD1"));
-//        }
-//    }
+    public static void main(String[] args) {
+        RequestUrl requestUrl = new RequestUrl();
+        for (int i = 0; i < 3; i++) {
+            System.out.println(requestUrl.evaluate("https://ipfs.walken.io/ipfs/QmVG5FVj9W3jwA53DPbCyjSbH85MnAfvPDrbzADsvsqsD1"));
+        }
+    }
 }
