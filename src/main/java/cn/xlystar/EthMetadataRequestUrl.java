@@ -15,17 +15,18 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 
 /**
- * request_url(String url)
+ * eth_metadata_request_url(String url)
  * url：要访问的url地址
  */
-public class RequestUrl extends UDF {
+public class EthMetadataRequestUrl extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Cache<String, String> loadingCache;
+    private int retryCount = 3;
 
     //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
-    private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/request";
+    private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/eth_metadata_request";
 
-    public RequestUrl() {
+    public EthMetadataRequestUrl() {
         loadingCache = Caffeine.newBuilder()
                 .recordStats()
                 //cache的初始容量
@@ -35,9 +36,9 @@ public class RequestUrl extends UDF {
                 .build();
     }
 
-    public String evaluate(String url) {
+    public String evaluate(String contractAddress, String tokenId) {
         // 1. 查询缓存
-        String result = loadingCache.getIfPresent(url);
+        String result = loadingCache.getIfPresent(contractAddress + tokenId);
         if (result != null) {
             log.info("RequestUrl -- Hit Cache: 命中率: {}, 被驱逐的缓存数量: {}, 指标：{}, result: {}",
                     loadingCache.stats().hitRate(),
@@ -48,21 +49,27 @@ public class RequestUrl extends UDF {
         }
         // 2. 发起请求
         ArrayList<NameValuePair> request_body = new ArrayList<>();
-        request_body.add(new BasicNameValuePair("url", url));
+        request_body.add(new BasicNameValuePair("contractAddress", contractAddress));
+        request_body.add(new BasicNameValuePair("tokenId", tokenId));
+        // 需要返回实体
+        ResponseEntity res = new ResponseEntity();
         // 计算请求时间
         long start = System.currentTimeMillis();
-
-        try {
-            String result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
-            JSONObject resultObject = JSONObject.parseObject(result_json);
-            result = String.valueOf(((JSONObject) resultObject.get("data")).get("success"));
-            log.info("success! " + (result.length() > 50 ? result.substring(0, 50) : result));
-        } catch (Exception e) {
-            result = e.getMessage();
-            log.info("RequestUrl -- error! request_body: { error: \"{}\", url: {} } ", e.getMessage(), url);
+        int count = 0;
+        while (count++ < retryCount) {
+            try {
+                String result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
+                JSONObject resultObject = JSONObject.parseObject(result_json);
+                result = String.valueOf(resultObject.get("data"));
+                log.info("success! " + (result.length() > 50 ? result.substring(0, 50) : result));
+                break;
+            } catch (Exception e) {
+                result = e.getMessage();
+                log.info("RequestUrl -- error! request_body: { error: {}, contractAddress: {}, tokenId{},count: {} } ", e.getMessage(), contractAddress, tokenId, count);
+            }
         }
 
-        loadingCache.put(url, result);
+        loadingCache.put(contractAddress + tokenId, result);
         log.info("Write Cache: 命中率: {}, 被驱逐的缓存数量: {}, 指标：{}",
                 loadingCache.stats().hitRate(),
                 loadingCache.stats().evictionCount(),
@@ -72,9 +79,9 @@ public class RequestUrl extends UDF {
     }
 
     public static void main(String[] args) {
-        RequestUrl requestUrl = new RequestUrl();
+        EthMetadataRequestUrl requestUrl = new EthMetadataRequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("https://ipfs.walken.io/ipfs/QmVG5FVj9W3jwA53DPbCyjSbH85MnAfvPDrbzADsvsqsD1"));
+            System.out.println(requestUrl.evaluate("0x0da18e368271915c87935f4d83fea00953cfa2b1", "5451"));
         }
     }
 }
