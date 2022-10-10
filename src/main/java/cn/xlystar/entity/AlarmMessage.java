@@ -16,6 +16,7 @@ public class AlarmMessage implements Serializable {
     private String occurrencePlace;
     private String describe;
     private String confirmButton;
+    private String confirmButtonUrl;
     private String messageSource;
     private String url;
 

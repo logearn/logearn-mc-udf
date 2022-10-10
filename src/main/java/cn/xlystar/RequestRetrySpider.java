@@ -69,6 +69,7 @@ public class RequestRetrySpider extends UDF {
                 .occurrencePlace("DataWorks 调度系统 JOB -> dev_checkout_data_minute ")
                 .describe(String.format("检测到数据缺失的时间区间: [%s, %s] \\n尝试重新采集的时间区间: [%s, %s]", format.format(dates.get(0)), format.format(dates.get(1)), format.format(dates.get(0)), format.format(dates.get(1))))
                 .confirmButton("我已知悉")
+                .confirmButtonUrl("https://workbench2-ap-southeast-1.data.aliyun.com/?defaultProjectId=33666&env=prod#/")
                 .messageSource("来自 DataWorks P0 通知")
                 .url("https://workbench2-ap-southeast-1.data.aliyun.com/?defaultProjectId=33666&env=prod#/")
                 .build();
