@@ -1,5 +1,6 @@
 package cn.xlystar;
 
+import cn.xlystar.entity.AlarmMessage;
 import cn.xlystar.utils.HttpClientUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
@@ -26,15 +27,56 @@ import java.util.List;
 public class RequestRetrySpider extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final String DEV_URL = "https://dev.kingdata.work:443/chain_spider/progress";
+    private final String DEV_URL = "https://dev.kingdata.work:443/spider/retry_spider";
+    private final String DEV_FeiShu_WebHook = "http://localhost:8080/uniearn/feishu/webhook/checkdataWebHook";
+//    private final String DEV_FeiShu_WebHook = "https://dev.kingdata.work:443/feishu/webhook/checkdataWebHook";
 
     public RequestRetrySpider() {
     }
 
+    public String feiShuWebHook(AlarmMessage alarmMessage) {
+        try {
+            String webHookRequest = JSONObject.toJSONString(alarmMessage);
+            log.info("[webHook request body] {}", webHookRequest);
+            String resultJson = HttpClientUtil.postJSON(DEV_FeiShu_WebHook, webHookRequest);
+            log.info("[webHook response body] {}", resultJson);
+            JSONObject parse = JSONObject.parseObject(resultJson);
+
+            String data = parse.get("data").toString();
+            if ("true".equals(data)) {
+                return data;
+            } else {
+                return resultJson;
+            }
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            log.info("【HTTPS: feiShuWebHook】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", sw, DEV_FeiShu_WebHook);
+            return sw.toString();
+        }
+    }
+
     public String evaluate(String spiderId, List<Date> dates, String status) throws Exception {
-        // 1. 发起请求
         // 计算请求时间
         long start = System.currentTimeMillis();
+
+        // 1. 发起飞书 WebHook请求
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        AlarmMessage alarmMessage = AlarmMessage.builder()
+                .degree("P0")
+                .title("DataWorks 数据调度 Job CheckData Failed 数据检验失败")
+                .occurrenceTime(format.format(new Date()))
+                .occurrencePlace("DataWorks 调度系统 JOB -> dev_checkout_data_minute ")
+                .describe(String.format("检测到数据缺失的时间区间: [%s, %s] \\n尝试重新采集的时间区间: [%s, %s]", format.format(dates.get(0)), format.format(dates.get(1)), format.format(dates.get(0)), format.format(dates.get(1))))
+                .confirmButton("我已知悉")
+                .messageSource("来自 DataWorks P0 通知")
+                .url("https://workbench2-ap-southeast-1.data.aliyun.com/?defaultProjectId=33666&env=prod#/")
+                .build();
+        String webHook_response = feiShuWebHook(alarmMessage);
+        if (!"true".equals(webHook_response)) {
+            log.error(webHook_response);
+        }
 
         try {
             HashMap<String, Object> requestMap = new HashMap<>();
@@ -43,17 +85,17 @@ public class RequestRetrySpider extends UDF {
             requestMap.put("endBlockTime", dates.get(1));
             requestMap.put("status", status);
             String requestJson = JSONObject.toJSONString(requestMap);
-            System.out.println("request_json: " + requestJson);
-            String result_json = HttpClientUtil.postJSON(DEV_URL, requestJson);
-            System.out.println("respone_json: " + result_json);
-            JSONObject parse = JSONObject.parseObject(result_json);
+            log.info("[requestRetrySpider request body] {}", requestJson);
+            String resultJson = HttpClientUtil.postJSON(DEV_URL, requestJson);
+            log.info("[requestRetrySpider response body] {}", resultJson);
+            JSONObject parse = JSONObject.parseObject(resultJson);
 
             String code = parse.get("code").toString();
             if ("200".equals(code)) {
                 return code;
             } else {
                 String message = parse.get("message").toString();
-                System.out.println(message);
+                log.info(message);
                 return message;
             }
         } catch (Exception e) {
@@ -72,8 +114,7 @@ public class RequestRetrySpider extends UDF {
         List<Date> dates = new ArrayList<>();
         SimpleDateFormat format0 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         dates.add(format0.parse("2022-10-10 12:30:00"));
-        dates.add(format0.parse("2022-10-10 12:31:00"));
-        System.out.println(dates);
+        dates.add(format0.parse("2022-10-10 12:30:00"));
         System.out.println(checkoutDataReady.evaluate("22", dates, "PENDING"));
     }
 }
