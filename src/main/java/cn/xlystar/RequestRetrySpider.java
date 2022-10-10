@@ -28,8 +28,7 @@ public class RequestRetrySpider extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final String DEV_URL = "https://dev.kingdata.work:443/spider/retry_spider";
-    private final String DEV_FeiShu_WebHook = "http://localhost:8080/uniearn/feishu/webhook/checkdataWebHook";
-//    private final String DEV_FeiShu_WebHook = "https://dev.kingdata.work:443/feishu/webhook/checkdataWebHook";
+    private final String DEV_FeiShu_WebHook = "https://dev.kingdata.work:443/uniearn/warehouse/feishu/webhook/checkdataWebHook";
 
     public RequestRetrySpider() {
     }
