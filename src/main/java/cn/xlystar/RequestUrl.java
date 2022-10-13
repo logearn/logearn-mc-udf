@@ -20,15 +20,16 @@ import java.util.ArrayList;
  */
 public class RequestUrl extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private Cache<String, String> loadingCache;
 
-    //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
-    private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/request";
+    // https://dev.kingdata.work:443
+    private final String protocol = "https://";
+    private String URL = "/uniearn/warehouse/request";
 
     public RequestUrl() {
     }
 
-    public String evaluate(String url) {
+    public String evaluate(String url, String domain) {
+        String domainUrl = protocol + domain + URL;
         // 1. 查询缓存
         String result = null;
         // 2. 发起请求
@@ -39,7 +40,7 @@ public class RequestUrl extends UDF {
 
         String result_json = null;
         try {
-            result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
+            result_json = HttpClientUtil.getRequest(domainUrl, request_body);
             JSONObject resultObject = JSONObject.parseObject(result_json);
             String error = String.valueOf(((JSONObject) resultObject.get("data")).get("error"));
             if (error == null || "null".equals(error)) {
@@ -54,7 +55,7 @@ public class RequestUrl extends UDF {
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
             result = sw.toString();
-            log.info("【HTTPS: RequestRetrySpider】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", sw, DEV_URL);
+            log.info("【HTTPS: RequestRetrySpider】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", sw, domainUrl);
         }
 
         log.info("cost time: {} s", (System.currentTimeMillis() - start) / 1000F);
@@ -64,7 +65,7 @@ public class RequestUrl extends UDF {
     public static void main(String[] args) throws Exception {
         RequestUrl requestUrl = new RequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("https://ipfs.walken.io/ipfs/QmVG5FVj9W3jwA53DPbCyjSbH85MnAfvPDrbzADsvsqsD1"));
+            System.out.println(requestUrl.evaluate("https://ipfs.walken.io/ipfs/QmVG5FVj9W3jwA53DPbCyjSbH85MnAfvPDrbzADsvsqsD1", "https://uniearn.info:443"));
         }
     }
 }

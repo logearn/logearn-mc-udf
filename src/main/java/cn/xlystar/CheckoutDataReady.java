@@ -20,12 +20,13 @@ import java.util.List;
  */
 public class CheckoutDataReady extends UDF {
     private final Logger log = LoggerFactory.getLogger(getClass());
-
-    private final String DEV_URL = "https://dev.kingdata.work:443/chain_spider/progress";
+    private final String protocol = "https://";
+    private final String URL = "https://dev.kingdata.work:443/chain_spider/progress";
     public CheckoutDataReady() {
     }
 
-    public Boolean evaluate(Long sum, List<String> pidlists, String begin_time, String end_time) throws Exception {
+    public Boolean evaluate(Long sum, List<String> pidlists, String begin_time, String end_time,String domain) throws Exception {
+        String domainUrl = protocol + domain + URL;
         // 1. 发起请求
         // 计算请求时间
         long start = System.currentTimeMillis();
@@ -36,7 +37,7 @@ public class CheckoutDataReady extends UDF {
             solanaCheckDataPO.setBeginTime(begin_time);
             solanaCheckDataPO.setEndTime(end_time);
             solanaCheckDataPO.setPids(pidlists);
-            String result_json = HttpClientUtil.postJSON(DEV_URL, JSONObject.toJSONString(solanaCheckDataPO));
+            String result_json = HttpClientUtil.postJSON(domainUrl, JSONObject.toJSONString(solanaCheckDataPO));
             JSONObject parse = JSONObject.parseObject(result_json);
             result = parse.getInteger("data");
 
@@ -44,7 +45,7 @@ public class CheckoutDataReady extends UDF {
             log.info("请求参数：{} ", solanaCheckDataPO);
             log.info("【HTTPS: CheckoutDataReady】 -- 请求成功 success! 采集服务数据总量 【SUM】: {} ", result);
         } catch (Exception e) {
-            log.info("【HTTPS: CheckoutDataReady】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", e.getMessage(), DEV_URL);
+            log.info("【HTTPS: CheckoutDataReady】 -- 请求失败 error! request_body: { error: \"{}\", url: {} } ", e.getMessage(), domainUrl);
         }
 
         if(sum != result) {

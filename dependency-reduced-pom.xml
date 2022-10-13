@@ -70,9 +70,9 @@
     </plugins>
   </build>
   <properties>
+    <maven.compiler.target>1.8</maven.compiler.target>
     <sdk.version>0.38.3-public</sdk.version>
     <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 </project>
 

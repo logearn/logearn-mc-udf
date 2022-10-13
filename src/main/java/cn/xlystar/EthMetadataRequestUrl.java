@@ -22,12 +22,14 @@ public class EthMetadataRequestUrl extends UDF {
     private int retryCount = 3;
 
     //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
-    private String DEV_URL = "https://dev.kingdata.work:443/uniearn/warehouse/eth_metadata_request";
+    private final String protocol = "https://";
+    private String URL = "/uniearn/warehouse/eth_metadata_request";
 
     public EthMetadataRequestUrl() {
     }
 
-    public String evaluate(String contractAddress, String tokenId) {
+    public String evaluate(String contractAddress, String tokenId, String domain) {
+        String domainUrl = protocol + domain + URL;
         // 1. 查询缓存
         String result = null;
         // 2. 发起请求
@@ -39,7 +41,7 @@ public class EthMetadataRequestUrl extends UDF {
         int count = 0;
         while (count++ < retryCount) {
             try {
-                String result_json = HttpClientUtil.getRequest(DEV_URL, request_body);
+                String result_json = HttpClientUtil.getRequest(domainUrl, request_body);
                 JSONObject resultObject = JSONObject.parseObject(result_json);
                 result = String.valueOf(resultObject.get("data"));
                 log.info("success! " + (result.length() > 50 ? result.substring(0, 50) : result));
@@ -60,7 +62,7 @@ public class EthMetadataRequestUrl extends UDF {
     public static void main(String[] args) {
         EthMetadataRequestUrl requestUrl = new EthMetadataRequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("0x0da18e368271915c87935f4d83fea00953cfa2b1", "5451"));
+            System.out.println(requestUrl.evaluate("0x0da18e368271915c87935f4d83fea00953cfa2b1", "5451", "dev.kingdata.work:443"));
         }
     }
 }

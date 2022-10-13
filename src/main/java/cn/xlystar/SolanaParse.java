@@ -22,8 +22,8 @@ import java.util.Map;
 public class SolanaParse extends UDF {
     private String BASE58 = "base58";
     private String HEX = "hex";
-    private String DEV_URL = "https://dev.kingdata.work:443/parse";
-//    private String PROD_URL = "https://kingdata.xyz:443/parse";
+    private String URL = "/parse";
+    private final String protocol = "https://";
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Cache<String, String> loadingCache;
@@ -38,7 +38,8 @@ public class SolanaParse extends UDF {
                 .build();
     }
 
-    public String evaluate(String program_account, String data) {
+    public String evaluate(String program_account, String data, String domain) {
+        String domainUrl = protocol + domain + URL;
         // 1. 查询缓存
         String result = loadingCache.getIfPresent(program_account + data);
         if (result != null) {
@@ -64,7 +65,7 @@ public class SolanaParse extends UDF {
         long start = System.currentTimeMillis();
 
         try {
-            String result_json = HttpClientUtil.postJSON(DEV_URL, request_body);
+            String result_json = HttpClientUtil.postJSON(domainUrl, request_body);
             JSONObject resultObject = JSONObject.parseObject(result_json);
             parseEntity.setInstruction_name(String.valueOf(((JSONObject) resultObject.get("data")).get("command")));
             parseEntity.setInstruction_parameters(String.valueOf(((JSONObject) resultObject.get("data")).get("body")));
