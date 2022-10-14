@@ -116,6 +116,6 @@ public class RequestRetrySpider extends UDF {
         SimpleDateFormat format0 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         dates.add(format0.parse("2022-10-10 12:30:00"));
         dates.add(format0.parse("2022-10-10 12:30:00"));
-        System.out.println(checkoutDataReady.evaluate("22", dates, "PENDING","dev.kingdata.work:443","https://dev.kingdata.work:443/uniearn/warehouse/feishu/webhook/checkdataWebHook"));
+        System.out.println(checkoutDataReady.evaluate("22", dates, "PENDING","uniearn.info:443","https://uniearn.info:443/uniearn/warehouse/feishu/webhook/checkdataWebHook"));
     }
 }
