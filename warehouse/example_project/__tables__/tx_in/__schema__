@@ -1,0 +1,3 @@
+project=example_project
+table=tx_in
+columns=type:STRING,amount:DOUBLE
