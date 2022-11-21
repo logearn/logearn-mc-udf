@@ -7,7 +7,7 @@ import java.math.BigDecimal;
  */
 public class ArithmeticUtils {
     //默认除法运算精度
-    private static final int DEF_DIV_SCALE = 10;
+    private static final int DEF_DIV_SCALE = 18;
 
     /**
      * 提供精确的加法运算
@@ -54,12 +54,14 @@ public class ArithmeticUtils {
     }
 
     public static void main(String[] args) {
-//        String res = ArithmeticUtils.add("1000000000000000000000000000000", "1000000000000000000000000000000", 30);
         String res = ArithmeticUtils.mul(
                 "100.1"
                 , "200.2"
                 , 30);
         System.out.println(res);
+
+        String divResult = ArithmeticUtils.div("6200000000481664446.820294146356508262", "5193245006226535539378085158", 18);
+        System.out.println(divResult);
     }
 
     /**
@@ -207,7 +209,7 @@ public class ArithmeticUtils {
             throw new IllegalArgumentException("The scale must be a positive integer or zero");
         }
         BigDecimal b1 = new BigDecimal(v1);
-        BigDecimal b2 = new BigDecimal(v1);
+        BigDecimal b2 = new BigDecimal(v2);
         return b1.divide(b2, scale, BigDecimal.ROUND_HALF_UP).toString();
     }
 
