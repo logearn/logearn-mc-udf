@@ -13,7 +13,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 
 /**
- * eth_metadata_request_url(String url)
+ * Eth_token_request(String url)
  * url：要访问的url地址
  */
 public class EthTokenRequestUrl extends UDF {
