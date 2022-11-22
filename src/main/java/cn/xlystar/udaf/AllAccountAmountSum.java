@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 
 
 /**
+ *
  * 输入：
  * type：事件类型
  * 正常有 Buy  Sell  TransferIn  TransferOut，这 4 种。
@@ -26,7 +27,7 @@ import java.math.BigDecimal;
  * <p>
  * 输出：tradeAccountAmount 交易子账户的数量
  */
-@Resolve("STRING,DECIMAL,DECIMAL->DECIMAL")
+@Resolve("STRING,STRING,STRING->STRING")
 public class AllAccountAmountSum extends Aggregator {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -80,40 +81,41 @@ public class AllAccountAmountSum extends Aggregator {
     @Override
     public void iterate(Writable buffer, Writable[] args) throws UDFException {
         String type = ((Text) args[0]).toString();
-        BigDecimalWritable amount = (BigDecimalWritable) args[1];
-        BigDecimalWritable tradeAccountAmount = (BigDecimalWritable) args[2];
+        String amount = ((Text) args[1]).toString();
+        String tradeAccountAmount = ((Text) args[2]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
+        log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
         if (amount != null) {
             if (type.equals("Base")) {
-                buf.tradeAccountAmount = tradeAccountAmount.get().toString();
-                buf.allAccountAmount = amount.get().toString();
+                buf.tradeAccountAmount = tradeAccountAmount;
+                buf.allAccountAmount = amount;
             }
             if (type.equals("Buy")) {
-                buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount.get().toString()).toString();
-                buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount.get().toString()).toString();
+                buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount).toString();
+                buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
             if (type.equals("Sell")) {
-                boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount.get().toString(), buf.tradeAccountAmount);
+                boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
                 buf.tradeAccountAmount =
-                        isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount.get().toString()).toString();
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount.get().toString()).toString();
+                        isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
+                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
             if (type.equals("TransferIn")) {
-                buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount.get().toString()).toString();
+                buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
             if (type.equals("TransferOut")) {
-                boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount.get().toString(), ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.tradeAccountAmount = isTransferAccountNotEnough ? ArithmeticUtils.sub(buf.allAccountAmount, amount.get().toString()).toString() : buf.tradeAccountAmount;
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount.get().toString()).toString();
+                boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
+                buf.tradeAccountAmount = isTransferAccountNotEnough ? ArithmeticUtils.sub(buf.allAccountAmount, amount).toString() : buf.tradeAccountAmount;
+                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
         }
-        log.info("[iterate func]: allAccountAmount={}, tradeAccountAmount={}", buf.allAccountAmount, buf.tradeAccountAmount);
+        log.info("[iterate func end]: type={}, amount={}, allAccountAmount={}, tradeAccountAmount={}", type, amount, buf.allAccountAmount, buf.tradeAccountAmount);
     }
 
     @Override
     public Writable terminate(Writable buffer) throws UDFException {
         AmountBuffer buf = (AmountBuffer) buffer;
-        BigDecimalWritable ret = new BigDecimalWritable(new BigDecimal(buf.allAccountAmount));
+        Text ret = new Text(buf.allAccountAmount);
         return ret;
     }
 

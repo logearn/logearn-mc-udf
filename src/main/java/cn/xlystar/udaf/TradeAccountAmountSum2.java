@@ -106,11 +106,16 @@ public class TradeAccountAmountSum2 extends Aggregator {
         String price = ((Text) args[2]).toString();
         String tradeAccountAmount = ((Text) args[3]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
+        log.info("[iterate func start]: type={}, amount={}, price={}, tradeAccountAmount={}", type, amount, price, tradeAccountAmount);
         if (amount != null) {
             if (type.equals("Base")) {
                 // todo: price
                 buf.tradeAccountAmount = tradeAccountAmount;
                 buf.allAccountAmount = amount;
+
+                String incrCost = ArithmeticUtils.mul(price, amount).toString();
+                buf.tradeAccountTokenCostSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostSumOfBuy, incrCost).toString();
+                buf.tradeAccountTokenAmountSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenAmountSumOfBuy, amount).toString();
             }
             if (type.equals("Buy")) {
                 buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount).toString();
@@ -150,7 +155,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
                 }
             }
         }
-        log.info("[iterate func]: type={}, amount={}, price={}, AmountBuffer=[{}]", type, amount, price, buf.toString());
+        log.info("[iterate func end]: type={}, amount={}, price={}, tradeAccountAmount={}, AmountBuffer=[{}]", type, amount, price, tradeAccountAmount, buf.toString());
     }
 
     @Override

@@ -83,6 +83,7 @@ public class TradeAccountAmountSum extends Aggregator {
         String amount = ((Text) args[1]).toString();
         String tradeAccountAmount = ((Text) args[2]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
+        log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
         if (amount != null) {
             if (type.equals("Base")) {
                 buf.tradeAccountAmount = tradeAccountAmount;
@@ -107,7 +108,7 @@ public class TradeAccountAmountSum extends Aggregator {
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
         }
-        log.info("[iterate func]: type={}, amount={}, allAccountAmount={}, tradeAccountAmount={}", type, amount, buf.allAccountAmount, buf.tradeAccountAmount);
+        log.info("[iterate func end]: type={}, amount={}, allAccountAmount={}, tradeAccountAmount={}", type, amount, buf.allAccountAmount, buf.tradeAccountAmount);
     }
 
     @Override
