@@ -48,6 +48,12 @@ public class TradeAccountAmountSum extends Aggregator {
             allAccountAmount = in.readUTF();
             tradeAccountAmount = in.readUTF();
         }
+
+        @Override
+        public String toString() {
+            String str = String.format("{allAccountAmount=%s, tradeAccountAmount=%s}", allAccountAmount, tradeAccountAmount);
+            return str;
+        }
     }
 
     @Override
@@ -85,32 +91,44 @@ public class TradeAccountAmountSum extends Aggregator {
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
         if (amount != null) {
-            if (type.equals("Base")) {
+            if ("Base".equals(type)) {
                 buf.tradeAccountAmount = tradeAccountAmount;
                 buf.allAccountAmount = amount;
             }
-            if (type.equals("Buy")) {
+            if ("Buy".equals(type)) {
                 buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("Sell")) {
+            if ("Sell".equals(type)) {
                 boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
-                buf.tradeAccountAmount =
-                        isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
+                buf.tradeAccountAmount = isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("TransferIn")) {
+            if ("TransferIn".equals(type)) {
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("TransferOut")) {
+            if ("TransferOut".equals(type)) {
+                boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.tradeAccountAmount = isTransferAccountNotEnough ? ArithmeticUtils.sub(buf.allAccountAmount, amount).toString() : buf.tradeAccountAmount;
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+                if (isTransferAccountNotEnough && hasTransferAmount) {
+                    buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+                            ArithmeticUtils.sub(amount,
+                                    ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+                } else if (isTransferAccountNotEnough) {
+                    buf.tradeAccountAmount = "0";
+                }
             }
         }
-        log.info("[iterate func end]: type={}, amount={}, allAccountAmount={}, tradeAccountAmount={}", type, amount, buf.allAccountAmount, buf.tradeAccountAmount);
+        log.info("[iterate func end]: type={}, amount={}, tradeAccountAmount={}, AmountBuffer={}", type, amount, tradeAccountAmount, buf.toString());
     }
 
+    public static void main(String[] args) {
+        boolean isTransferAccountNotEnough = ArithmeticUtils.compare("68478055", ArithmeticUtils.sub("164464593", "48466892").toString());
+        String tradeAccountAmount = isTransferAccountNotEnough ? "0" :  ArithmeticUtils.sub("48466892", "68478055").toString();
+        String allAccountAmount = ArithmeticUtils.sub("164464593", "48466892").toString();
+        System.out.println(tradeAccountAmount+ " "+allAccountAmount);
+    }
     @Override
     public Writable terminate(Writable buffer) throws UDFException {
         AmountBuffer buf = (AmountBuffer) buffer;

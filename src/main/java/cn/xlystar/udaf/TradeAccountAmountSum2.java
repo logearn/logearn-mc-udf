@@ -66,7 +66,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
 
         @Override
         public String toString() {
-            String str = String.format("allAccountAmount=%s, tradeAccountAmount=%s, tradeAccountTokenAmountSumOfBuy=%s, tradeAccountTokenCostSumOfBuy=%s, tradeAccountPerTokenCost=%s", allAccountAmount, tradeAccountAmount, tradeAccountTokenAmountSumOfBuy, tradeAccountTokenCostSumOfBuy, getTradeAccountPerTokenCost());
+            String str = String.format("{allAccountAmount=%s, tradeAccountAmount=%s, tradeAccountTokenAmountSumOfBuy=%s, tradeAccountTokenCostSumOfBuy=%s, tradeAccountPerTokenCost=%s}", allAccountAmount, tradeAccountAmount, tradeAccountTokenAmountSumOfBuy, tradeAccountTokenCostSumOfBuy, getTradeAccountPerTokenCost());
             return str;
         }
     }
@@ -108,7 +108,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, price={}, tradeAccountAmount={}", type, amount, price, tradeAccountAmount);
         if (amount != null) {
-            if (type.equals("Base")) {
+            if ("Base".equals(type)) {
                 // todo: price
                 buf.tradeAccountAmount = tradeAccountAmount;
                 buf.allAccountAmount = amount;
@@ -117,7 +117,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
                 buf.tradeAccountTokenCostSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostSumOfBuy, incrCost).toString();
                 buf.tradeAccountTokenAmountSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenAmountSumOfBuy, amount).toString();
             }
-            if (type.equals("Buy")) {
+            if ("Buy".equals(type)) {
                 buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
 
@@ -126,10 +126,9 @@ public class TradeAccountAmountSum2 extends Aggregator {
                 buf.tradeAccountTokenCostSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostSumOfBuy, incrCost).toString();
                 buf.tradeAccountTokenAmountSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenAmountSumOfBuy, amount).toString();
             }
-            if (type.equals("Sell")) {
+            if ("Sell".equals(type)) {
                 boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
-                buf.tradeAccountAmount =
-                        isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
+                buf.tradeAccountAmount = isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
 
                 //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
@@ -139,14 +138,20 @@ public class TradeAccountAmountSum2 extends Aggregator {
                     buf.tradeAccountTokenAmountSumOfBuy = "0";
                 }
             }
-            if (type.equals("TransferIn")) {
+            if ("TransferIn".equals(type)) {
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("TransferOut")) {
+            if ("TransferOut".equals(type)) {
+                boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.tradeAccountAmount = isTransferAccountNotEnough ? ArithmeticUtils.sub(buf.allAccountAmount, amount).toString() : buf.tradeAccountAmount;
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
-
+                if (isTransferAccountNotEnough && hasTransferAmount) {
+                    buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+                            ArithmeticUtils.sub(amount,
+                                    ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+                } else if (isTransferAccountNotEnough) {
+                    buf.tradeAccountAmount = "0";
+                }
                 //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
                 boolean isTradeAccountClean = "0".equals(buf.tradeAccountAmount);
                 if (isTradeAccountClean) {
@@ -155,7 +160,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
                 }
             }
         }
-        log.info("[iterate func end]: type={}, amount={}, price={}, tradeAccountAmount={}, AmountBuffer=[{}]", type, amount, price, tradeAccountAmount, buf.toString());
+        log.info("[iterate func end]: type={}, amount={}, price={}, tradeAccountAmount={}, AmountBuffer={}", type, amount, price, tradeAccountAmount, buf.toString());
     }
 
     @Override

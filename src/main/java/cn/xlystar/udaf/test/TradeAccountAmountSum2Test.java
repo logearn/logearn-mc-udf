@@ -20,10 +20,10 @@ public class TradeAccountAmountSum2Test {
     @Test
     public void simpleInput() throws Exception {
         BaseRunner runner = new AggregatorRunner(null,
-                "cn.xlystar.udaf.TradeAccountAmountSum2");
-        runner.feed(new Object[]{"Buy", "1", "1", "0"})
-                .feed(new Object[]{"Buy", "2", "1", "0"})
-                .feed(new Object[]{"Buy", "3", "1", "0"});
+                "cn.xlystar.udaf.TradeAccountAmountSum");
+        runner.feed(new Object[]{"Buy", "0", "0"})
+                .feed(new Object[]{"Sell", "2", "0"})
+                .feed(new Object[]{"Buy", "3", "0"});
         List<Object[]> out = runner.yield();
         Assert.assertEquals(1, out.size());
         Assert.assertTrue("1.000000000000000000".equals(out.get(0)[0].toString()));

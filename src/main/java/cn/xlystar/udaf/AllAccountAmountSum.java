@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 
 
 /**
- *
  * 输入：
  * type：事件类型
  * 正常有 Buy  Sell  TransferIn  TransferOut，这 4 种。
@@ -48,6 +47,11 @@ public class AllAccountAmountSum extends Aggregator {
         public void readFields(DataInput in) throws IOException {
             allAccountAmount = in.readUTF();
             tradeAccountAmount = in.readUTF();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("{allAccountAmount=%s, tradeAccountAmount=%s}", allAccountAmount, tradeAccountAmount);
         }
     }
 
@@ -86,30 +90,36 @@ public class AllAccountAmountSum extends Aggregator {
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
         if (amount != null) {
-            if (type.equals("Base")) {
+            if ("Base".equals(type)) {
                 buf.tradeAccountAmount = tradeAccountAmount;
                 buf.allAccountAmount = amount;
             }
-            if (type.equals("Buy")) {
+            if ("Buy".equals(type)) {
                 buf.tradeAccountAmount = ArithmeticUtils.add(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("Sell")) {
+            if ("Sell".equals(type)) {
                 boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
-                buf.tradeAccountAmount =
-                        isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
+                buf.tradeAccountAmount = isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("TransferIn")) {
+            if ("TransferIn".equals(type)) {
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
             }
-            if (type.equals("TransferOut")) {
+            if ("TransferOut".equals(type)) {
+                boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.tradeAccountAmount = isTransferAccountNotEnough ? ArithmeticUtils.sub(buf.allAccountAmount, amount).toString() : buf.tradeAccountAmount;
                 buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+                if (isTransferAccountNotEnough && hasTransferAmount) {
+                    buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+                                                                ArithmeticUtils.sub(amount,
+                                                                        ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+                } else if (isTransferAccountNotEnough) {
+                    buf.tradeAccountAmount = "0";
+                }
             }
         }
-        log.info("[iterate func end]: type={}, amount={}, allAccountAmount={}, tradeAccountAmount={}", type, amount, buf.allAccountAmount, buf.tradeAccountAmount);
+        log.info("[iterate func end]: type={}, amount={}, tradeAccountAmount={}, AmountBuffer={}", type, amount, buf.tradeAccountAmount, buf.toString());
     }
 
     @Override
