@@ -86,6 +86,7 @@ public class AllAccountAmountSum extends Aggregator {
     public void iterate(Writable buffer, Writable[] args) throws UDFException {
         String type = ((Text) args[0]).toString();
         String amount = ((Text) args[1]).toString();
+        amount = "Base".equals(type) ? amount : amount.replaceAll("^(-)", "");
         String tradeAccountAmount = ((Text) args[2]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
@@ -109,19 +110,33 @@ public class AllAccountAmountSum extends Aggregator {
             if ("TransferOut".equals(type)) {
                 boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
                 if (isTransferAccountNotEnough && hasTransferAmount) {
-                    buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
                                                                 ArithmeticUtils.sub(amount,
                                                                         ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
                 } else if (isTransferAccountNotEnough) {
-                    buf.tradeAccountAmount = "0";
+                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,amount).toString();
+                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
                 }
+                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
         }
         log.info("[iterate func end]: type={}, amount={}, tradeAccountAmount={}, AmountBuffer={}", type, amount, buf.tradeAccountAmount, buf.toString());
     }
 
+//    public static void main(String[] args) {
+//        boolean hasTransferAmount = ArithmeticUtils.compare("375358100000000000", "0");
+//        boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
+//        buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+//        if (isTransferAccountNotEnough && hasTransferAmount) {
+//            buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+//                    ArithmeticUtils.sub(amount,
+//                            ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+//        } else if (isTransferAccountNotEnough) {
+//            buf.tradeAccountAmount = "0";
+//        }
+//    }
     @Override
     public Writable terminate(Writable buffer) throws UDFException {
         AmountBuffer buf = (AmountBuffer) buffer;

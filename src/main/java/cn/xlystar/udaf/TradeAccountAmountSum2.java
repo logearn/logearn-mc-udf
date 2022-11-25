@@ -19,9 +19,9 @@ import java.io.IOException;
  * type：事件类型
  * 正常有 Buy  Sell  TransferIn  TransferOut，这 4 种。
  * 特殊值：Base，这 1 种。作用：初始化内部状态：tradeAccountAmount、allAccountAmount
- *
+ * <p>
  * amount: 统一为正数。目前不需要提前按 入还是出 的语义，处理 正负
- *
+ * <p>
  * tradeAccountAmount：之前 交易子账户的数量
  * <p>
  * 输出：tradeAccountAmount 交易子账户的数量
@@ -103,6 +103,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
     public void iterate(Writable buffer, Writable[] args) throws UDFException {
         String type = ((Text) args[0]).toString();
         String amount = ((Text) args[1]).toString();
+        amount = "Base".equals(type) ? amount : amount.replaceAll("^(-)", "");
         String price = ((Text) args[2]).toString();
         String tradeAccountAmount = ((Text) args[3]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
@@ -113,8 +114,7 @@ public class TradeAccountAmountSum2 extends Aggregator {
                 buf.tradeAccountAmount = tradeAccountAmount;
                 buf.allAccountAmount = amount;
 
-                String incrCost = ArithmeticUtils.mul(price, amount).toString();
-                buf.tradeAccountTokenCostSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostSumOfBuy, incrCost).toString();
+                buf.tradeAccountTokenCostSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostSumOfBuy, price).toString();
                 buf.tradeAccountTokenAmountSumOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenAmountSumOfBuy, amount).toString();
             }
             if ("Buy".equals(type)) {
@@ -144,14 +144,17 @@ public class TradeAccountAmountSum2 extends Aggregator {
             if ("TransferOut".equals(type)) {
                 boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
                 if (isTransferAccountNotEnough && hasTransferAmount) {
-                    buf.tradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
                             ArithmeticUtils.sub(amount,
                                     ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
                 } else if (isTransferAccountNotEnough) {
-                    buf.tradeAccountAmount = "0";
+                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,amount).toString();
+                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
                 }
+                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+
                 //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
                 boolean isTradeAccountClean = "0".equals(buf.tradeAccountAmount);
                 if (isTradeAccountClean) {

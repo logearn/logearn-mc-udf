@@ -22,9 +22,9 @@ public class TradeAccountAmountSumTest {
     public void simpleInput() throws Exception {
         BaseRunner runner = new AggregatorRunner(null,
                 "cn.xlystar.udaf.TradeAccountAmountSum");
-        runner.feed(new Object[]{"Buy", "1", "0"})
-                .feed(new Object[]{"Buy", "2", "0"})
-                .feed(new Object[]{"Buy", "3", "0"});
+        runner.feed(new Object[]{"TransferIn", "375358100000000000", "0"})
+                .feed(new Object[]{"TransferOut", "3556618632467793615", "0"})
+                .feed(new Object[]{"TransferOut", "3604460552484977442", "0"});
         List<Object[]> out = runner.yield();
         Assert.assertEquals(1, out.size());
         Assert.assertTrue("6".compareTo(out.get(0)[0].toString()) == 0);
