@@ -1,4 +1,4 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 import cn.xlystar.entity.AlarmMessage;
 import cn.xlystar.utils.HttpClientUtil;
@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
+ * 计算引擎：maxCompute
  * chekcdata 无法通过后，将发送请求，进行 task 的重新爬取
  * request_retry_spider(String spiderId, List<Date> dates, String status)
  * <p>

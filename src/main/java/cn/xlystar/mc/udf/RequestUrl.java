@@ -1,10 +1,9 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 
 import cn.xlystar.utils.HttpClientUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
-import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
@@ -15,6 +14,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 
 /**
+ * 计算引擎：maxCompute
  * request_url(String url)
  * url：要访问的url地址
  */

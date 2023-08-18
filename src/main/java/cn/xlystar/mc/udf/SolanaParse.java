@@ -1,4 +1,4 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 import cn.xlystar.entity.ParseEntity;
 import cn.xlystar.utils.HttpClientUtil;
@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 计算引擎：maxCompute
  * parse_data(String program_account, String data)
  * program_account：program_account 地址
  * data: 要解析的数据

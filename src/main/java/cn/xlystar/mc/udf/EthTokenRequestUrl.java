@@ -1,4 +1,4 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 import cn.xlystar.utils.HttpClientUtil;
 import com.alibaba.fastjson.JSONObject;
@@ -13,6 +13,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 
 /**
+ * 计算引擎：maxCompute
  * eth_token_request(String url)
  * url：要访问的url地址
  */

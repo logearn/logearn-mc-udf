@@ -1,4 +1,4 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 
 import cn.xlystar.utils.HttpClientUtil;
@@ -14,6 +14,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 
 /**
+ * 计算引擎：maxCompute
  * eth_metadata_request_url(String url)
  * url：要访问的url地址
  */

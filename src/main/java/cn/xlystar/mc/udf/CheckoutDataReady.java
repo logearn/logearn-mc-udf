@@ -1,4 +1,4 @@
-package cn.xlystar;
+package cn.xlystar.mc.udf;
 
 import cn.xlystar.entity.SolanaCheckDataPO;
 import cn.xlystar.utils.CustomException;
@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
+ * 计算引擎：maxCompute
  * checkout_data(Integer sum, String begin_time, String end_time)
  *
  * sum：数仓该阶段的总数量
