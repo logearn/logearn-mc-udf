@@ -25,7 +25,7 @@ public class BigNumMul extends UDF {
     public String evaluate(String num1, String num2, Integer scale) throws Exception {
         BigDecimal b1 = new BigDecimal(num1);
         BigDecimal b2 = new BigDecimal(num2);
-        return b1.multiply(b2).setScale(scale, RoundingMode.HALF_UP).toString();
+        return b1.setScale(512, RoundingMode.HALF_UP).multiply(b2).setScale(scale, RoundingMode.HALF_UP).toPlainString();
     }
 
     public static void main(String[] args) throws Exception {
