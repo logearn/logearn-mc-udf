@@ -14,7 +14,7 @@ import java.util.ArrayList;
 
 /**
  * 计算引擎：maxCompute
- * eth_token_request(String url)
+ * eth_token_request(String tokenAddress, String url)
  * url：要访问的url地址
  */
 public class EthTokenRequestUrl extends UDF {

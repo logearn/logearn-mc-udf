@@ -17,15 +17,17 @@ import java.math.RoundingMode;
  *
  */
 public class BigNumDiv extends UDF {
-    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public BigNumDiv() {
     }
 
     public String evaluate(String num1, String num2, Integer scale) throws Exception {
+        long startTime = System.currentTimeMillis();
         BigDecimal b1 = new BigDecimal(num1);
         BigDecimal b2 = new BigDecimal(num2);
-        return b1.setScale(512, RoundingMode.HALF_UP).divide(b2, RoundingMode.HALF_UP).setScale(scale, RoundingMode.HALF_UP).toPlainString();
+        String res = b1.setScale(scale, RoundingMode.HALF_UP).divide(b2, RoundingMode.HALF_UP).toPlainString();
+        System.out.println("num1:" + num1 + ", num2:" + num2 + ", res:" + res+", time:" + (System.currentTimeMillis() - startTime)+"ms");
+        return res;
     }
 
     public static void main(String[] args) throws Exception {

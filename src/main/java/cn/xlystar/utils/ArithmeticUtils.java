@@ -1,6 +1,7 @@
 package cn.xlystar.utils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * 用于高精确处理常用的数学运算
@@ -50,7 +51,7 @@ public class ArithmeticUtils {
         }
         BigDecimal b1 = new BigDecimal(v1);
         BigDecimal b2 = new BigDecimal(v2);
-        return b1.add(b2).toString();
+        return b1.setScale(scale, RoundingMode.HALF_UP).add(b2).setScale(scale, RoundingMode.HALF_UP).toPlainString();
     }
 
     public static void main(String[] args) {
@@ -104,7 +105,7 @@ public class ArithmeticUtils {
         }
         BigDecimal b1 = new BigDecimal(v1);
         BigDecimal b2 = new BigDecimal(v2);
-        return b1.subtract(b2).setScale(scale, BigDecimal.ROUND_HALF_UP).toString();
+        return b1.subtract(b2).setScale(scale, BigDecimal.ROUND_HALF_UP).toPlainString();
     }
 
     /**

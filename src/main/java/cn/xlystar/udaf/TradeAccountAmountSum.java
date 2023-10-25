@@ -26,7 +26,7 @@ import java.math.BigDecimal;
  * <p>
  * 输出：tradeAccountAmount 交易子账户的数量
  */
-@Resolve("STRING,STRING,STRING->STRING")
+@Resolve("STRING,STRING,STRING,STRING->STRING")
 public class TradeAccountAmountSum extends Aggregator {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -89,6 +89,7 @@ public class TradeAccountAmountSum extends Aggregator {
         String amount = ((Text) args[1]).toString();
         amount = "Base".equals(type) ? amount : amount.replaceAll("^(-)", "");
         String tradeAccountAmount = ((Text) args[2]).toString();
+        String priceUSD = ((Text) args[3]).toString();
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, tradeAccountAmount={}", type, amount, tradeAccountAmount);
         if (amount != null) {
@@ -102,8 +103,9 @@ public class TradeAccountAmountSum extends Aggregator {
             }
             if ("Sell".equals(type)) {
                 boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
+                boolean isAllAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.allAccountAmount);
                 buf.tradeAccountAmount = isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+                buf.allAccountAmount = isAllAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
             }
             if ("TransferIn".equals(type)) {
                 buf.allAccountAmount = ArithmeticUtils.add(buf.allAccountAmount, amount).toString();
@@ -111,6 +113,7 @@ public class TradeAccountAmountSum extends Aggregator {
             if ("TransferOut".equals(type)) {
                 boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
                 boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
+                boolean isAllAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.allAccountAmount);
                 if (isTransferAccountNotEnough && hasTransferAmount) {
                     String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
                             ArithmeticUtils.sub(amount,
@@ -120,7 +123,11 @@ public class TradeAccountAmountSum extends Aggregator {
                     String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,amount).toString();
                     buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
                 }
-                buf.allAccountAmount = ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+                buf.allAccountAmount = isAllAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+            }
+
+            if (!ArithmeticUtils.compare(ArithmeticUtils.mul(priceUSD, buf.tradeAccountAmount).toString(),"1")) {
+                buf.tradeAccountAmount = "0";
             }
         }
         log.info("[iterate func end]: type={}, amount={}, tradeAccountAmount={}, AmountBuffer={}", type, amount, tradeAccountAmount, buf.toString());
