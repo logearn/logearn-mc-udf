@@ -3,6 +3,7 @@ package cn.xlystar.mc.udaf;
 import com.aliyun.odps.udf.UDFException;
 import com.aliyun.odps.udf.UDTF;
 import com.aliyun.odps.udf.annotation.Resolve;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -78,12 +79,12 @@ public class UniSwapDataProcessExe extends UDTF {
                     // 接受者地址
                     String to = item.get("recipient").getAsString();
                     // 0x1表示发送者即接受者
-                    if(to.equals("0x1")){
+                    if(to.equals("0x0000000000000000000000000000000000000001")){
                         to = caller;
                     }
                     // 0x2表示uniswap合约是接受者，但是对于使用官方（app.uniswap.org）发起交易来说，接受者都是发起者
                     // 未来如果要统计所有的execute还要考虑更多情况
-                    if(to.equals("0x2")) {
+                    if(to.equals("0x0000000000000000000000000000000000000002")) {
                         to = caller;
                     }
 
@@ -158,7 +159,7 @@ public class UniSwapDataProcessExe extends UDTF {
      * @param inputs 输入数据数组
      * @return 返回解析后的JSON对象
      */
-    public JsonObject decodeInput(String commands, List<String> inputs) {
+    public static JsonObject decodeInput(String commands, List<String> inputs) {
         JsonObject result = new JsonObject();
 
         int currentIndex = 0;
@@ -192,7 +193,7 @@ public class UniSwapDataProcessExe extends UDTF {
                 default:
                     break;
             }
-            if (!decodedData.entrySet().isEmpty()){
+            if (!decodedData.entrySet().isEmpty()) {
                 result.add(command, decodedData);
             }
             currentIndex++;
@@ -203,14 +204,15 @@ public class UniSwapDataProcessExe extends UDTF {
 
     /**
      * V3_SWAP_EXACT_IN\V3_SWAP_EXACT_OUT:解析公共数据结构
+     *
      * @param inputData 输入数据字符串
      * @return 返回解析后的JSON对象
      */
-    private JsonObject decodeV3CommonData(String inputData) {
+    private static JsonObject decodeV3CommonData(String inputData) {
         JsonObject result = new JsonObject();
 
         // 解析接收者地址
-        BigInteger recipient = new BigInteger(inputData.substring(0, 64), 16);
+        String recipient = inputData.substring(24, 64);
         // 解析第一个金额值
         BigInteger amountA = new BigInteger(inputData.substring(64, 128), 16);
         // 解析第二个金额值
@@ -220,7 +222,7 @@ public class UniSwapDataProcessExe extends UDTF {
         boolean payerIsUser = payerIsUserBigInt.equals(BigInteger.ONE);
 
         // 将解析出的结果存入JSON对象
-        result.addProperty("recipient", "0x" + recipient.toString(16));
+        result.addProperty("recipient", "0x" + recipient);
         result.addProperty("amountA", amountA.toString());
         result.addProperty("amountB", amountB.toString());
         result.addProperty("payerIsUser", payerIsUser);
@@ -241,14 +243,15 @@ public class UniSwapDataProcessExe extends UDTF {
 
     /**
      * V2_SWAP_EXACT_IN\V2_SWAP_EXACT_OUT:解析公共数据结构
+     *
      * @param inputData 输入数据字符串
      * @return 返回解析后的JSON对象
      */
-    private JsonObject decodeV2CommonData(String inputData) {
+    private static JsonObject decodeV2CommonData(String inputData) {
         JsonObject result = new JsonObject();
 
         // 解析接收者地址
-        BigInteger recipient = new BigInteger(inputData.substring(0, 64), 16);
+        String recipient = inputData.substring(24, 64);
         // 解析第一个金额值
         BigInteger amountA = new BigInteger(inputData.substring(64, 128), 16);
         // 解析第二个金额值
@@ -258,7 +261,7 @@ public class UniSwapDataProcessExe extends UDTF {
         boolean payerIsUser = payerIsUserBigInt.equals(BigInteger.ONE);
 
         // 将解析出的结果存入JSON对象
-        result.addProperty("recipient", "0x" + recipient.toString(16));
+        result.addProperty("recipient", "0x" + recipient);
         result.addProperty("amountA", amountA.toString());
         result.addProperty("amountB", amountB.toString());
         result.addProperty("payerIsUser", payerIsUser);
@@ -272,8 +275,8 @@ public class UniSwapDataProcessExe extends UDTF {
         // 解析路径信息-数据，v2的path构成是token地址+token地址，每个token地址占64个字符
         StringBuilder pathHex = new StringBuilder();
         for (int i = 0; i < pathLength; i += 1) {
-            BigInteger tpath = new BigInteger(inputData.substring(pathOffset + 64 + i * 64, pathOffset + 128 + i * 64), 16);
-            pathHex.append(tpath.toString(16));
+            String tpath = inputData.substring(pathOffset + 64 + i * 64, pathOffset + 128 + i * 64);
+            pathHex.append(tpath.substring(24, 64));
         }
         // 如果您需要从pathHex中提取更多信息，可以在此处进行
         result.addProperty("path", "0x" + pathHex);
