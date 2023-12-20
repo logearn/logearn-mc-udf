@@ -1,6 +1,7 @@
 package cn.xlystar.mc.udf;
 
 import com.aliyun.odps.udf.UDF;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ public class BigNumAdd extends UDF {
 
     public String evaluate(String num1, String num2, Integer scale) throws Exception {
         long startTime = System.currentTimeMillis();
+        if (StringUtils.isEmpty(num1) || StringUtils.isEmpty(num2) ) return "0";
         BigDecimal b1 = new BigDecimal(num1);
         BigDecimal b2 = new BigDecimal(num2);
         String res = b1.setScale(scale, RoundingMode.HALF_UP).add(b2).toPlainString();

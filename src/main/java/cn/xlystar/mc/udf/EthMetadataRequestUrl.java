@@ -24,7 +24,7 @@ public class EthMetadataRequestUrl extends UDF {
 
     //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
     private final String protocol = "https://";
-    private String URL = "/uniearn/warehouse/eth_metadata_request";
+    private String URL = "/logearn/warehouse/eth_metadata_request";
 
     public EthMetadataRequestUrl() {
     }
@@ -63,7 +63,7 @@ public class EthMetadataRequestUrl extends UDF {
     public static void main(String[] args) {
         EthMetadataRequestUrl requestUrl = new EthMetadataRequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("0x0da18e368271915c87935f4d83fea00953cfa2b1", "5451", "uniearn.info:443"));
+            System.out.println(requestUrl.evaluate("0x0da18e368271915c87935f4d83fea00953cfa2b1", "5451", "logearn.com:443"));
         }
     }
 }

@@ -27,7 +27,7 @@ import java.io.IOException;
  * <p>
  * 输出：tradeAccountAmount 交易子账户的数量
  */
-@Resolve("STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING->STRING")
+@Resolve("STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING->STRING")
 public class AccountAmountSum extends Aggregator {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -148,7 +148,8 @@ public class AccountAmountSum extends Aggregator {
 //        price = StringUtils.isNullOrEmpty(price) ? "0" : price;
         String priceUSD = args[8] == null || StringUtils.isNullOrEmpty(args[8].toString()) ? "0" : args[8].toString();// token:usd 汇率
         String priceETH = args[9] == null || StringUtils.isNullOrEmpty(args[9].toString()) ? "0" : args[9].toString(); // token:eth 汇率
-        String tokenPositionNum = args[10] == null || StringUtils.isNullOrEmpty(args[10].toString()) ? "0" : args[10].toString(); // 仓位序号
+        String out_by_in_ratio = args[10] == null || StringUtils.isNullOrEmpty(args[10].toString()) ? "0" : args[10].toString(); // token:eth 汇率
+        String tokenPositionNum = args[11] == null || StringUtils.isNullOrEmpty(args[11].toString()) ? "0" : args[11].toString(); // 仓位序号
         AmountBuffer buf = (AmountBuffer) buffer;
         log.info("[iterate func start]: type={}, amount={}, price={}, tradeAccountAmount={}", type, amount, priceUSD, tradeAccountAmount);
         //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
@@ -215,19 +216,21 @@ public class AccountAmountSum extends Aggregator {
                 if ("0".equals(buf.tradeAccountAmount) && "0".equals(buf.tradePositionNum)) {
                     buf.tradePositionNum = "-1";
                 }
-                boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
-                boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
+//                boolean hasTransferAmount = ArithmeticUtils.compare(buf.allAccountAmount, buf.tradeAccountAmount);
+//                boolean isTransferAccountNotEnough = ArithmeticUtils.compare(amount, ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString());
                 boolean isAllAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.allAccountAmount);
-                if (isTransferAccountNotEnough && hasTransferAmount) {
-                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
-                            ArithmeticUtils.sub(amount,
-                                    ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
-                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
-                } else if (isTransferAccountNotEnough) {
-                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
-                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
-                }
+                boolean isTradeAccountAmountNotEnough = ArithmeticUtils.compare(amount, buf.tradeAccountAmount);
+//                if (isTransferAccountNotEnough && hasTransferAmount) {
+//                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount,
+//                            ArithmeticUtils.sub(amount,
+//                                    ArithmeticUtils.sub(buf.allAccountAmount, buf.tradeAccountAmount).toString()).toString()).toString();
+//                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
+//                } else if (isTransferAccountNotEnough) {
+//                    String tempTradeAccountAmount = ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
+//                    buf.tradeAccountAmount = ArithmeticUtils.compare("0", tempTradeAccountAmount) ? "0" : tempTradeAccountAmount;
+//                }
                 buf.allAccountAmount = isAllAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.allAccountAmount, amount).toString();
+                buf.tradeAccountAmount = isTradeAccountAmountNotEnough ? "0" : ArithmeticUtils.sub(buf.tradeAccountAmount, amount).toString();
 
 //                //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
 //                boolean isTradeAccountClean = "0".equals(buf.tradeAccountAmount);
@@ -236,7 +239,7 @@ public class AccountAmountSum extends Aggregator {
 //                    buf.tradeAccountTokenAmountSumOfBuy = "0";
 //                }
             }
-            if (!ArithmeticUtils.compare(ArithmeticUtils.mul(priceUSD, buf.tradeAccountAmount).toString(), "1")) {
+            if (!ArithmeticUtils.compare(ArithmeticUtils.mul(out_by_in_ratio, buf.tradeAccountAmount).toString(), "1")) {
                 buf.tradeAccountAmount = "0";
             }
         }

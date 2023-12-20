@@ -23,7 +23,7 @@ public class EthTokenRequestUrl extends UDF {
 
     //    private String DEV_URL = "https://dev.kingdata.work:443/parse";
     private final String protocol = "https://";
-    private String URL = "/uniearn/warehouse/eth_token_request";
+    private String URL = "/logearn/warehouse/eth_token_request";
 
     public EthTokenRequestUrl() {
     }
@@ -61,7 +61,7 @@ public class EthTokenRequestUrl extends UDF {
     public static void main(String[] args) {
         EthTokenRequestUrl requestUrl = new EthTokenRequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "uniearn.info:443"));
+            System.out.println(requestUrl.evaluate("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "logearn.com:443"));
         }
     }
 }
