@@ -714,10 +714,29 @@ public class PancakeSwapDataProcessFull {
             }
 
         });
-        transferToUniswapSell(transferLog, resEventLists);
-
+        Map<String, Map<String, BigInteger>> finalTransfer = calculateBalances(transferLog);
+        List<TransferEvent> groupTransfer = groupTransfer(finalTransfer);
+        transferToUniswapSell(groupTransfer, resEventLists);
 
         return resEventLists;
+    }
+
+    private static List<TransferEvent> groupTransfer(Map<String, Map<String, BigInteger>> finalTransfer) {
+        List<TransferEvent> list = new ArrayList<>();
+        for (Map.Entry<String, Map<String, BigInteger>> entry : finalTransfer.entrySet()) {
+            String address = entry.getKey();
+            Map<String, BigInteger> tokens = entry.getValue();
+            for (Map.Entry<String, BigInteger> tokenEntry : tokens.entrySet()) {
+                if (tokenEntry.getValue().compareTo(BigInteger.ZERO) > 0) {
+                    list.add(TransferEvent.builder()
+                            .amount(tokenEntry.getValue())
+                            .contractAddress(tokenEntry.getKey())
+                            .contractAddress(address)
+                            .build());
+                }
+            }
+        }
+        return list;
     }
 
     private static void transferToUniswapSell(List<TransferEvent> transferLog, ArrayList<UniswapEvent> eventLists) {
