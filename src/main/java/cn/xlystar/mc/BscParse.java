@@ -24,8 +24,8 @@ public class BscParse extends UDF {
     public BscParse() {
     }
 
-    public String evaluate(String inputData, String from, String to, String value, String logs, String internalTxs) throws Exception {
-        List<Map<String, String>> maps = PancakeSwapDataProcess.decodeInputData(inputData, from, to, value, logs, internalTxs);
+    public String evaluate(String inputData, String from, String to, String value, String logs, String internalTxs, String hash) throws Exception {
+        List<Map<String, String>> maps = PancakeSwapDataProcess.decodeInputData(inputData, from, to, value, logs, internalTxs, hash);
         return JSON.toJSONString(maps);
     }
 

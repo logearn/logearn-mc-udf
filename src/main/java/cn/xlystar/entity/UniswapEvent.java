@@ -19,5 +19,6 @@ public class UniswapEvent extends Event implements Serializable {
     private String contractAddress;
     private String protocol;
     private String version;
+    private String errorMsg;
 
 }

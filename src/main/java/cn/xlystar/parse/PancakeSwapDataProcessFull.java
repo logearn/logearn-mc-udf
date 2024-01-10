@@ -10,11 +10,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PancakeSwapDataProcessFull {
 
@@ -455,9 +453,9 @@ public class PancakeSwapDataProcessFull {
             "                \"type\": \"0x0\"\n" +
             "            }";
 
-    public static List<Map<String, String>> parseFullUniswap(String log) throws IOException {
+    public static List<Map<String, String>> parseFullUniswap(String log, String hash, List<TransferEvent> tftxs) throws IOException {
         List<Map<String, String>> lists = new ArrayList<>();
-        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(log);
+        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(log, hash, tftxs);
         uniswapEvents.forEach(t -> {
                     HashMap<String, String> map = new HashMap<>();
                     map.put("caller", t.getSender());
@@ -467,7 +465,9 @@ public class PancakeSwapDataProcessFull {
                     map.put("amountOut", t.getAmountOut().toString());
                     map.put("tokenIn", t.getTokenIn());
                     map.put("tokenOut", t.getTokenOut());
-                    map.put("protocol", "pancake");
+                    map.put("protocol", t.getProtocol());
+                    map.put("version", t.getVersion());
+                    map.put("errorMsg", t.getErrorMsg());
                     map.put("chain", "56");
                     if ("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c".toLowerCase().equals(t.getTokenIn())) {
                         map.put("eventType", "buy");
@@ -480,7 +480,7 @@ public class PancakeSwapDataProcessFull {
         return lists;
     }
 
-    public static List<UniswapEvent> parseAllUniSwapLogs(String log) throws IOException {
+    public static List<UniswapEvent> parseAllUniSwapLogs(String log, String hash, List<TransferEvent> tftxs) throws IOException {
         if(log.isEmpty()){
             return new ArrayList<>();
         }
@@ -557,24 +557,171 @@ public class PancakeSwapDataProcessFull {
                 }
             }
         }
+        tftxs.forEach(tf->{
+            transferLog.add(tf);
+        });
 //        parseShortPathUniswap(transferLog, uniswapV2Log, uniswapV3Log, lists, eventLists);
+
+        // 3、统计所有transfer的token和数量
+        Map<String, Map<String, BigInteger>> balances = calculateBalances(transferLog);
+        Map<String, Map<String, BigInteger>> _balances = balances.entrySet().stream()
+                .filter(entry -> entry.getValue().size() >= 2 && hasPositiveAndNegative(entry.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        //4、保存有价值的地址
+        List<String> addrs = new ArrayList<>();
+        for (Map.Entry<String, Map<String, BigInteger>> entry : _balances.entrySet()) {
+            String address = entry.getKey();
+            Map<String, BigInteger> tokens = entry.getValue();
+
+            addrs.add(address.toLowerCase());
+        }
+
+        // 5、 构建swap事件
         List<TransferEvent> excludeTransferLog = new ArrayList<>();
-        // System.out.println(transferLog);
-        // System.out.println(uniswapV2Log);
-        parseEasyUniswapV2(transferLog, excludeTransferLog, uniswapV2Log, lists, eventLists);
-        parseEasyUniswapV3(transferLog, excludeTransferLog, uniswapV3Log, lists, eventLists);
-//        transferLog.removeAll(excludeTransferLog);
-//        transferToUniswapSell(transferLog, lists, eventLists);
-        return eventLists;
+        parseEasyUniswapV2(transferLog, excludeTransferLog, uniswapV2Log, lists, eventLists, hash);
+        parseEasyUniswapV3(transferLog, excludeTransferLog, uniswapV3Log, lists, eventLists, hash);
+
+        transferLog.removeAll(excludeTransferLog); // 移除已经使用的transfer
+
+        // 6、串联swap事件
+        ArrayList<UniswapEvent> _eventLists = new ArrayList<>();
+        ArrayList<UniswapEvent> eventLists2 = new ArrayList<>();
+        eventLists.forEach(e->{
+            eventLists2.add(e);
+        });
+        eventLists.forEach(u -> {
+            UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
+            builder.protocol(u.getProtocol())
+                    .version(u.getVersion())
+                    .amountIn(u.getAmountIn())
+                    .amountOut(u.getAmountOut())
+                    .tokenIn(u.getTokenIn())
+                    .tokenOut(u.getTokenOut());
+            // 向前找最早1个swap事件
+            UniswapEvent _tpre = findPreEvent(eventLists2, u);
+            builder.tokenIn(_tpre.getTokenIn());
+            builder.amountIn(_tpre.getAmountIn());
+            builder.sender(_tpre.getSender());
+
+            // 向后找最后一个swap事件
+            UniswapEvent _taft = findAfterEvent(eventLists2, u);
+            builder.tokenOut(_taft.getTokenOut());
+            builder.amountOut(_taft.getAmountOut());
+            builder.to(_taft.getTo());
+            UniswapEvent build = builder.build();
+            _eventLists.add(build);
+        });
+
+        // 过滤重复event事件
+        Set<String> seen = new HashSet<>();
+        List<UniswapEvent> _uniqueList = new ArrayList<>();
+
+        for (UniswapEvent map : _eventLists) {
+            String key = map.getSender() + map.getTo() + map.getTokenIn() + map.getTokenOut() + map.getAmountIn() + map.getAmountOut();
+            if (!seen.contains(key)) {
+                seen.add(key);
+                _uniqueList.add(map);
+            }
+        }
+
+        // transferToUniswapSell(transferLog, lists, eventLists);
+//        System.out.println("start ==============");
+//        System.out.println(_eventLists);
+//        System.out.println(_uniqueList);
+//        System.out.println("end ==============");
+
+        // 7、串联transfer事件
+        _uniqueList.forEach(ut->{
+            TransferEvent _tmpPreTf = findPreTx(transferLog, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn());
+            if (_tmpPreTf.getSender()==null || _tmpPreTf.getSender().equalsIgnoreCase("")){
+                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
+                return;
+            }
+            ut.setSender(_tmpPreTf.getSender());
+            TransferEvent _tmpAftTf = findPreTx(transferLog, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut());
+            if (_tmpPreTf.getSender() == null || _tmpPreTf.getSender().equalsIgnoreCase("")){
+                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
+                return;
+            }
+            ut.setTo(_tmpAftTf.getReceiver());
+        });
+
+        // 8、swap事件和有价值地址进行交叉判断，只保留有价值的地址的swap
+        ArrayList<UniswapEvent> resEventLists = new ArrayList<>();
+        // swap事件是否在期望的地址中
+        _uniqueList.forEach(e->{
+            if(
+                    (e.getSender().equalsIgnoreCase(e.getTo()) &&
+                            addrs.contains(e.getSender().toLowerCase()))
+                            || e.getErrorMsg() != null
+            ){
+                resEventLists.add(e);
+            }
+        });
+
+        // 9、将最终的 swap 关联上的 transfer 去掉。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
+        resEventLists.forEach(uniswapEvent -> {
+            TransferEvent transferIn = TransferEvent.builder()
+                    .sender(uniswapEvent.getSender())
+                    .amount(uniswapEvent.getAmountIn())
+                    .contractAddress(uniswapEvent.getTokenIn())
+                    .build();
+
+            for(int i = 0, len = transferLog.size(); i < len; i++){
+                TransferEvent transferEvent = transferLog.get(i);
+                if (transferEvent.getAmount().equals(BigInteger.ZERO)) {
+                    transferLog.remove(i);
+                    len--;
+                    i--;
+                    continue;
+                }
+
+                if(transferIn.getSender().equals(transferEvent.getSender()) &&
+                        transferIn.getAmount().equals(transferEvent.getAmount()) &&
+                        transferIn.getContractAddress().equals(transferEvent.getContractAddress())
+                ){
+                    transferLog.remove(i);
+                    return;
+                }
+            }
+
+            TransferEvent transferOut = TransferEvent.builder()
+                    .receiver(uniswapEvent.getTo())
+                    .amount(uniswapEvent.getAmountOut())
+                    .contractAddress(uniswapEvent.getTokenOut())
+                    .build();
+            for(int i = 0, len = transferLog.size(); i < len; i++){
+                TransferEvent transferEvent = transferLog.get(i);
+                if (transferEvent.getAmount().equals(BigInteger.ZERO)) {
+                    transferLog.remove(i);
+                    len--;
+                    i--;
+                    continue;
+                }
+                if(transferOut.getSender().equals(transferEvent.getSender()) &&
+                        transferOut.getAmount().equals(transferEvent.getAmount()) &&
+                        transferOut.getContractAddress().equals(transferEvent.getContractAddress())
+                ){
+                    transferLog.remove(i);
+                    return;
+                }
+            }
+
+        });
+        transferToUniswapSell(transferLog, resEventLists);
+
+
+        return resEventLists;
     }
 
-    private static void transferToUniswapSell(List<TransferEvent> transferLog, ArrayList<Object> lists, ArrayList<UniswapEvent> eventLists) {
+    private static void transferToUniswapSell(List<TransferEvent> transferLog, ArrayList<UniswapEvent> eventLists) {
         transferLog.forEach( t -> {
             // transferOut 事件构造成 Uniswap Sell 操作
             if ("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c".equals(t.getContractAddress())) return;
             UniswapEvent build = UniswapEvent.builder()
-                    .protocol("pancake")
-                    .version("v3")
+                    .protocol("transferOut")
+                    .version("transferOut")
                     .amountIn(t.getAmount())
                     .amountOut(new BigInteger("0"))
                     .tokenIn(t.getContractAddress())
@@ -652,7 +799,7 @@ public class PancakeSwapDataProcessFull {
 
             }
             UniswapEvent build = builder.build();
-            if (checkUniswapEvent(build)) {
+            if (checkUniswapEvent(build, "")) {
                 lists.add(JSONObject.toJSONString(u));
 //                eventLists.add(build);
             }
@@ -723,7 +870,7 @@ public class PancakeSwapDataProcessFull {
                 }
             }
             UniswapEvent build = builder.build();
-            if (checkUniswapEvent(build)) {
+            if (checkUniswapEvent(build, "")) {
                 lists.add(JSONObject.toJSONString(u));
 //                eventLists.add(build);
             }
@@ -736,73 +883,67 @@ public class PancakeSwapDataProcessFull {
 
     }
 
-    private static void parseEasyUniswapV3(List<TransferEvent> transferLog, List<TransferEvent> excludeTransferLog, List<UniswapV3Event> uniswapV3Log, ArrayList<Object> lists, ArrayList<UniswapEvent> eventLists) {
+    private static void parseEasyUniswapV3(List<TransferEvent> transferLog, List<TransferEvent> excludeTransferLog, List<UniswapV3Event> uniswapV3Log, ArrayList<Object> lists, ArrayList<UniswapEvent> eventLists, String hash) {
         uniswapV3Log.forEach(u -> {
             String poolAddress = u.getContractAddress();
             BigInteger amount0 = u.getAmount0();
-            boolean token0IsOut = amount0.compareTo(BigInteger.ZERO) < 0;
             BigInteger amount1 = u.getAmount1();
-            boolean token1IsOut = amount1.compareTo(BigInteger.ZERO) < 0;
+            boolean token0IsOut = amount0.compareTo(BigInteger.ZERO) < 0;
+            // 对于v3，大于0的是in，小于0的是out
+            BigInteger amountOut = token0IsOut ? amount0 :  amount1;
+            BigInteger amountIn = token0IsOut ? amount1 : amount0;
             String uTo = u.getRecipient();
             UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
+            builder.contractAddress(poolAddress);
+
+            String _tokenOut = "";
+            String _tokenIn = "";
             for (TransferEvent transferEvent : transferLog) {
                 String tokenAddress = transferEvent.getContractAddress();
                 BigInteger tAmount = transferEvent.getAmount();
                 String tSender = transferEvent.getSender();
                 String tReceiver = transferEvent.getReceiver();
+                if(tSender.equals(tReceiver)){
+                    System.out.printf("error : Transfer sender equal receiver! [%s] \n", hash);
+                    builder.errorMsg("error : Transfer sender equal receiver! : "+hash);
+                    continue;
+                }
                 // 1、uniswap 的 sender 地址 等于 transfer 的 sender 地址
                 // 或者 uniswap 的 sender 地址 等于 transfer 的 receiver 地址
                 // 2、同时对应的金额一致
                 // 3、不相等的另一个地址等于 uniswap 的池地址
                 if (
                         tReceiver.equalsIgnoreCase(uTo)
-                                && !tSender.equals(tokenAddress)
                                 && tSender.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount0.abs())
-                                && token0IsOut
+                                && amountOut.equals(tAmount)
                 ) {
-                    u.setToken0(tokenAddress);
+                    // 从池子中发出了多个transfer，异常情况
+                    if(_tokenOut != ""){
+                        System.out.printf("error : Had set token out!  [%s] \n", hash);
+                        builder.errorMsg("error : Had set token out! : "+hash);
+                        break;
+                    }
+                    _tokenOut = tokenAddress;
+                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo);
                     excludeTransferLog.add(transferEvent);
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo).contractAddress(poolAddress);
-                }
-
-                if (
-                        !tSender.equals(tokenAddress)
-                                && tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount0.abs())
-                                && !token0IsOut
+                }else if (
+                        tReceiver.equalsIgnoreCase(poolAddress)
+                                && amountIn.equals(tAmount)
                 ) {
-                    u.setToken0(tokenAddress);
+                    // 多个transfer进入了池子，异常情况
+                    if(_tokenIn != ""){
+                        System.out.printf("error : Had set token in!  [%s] \n", hash);
+                        builder.errorMsg("error : Had set token in! : "+hash);
+                        break;
+                    }
+                    _tokenIn = tokenAddress;
+                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender);
                     excludeTransferLog.add(transferEvent);
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender).contractAddress(poolAddress);
-                }
-
-                if (
-                        tReceiver.equalsIgnoreCase(uTo)
-                                && !tSender.equals(tokenAddress)
-                                && tSender.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount1.abs())
-                                && token1IsOut
-                ) {
-                    u.setToken1(tokenAddress);
-                    excludeTransferLog.add(transferEvent);
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo).contractAddress(poolAddress);
-                }
-
-                if (
-                        !tSender.equals(tokenAddress)
-                                && tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount1.abs())
-                                && !token1IsOut
-                ) {
-                    u.setToken1(tokenAddress);
-                    excludeTransferLog.add(transferEvent);
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender).contractAddress(poolAddress);
                 }
 
             }
             UniswapEvent build = builder.build();
-            if (checkUniswapEvent(build)) {
+            if (checkUniswapEvent(build, hash)) {
                 lists.add(JSONObject.toJSONString(u));
                 eventLists.add(build);
             }
@@ -810,7 +951,7 @@ public class PancakeSwapDataProcessFull {
 
     }
 
-    private static void parseEasyUniswapV2(List<TransferEvent> transferLog, List<TransferEvent> excludeTransferLog, List<UniswapV2Event> uniswapV2Log, ArrayList<Object> lists, ArrayList<UniswapEvent> eventLists) {
+    private static void parseEasyUniswapV2(List<TransferEvent> transferLog, List<TransferEvent> excludeTransferLog, List<UniswapV2Event> uniswapV2Log, ArrayList<Object> lists, ArrayList<UniswapEvent> eventLists, String hash) {
         uniswapV2Log.forEach(u -> {
             String poolAddress = u.getContractAddress();
             BigInteger amount1In = u.getAmount1In();
@@ -819,70 +960,184 @@ public class PancakeSwapDataProcessFull {
             BigInteger amount1Out = u.getAmount1Out();
             String uSender = u.getSender();
             String uTo = u.getTo();
+
+            // 对于v2，大于0的是out，其他是in
+            BigInteger amountOut = amount0Out.compareTo(BigInteger.ONE) > 0 ? amount0Out :  amount1Out;
+            BigInteger amountIn = amount1In.compareTo(BigInteger.ONE) > 0 ? amount1In :  amount0In;
             UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
+            builder.contractAddress(poolAddress);
+
+            String _tokenOut = "";
+            String _tokenIn = "";
             for (TransferEvent transferEvent : transferLog) {
                 String tokenAddress = transferEvent.getContractAddress();
                 BigInteger tAmount = transferEvent.getAmount();
                 String tSender = transferEvent.getSender();
                 String tReceiver = transferEvent.getReceiver();
+                if(tSender.equals(tReceiver)){
+                    System.out.printf("error : Transfer sender equal receiver! [%s] \n", hash);
+                    builder.errorMsg("error : Transfer sender equal receiver! : "+hash);
+                    continue;
+                }
                 // 1、uniswap 的 sender 地址 等于 transfer 的 sender 地址
                 // 或者 uniswap 的 sender 地址 等于 transfer 的 receiver 地址
                 // 2、同时对应的金额一致
                 // 3、不相等的另一个地址等于 uniswap 的池地址
-                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", uTo = " + uTo + ", tSender = " + tSender + ", poolAddress = " + poolAddress + ", amount0Out = " + amount0Out + ", tAmount = " + tAmount + ", tokenAddress = " + tokenAddress);
+                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", tAmount = " + tAmount + ", amountIn = " + amountIn + ", amount1Out = " + amount1Out + ", uTo = " + uTo + ", tSender = " + tSender + ", poolAddress = " + poolAddress + ", amount0Out = " + amount0Out + ", tokenAddress = " + tokenAddress);
+                BigInteger k1 = amountOut.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
+                BigInteger k2 = amountIn.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
                 if (
                         tReceiver.equalsIgnoreCase(uTo)
                                 && tSender.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount0Out)
-                                && !BigInteger.ZERO.equals(amount0Out)
+                                && tAmount.compareTo(amountOut.subtract(k1)) > 0
+                                && tAmount.compareTo(amountOut.add(k1)) < 0
                 ) {
-                    u.setToken1(tokenAddress);
+                    // 从池子中发出了多个transfer，异常情况
+                    if(_tokenOut != ""){
+                        System.out.printf("error : Had set token out!  [%s]\n", hash);
+                        builder.errorMsg("error : Had set token out! : "+hash);
+                        break;
+                    }
+                    _tokenOut = tokenAddress;
+                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo);
                     excludeTransferLog.add(transferEvent);
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo).contractAddress(poolAddress);
-                }
-
-                if (
-                        tReceiver.equalsIgnoreCase(uTo)
-                                && tSender.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount1Out)
-                                && !BigInteger.ZERO.equals(amount1Out)
-                ) {
-                    u.setToken1(tokenAddress);
-                    excludeTransferLog.add(transferEvent);
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo).contractAddress(poolAddress);
-                }
-
-                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", uTo = " + uTo + ", tSender = " + tSender + ", poolAddress = " + poolAddress + ", amount1In = " + amount1In + ", tAmount = " + tAmount + ", tokenAddress = " + tokenAddress);
-                if (
+                }else if (
                         tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount1In)
-                                && !BigInteger.ZERO.equals(amount1In)
+                                && tAmount.compareTo(amountIn.subtract(k2)) > 0
+                                && tAmount.compareTo(amountIn.add(k2)) < 0
                 ) {
-                    u.setToken1(tokenAddress);
+                    // 多个transfer进入了池子，异常情况
+                    if(_tokenIn != ""){
+                        System.out.printf("error : Had set token in!  [%s]\n", hash);
+                        builder.errorMsg("error : Had set token in! : "+hash);
+                        break;
+                    }
+                    _tokenIn = tokenAddress;
+                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender);
                     excludeTransferLog.add(transferEvent);
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender).contractAddress(poolAddress);
-                }
-
-                if (
-                        tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.equals(amount0In)
-                                && !BigInteger.ZERO.equals(amount0In)
-                ) {
-                    u.setToken0(tokenAddress);
-                    excludeTransferLog.add(transferEvent);
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender).contractAddress(poolAddress);
                 }
             }
             UniswapEvent build = builder.build();
-            if (checkUniswapEvent(build)) {
+            if (checkUniswapEvent(build, hash)) {
                 lists.add(JSONObject.toJSONString(u));
                 eventLists.add(build);
-                //System.out.println("-----");
-                //System.out.println(build);
-                //System.out.println("-----");
             }
         });
 
+    }
+
+    public static UniswapEvent findPreEvent(ArrayList<UniswapEvent> events, UniswapEvent target) {
+        if (events.isEmpty()) {
+            return target;
+        }
+        Iterator<UniswapEvent> iterator = events.iterator();
+        while (iterator.hasNext()) {
+            UniswapEvent elem = iterator.next();
+            if(elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
+                if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn()) && elem.getAmountOut().equals(target.getAmountIn())
+                        && (elem.getTo().equalsIgnoreCase(target.getSender()) || elem.getTo().equalsIgnoreCase(target.getContractAddress()))
+                ) {
+                    iterator.remove(); // 移除匹配到的元素
+                    return findPreEvent(events, elem);
+                }
+            }
+        }
+        return target; // 或者返回null，如果你希望在未找到时返回空
+    }
+    public static UniswapEvent findAfterEvent(ArrayList<UniswapEvent> events, UniswapEvent target) {
+        if (events.isEmpty()) {
+            return target;
+        }
+        Iterator<UniswapEvent> iterator = events.iterator();
+        while (iterator.hasNext()) {
+            UniswapEvent elem = iterator.next();
+            if(elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
+                if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut()) && elem.getAmountIn().equals(target.getAmountOut())
+                        && (elem.getSender().equalsIgnoreCase(target.getTo()) || elem.getSender().equalsIgnoreCase(target.getContractAddress()))
+                ) {
+                    iterator.remove(); // 移除匹配到的元素
+                    return findAfterEvent(events, elem);
+                }
+            }
+        }
+        return target; // 或者返回null，如果你希望在未找到时返回空
+    }
+
+    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
+        if (internalTxs.isEmpty()) {
+            return TransferEvent.builder()
+                    .sender(from)
+                    .receiver(to)
+                    .amount(value)
+                    .contractAddress(token)
+                    .build();
+        }
+
+        int count = 0;
+        TransferEvent foundEvent = null;
+        Iterator<TransferEvent> iterator = internalTxs.iterator();
+        while (iterator.hasNext()) {
+            TransferEvent elem = iterator.next();
+            if (elem.getSender().equalsIgnoreCase(to) && elem.getContractAddress().equalsIgnoreCase(token)) {
+                count++;
+                foundEvent = elem;
+                if (count > 1) {
+                    // 如果找到多于一个符合条件的交易，返回空的 TransferEvent
+                    return TransferEvent.builder().build();
+                }
+                iterator.remove(); // 移除匹配到的元素
+                //return findAfterTx(internalTxs, elem.getAmount(), elem.getSender(), elem.getReceiver(), elem.getContractAddress());
+            }
+        }
+        if (count == 1) {
+            // 如果只找到一个符合条件的交易，递归继续查找
+            return findAfterTx(internalTxs, foundEvent.getAmount(), foundEvent.getSender(), foundEvent.getReceiver(), foundEvent.getContractAddress());
+        } else {
+            return TransferEvent.builder()
+                    .sender(from)
+                    .receiver(to)
+                    .amount(value)
+                    .contractAddress(token)
+                    .build();
+        }
+    }
+
+    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
+        if (internalTxs.isEmpty()) {
+            return TransferEvent.builder()
+                    .sender(from)
+                    .receiver(to)
+                    .amount(value)
+                    .contractAddress(token)
+                    .build();
+        }
+
+        int count = 0;
+        TransferEvent foundEvent = null;
+        Iterator<TransferEvent> iterator = internalTxs.iterator();
+        while (iterator.hasNext()) {
+            TransferEvent elem = iterator.next();
+            if (elem.getReceiver().equalsIgnoreCase(from) && elem.getContractAddress().equalsIgnoreCase(token)) {
+                count++;
+                foundEvent = elem;
+                if (count > 1) {
+                    // 如果找到多于一个符合条件的交易，返回空的 TransferEvent
+                    return TransferEvent.builder().build();
+                }
+                iterator.remove(); // 移除匹配到的元素
+            }
+        }
+        if (count == 1) {
+            // 如果只找到一个符合条件的交易，递归继续查找
+            return findPreTx(internalTxs, foundEvent.getAmount(), foundEvent.getSender(), foundEvent.getReceiver(), foundEvent.getContractAddress());
+        } else {
+            return TransferEvent.builder()
+                    .sender(from)
+                    .receiver(to)
+                    .amount(value)
+                    .contractAddress(token)
+                    .build();
+        }
     }
 
     public static BigInteger web3HexToBigInteger(String web3Hex) {
@@ -903,8 +1158,17 @@ public class PancakeSwapDataProcessFull {
         return bigInteger;
     }
 
-    private static boolean checkUniswapEvent(UniswapEvent build) {
-        return build.getTokenIn() != null && build.getTokenOut() != null;
+    private static boolean checkUniswapEvent(UniswapEvent build, String hash) {
+        if(build.getTokenIn() == null || build.getTokenOut() == null){
+            build.setErrorMsg("error : token in or token out is null! : "+hash);
+            System.out.printf("error : token in or token out is null! [hash]\n");
+            System.out.println("start ++++++++++++++++++++++++");
+            System.out.println(hash);
+            System.out.println(build);
+            System.out.println("end ++++++++++++++++++++++++");
+        }
+        return true;
+        // return build.getTokenIn() != null && build.getTokenOut() != null;
     }
 
     public static List<String> parseTopics(JsonNode topics) {
@@ -913,8 +1177,61 @@ public class PancakeSwapDataProcessFull {
         return topicLists;
     }
 
-    public static void main(String[] args) throws IOException {
-        List<UniswapEvent> uniswapV2Lists = parseAllUniSwapLogs(UniswapV2LOG);
+    private static Map<String, Map<String, BigInteger>> calculateBalances(List<TransferEvent> transactions) {
+        Map<String, Map<String, BigInteger>> balances = new HashMap<>();
+
+        for (TransferEvent transaction : transactions) {
+            String receiver =  transaction.getReceiver();
+            String sender =  transaction.getSender();
+            BigInteger amount = transaction.getAmount();
+            String contractAddress = transaction.getContractAddress();
+
+            balances.putIfAbsent(receiver, new HashMap<>());
+            balances.putIfAbsent(sender, new HashMap<>());
+
+            balances.get(receiver).put(contractAddress,
+                    balances.get(receiver).getOrDefault(contractAddress, BigInteger.ZERO).subtract(amount));
+            balances.get(sender).put(contractAddress,
+                    balances.get(sender).getOrDefault(contractAddress, BigInteger.ZERO).add(amount));
+        }
+
+        return balances;
+    }
+
+    private static boolean hasPositiveAndNegative(Map<String, BigInteger> tokenBalances) {
+        boolean hasPositive = false;
+        boolean hasNegative = false;
+
+        for (BigInteger balance : tokenBalances.values()) {
+            if (balance.compareTo(BigInteger.ZERO) > 0) {
+                hasPositive = true;
+            } else if (balance.compareTo(BigInteger.ZERO) < 0) {
+                hasNegative = true;
+            }
+            if (hasPositive && hasNegative) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void printBalances(Map<String, Map<String, BigInteger>> balances) {
+        // 使用 TreeMap 以保证地址的顺序
+        TreeMap<String, Map<String, BigInteger>> sortedBalances = new TreeMap<>(balances);
+
+        for (Map.Entry<String, Map<String, BigInteger>> entry : sortedBalances.entrySet()) {
+            String address = entry.getKey();
+            Map<String, BigInteger> tokens = entry.getValue();
+
+            System.out.println("Address: " + address);
+            for (Map.Entry<String, BigInteger> tokenEntry : tokens.entrySet()) {
+                System.out.println("  Token: " + tokenEntry.getKey() + ", Balance: " + tokenEntry.getValue());
+            }
+        }
+    }
+
+    public static void main(String[] args) throws JsonProcessingException {
+//        List<UniswapEvent> uniswapV2Lists = parseAllUniSwapLogs(UniswapV2LOG, "", null);
 //        List<UniswapEvent> uniswapV3Lists = parseAllUniSwapLogs(UniswapV3LOG);
         ;
 //        List<UniswapEvent> uniswapLists = parseAllUniSwapLogs(Logs);
@@ -948,7 +1265,5 @@ public class PancakeSwapDataProcessFull {
 //        }
 
     }
-
-
 }
 

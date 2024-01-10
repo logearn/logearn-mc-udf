@@ -3,3 +3,6 @@
 /log
 
 /target
+.idea
+dependency-reduced-pom.xml
+mc-java.iml
