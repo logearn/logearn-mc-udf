@@ -723,6 +723,7 @@ public class PancakeSwapDataProcessFull {
     private static void transferToUniswapSell(List<TransferEvent> transferLog, ArrayList<UniswapEvent> eventLists) {
         transferLog.forEach(t -> {
             // transferOut 事件构造成 Uniswap Sell 操作
+            if (t.getAmount().equals(BigInteger.ZERO)) return;
             if ("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c".equals(t.getContractAddress())) return;
             UniswapEvent build = UniswapEvent.builder()
                     .protocol("transferOut")
