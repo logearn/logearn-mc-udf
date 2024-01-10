@@ -532,6 +532,23 @@ public class PancakeSwapDataProcessFull {
                             .build();
 
                     uniswapV3Log.add(uniswapV3Event);
+                } else if ("0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83".equalsIgnoreCase(topicLists.get(0))
+                        && data.length() == 448) {
+                    // uniswap v3 解析
+                    BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
+                    BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
+
+                    UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
+                            .sender("0x" + topicLists.get(1).substring(26))
+                            .recipient("0x" + topicLists.get(2).substring(26))
+                            .amount0(amount0)
+                            .amount1(amount1)
+                            .protocol("pancake")
+                            .version("v3")
+                            .contractAddress(contractAddress)
+                            .build();
+
+                    uniswapV3Log.add(uniswapV3Event);
                 } else if ("0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822".equalsIgnoreCase(topicLists.get(0))
                         && data.length() == 256) {
                     // uniswap v2 解析
@@ -739,6 +756,7 @@ public class PancakeSwapDataProcessFull {
         return list;
     }
 
+
     private static void transferToUniswapSell(List<TransferEvent> transferLog, ArrayList<UniswapEvent> eventLists) {
         transferLog.forEach(t -> {
             // transferOut 事件构造成 Uniswap Sell 操作
@@ -915,8 +933,8 @@ public class PancakeSwapDataProcessFull {
             BigInteger amount1 = u.getAmount1();
             boolean token0IsOut = amount0.compareTo(BigInteger.ZERO) < 0;
             // 对于v3，大于0的是in，小于0的是out
-            BigInteger amountOut = token0IsOut ? amount0 : amount1;
-            BigInteger amountIn = token0IsOut ? amount1 : amount0;
+            BigInteger amountOut = token0IsOut ? amount0.abs() :  amount1.abs();
+            BigInteger amountIn = token0IsOut ? amount1.abs() : amount0.abs();
             String uTo = u.getRecipient();
             UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
             builder.contractAddress(poolAddress);
@@ -937,6 +955,7 @@ public class PancakeSwapDataProcessFull {
                 // 或者 uniswap 的 sender 地址 等于 transfer 的 receiver 地址
                 // 2、同时对应的金额一致
                 // 3、不相等的另一个地址等于 uniswap 的池地址
+                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", uTo = " + uTo + ", tSender = " + tSender + ", tAmount = " + tAmount + ", amountIn = " + amountIn + ", amountOut = " + amountOut  + ", poolAddress = " + poolAddress  + ", tokenAddress = " + tokenAddress);
                 if (
                         tReceiver.equalsIgnoreCase(uTo)
                                 && tSender.equalsIgnoreCase(poolAddress)
