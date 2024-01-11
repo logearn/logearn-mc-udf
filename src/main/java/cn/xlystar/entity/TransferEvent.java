@@ -14,5 +14,6 @@ public class TransferEvent extends Event implements Serializable {
     private String sender;
     private BigInteger amount;
     private String contractAddress;
+    private String origin;
 
 }

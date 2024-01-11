@@ -499,31 +499,55 @@ public class PancakeSwapDataProcessFull {
         List<UniswapV3Event> uniswapV3Log = new ArrayList<>();
         if (logLists.isArray()) {
             for (JsonNode tmp : logLists) {
-                String contractAddress = tmp.get("address").asText();
+                String contractAddress = tmp.get("address").asText().toLowerCase();
                 if (tmp.get("data").toString().length() <= 2) continue;
                 String data = tmp.get("data").asText().substring(2);
                 List<String> topicLists = parseTopics(tmp.get("topics"));
 
-                if (topicLists.size() < 3) continue;
-                if ("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0))
+                if (topicLists.size() == 3
+                        &&"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0))
                         && data.length() == 64) {
                     // Transfer
                     TransferEvent event = TransferEvent.builder()
-                            .sender("0x" + topicLists.get(1).substring(26))
-                            .receiver("0x" + topicLists.get(2).substring(26))
+                            .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
+                            .receiver("0x" + topicLists.get(2).substring(26).toLowerCase())
                             .amount(new BigInteger(data.substring(24), 16))
                             .contractAddress(contractAddress)
+                            .origin("log")
                             .build();
                     transferLog.add(event);
-                } else if ("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".equalsIgnoreCase(topicLists.get(0))
+//                } else if (topicLists.size() == 2
+//                        && "0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c".equalsIgnoreCase(topicLists.get(0))
+//                        && data.length() == 64) {
+//                    // Deposit
+//                    TransferEvent event = TransferEvent.builder()
+//                            .sender("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
+//                            .receiver("0x" + topicLists.get(1).substring(26).toLowerCase())
+//                            .amount(new BigInteger(data.substring(24), 16))
+//                            .contractAddress(contractAddress)
+//                            .build();
+//                    transferLog.add(event);
+//                } else if (topicLists.size() == 2
+//                        && "0x7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65".equalsIgnoreCase(topicLists.get(0))
+//                        && data.length() == 64) {
+//                    // Withdrawal
+//                    TransferEvent event = TransferEvent.builder()
+//                            .receiver("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
+//                            .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
+//                            .amount(new BigInteger(data.substring(24), 16))
+//                            .contractAddress(contractAddress)
+//                            .build();
+//                    transferLog.add(event);
+                } else if (topicLists.size() > 3
+                        && "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".equalsIgnoreCase(topicLists.get(0))
                         && data.length() == 320) {
                     // uniswap v3 解析
                     BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
                     BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
 
                     UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
-                            .sender("0x" + topicLists.get(1).substring(26))
-                            .recipient("0x" + topicLists.get(2).substring(26))
+                            .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
+                            .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
                             .amount0(amount0)
                             .amount1(amount1)
                             .protocol("pancake")
@@ -532,15 +556,16 @@ public class PancakeSwapDataProcessFull {
                             .build();
 
                     uniswapV3Log.add(uniswapV3Event);
-                } else if ("0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83".equalsIgnoreCase(topicLists.get(0))
+                } else if (topicLists.size() >= 3
+                        && "0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83".equalsIgnoreCase(topicLists.get(0))
                         && data.length() == 448) {
                     // uniswap v3 解析
                     BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
                     BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
 
                     UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
-                            .sender("0x" + topicLists.get(1).substring(26))
-                            .recipient("0x" + topicLists.get(2).substring(26))
+                            .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
+                            .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
                             .amount0(amount0)
                             .amount1(amount1)
                             .protocol("pancake")
@@ -549,7 +574,8 @@ public class PancakeSwapDataProcessFull {
                             .build();
 
                     uniswapV3Log.add(uniswapV3Event);
-                } else if ("0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822".equalsIgnoreCase(topicLists.get(0))
+                } else if (topicLists.size() >= 3
+                        && "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822".equalsIgnoreCase(topicLists.get(0))
                         && data.length() == 256) {
                     // uniswap v2 解析
                     BigInteger amount0In = web3HexToBigInteger(data.substring(0, 64));
@@ -560,8 +586,8 @@ public class PancakeSwapDataProcessFull {
                     amount1Out = amount1Out.signum() != -1 ? amount1Out : amount1Out.negate();
 
                     UniswapV2Event uniswapV2Event = UniswapV2Event.builder()
-                            .sender("0x" + topicLists.get(1).substring(26))
-                            .to("0x" + topicLists.get(2).substring(26))
+                            .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
+                            .to("0x" + topicLists.get(2).substring(26).toLowerCase())
                             .amount0In(amount0In)
                             .amount1In(amount1In)
                             .protocol("pancake")
@@ -679,7 +705,6 @@ public class PancakeSwapDataProcessFull {
         });
 
         // 9、将最终的 swap 关联上的 transfer 去掉。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
-        // 9、将最终的 swap 关联上的 transfer 去掉。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
         resEventLists.forEach(uniswapEvent -> {
             if (uniswapEvent.getErrorMsg() != null) {
                 return;
@@ -692,7 +717,7 @@ public class PancakeSwapDataProcessFull {
 
             for (int i = 0, len = transferLog.size(); i < len; i++) {
                 TransferEvent transferEvent = transferLog.get(i);
-                if (transferEvent.getAmount().equals(BigInteger.ZERO)) {
+                if ("internal".equals(transferEvent.getOrigin()) || transferEvent.getAmount().equals(BigInteger.ZERO)) {
                     transferLog.remove(i);
                     len--;
                     i--;
@@ -1019,7 +1044,6 @@ public class PancakeSwapDataProcessFull {
                 String tSender = transferEvent.getSender();
                 String tReceiver = transferEvent.getReceiver();
                 if (tSender.equals(tReceiver)) {
-                    System.out.printf("error : Transfer sender equal receiver! [%s] \n", hash);
                     builder.errorMsg("error : Transfer sender equal receiver! : " + hash);
                     continue;
                 }
@@ -1206,7 +1230,7 @@ public class PancakeSwapDataProcessFull {
     private static boolean checkUniswapEvent(UniswapEvent build, String hash) {
         if (build.getTokenIn() == null || build.getTokenOut() == null) {
             build.setErrorMsg("error : token in or token out is null! : " + hash);
-            System.out.printf("error : token in or token out is null! [hash]\n");
+            System.out.printf("error : token in or token out is null! [%s]\n", hash);
             System.out.println("start ++++++++++++++++++++++++");
             System.out.println(hash);
             System.out.println(build);

@@ -42,9 +42,9 @@ public class PancakeSwapDataProcess {
         String methodId = inputData.substring(0, 10);
 
         // 将外部交易放到内部交易中
-        if (!"0".equals(value)) {
-            internalTxs.add(new Tx(new BigInteger(value), caller, to));
-        }
+//        if (!"0".equals(value)) {
+//            internalTxs.add(new Tx(new BigInteger(value), caller, to));
+//        }
         List<TransferEvent> tftxs = parseTx(internalTxs);
         resList = PancakeSwapDataProcessFull.parseFullUniswap(logs, hash, tftxs);
 
@@ -64,8 +64,11 @@ public class PancakeSwapDataProcess {
                 if (action == null){
                     continue;
                 }
+                JsonNode type = action.get("callType");
+                if (type == null || !"call".equals(type.asText())) continue;
                 JsonNode value = action.get("value");
-                if (value == null) continue;
+                if (value == null || new BigInteger(value.asText().substring(2), 16).compareTo(BigInteger.ZERO) <= 0)
+                    continue;
                 JsonNode from = action.get("from");
                 if (from == null) continue;
                 JsonNode to = action.get("to");
@@ -83,6 +86,7 @@ public class PancakeSwapDataProcess {
             TransferEvent tevent = TransferEvent.builder().sender(t.getFrom())
                     .receiver(t.getTo())
                     .amount(t.getValue())
+                    .origin("internal")
                     .contractAddress("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
                     .build();
             transfers.add(tevent);
