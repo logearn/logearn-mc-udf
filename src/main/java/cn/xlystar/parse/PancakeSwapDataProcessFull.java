@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import java.math.BigInteger;
@@ -678,19 +680,20 @@ public class PancakeSwapDataProcessFull {
         // 7、串联transfer事件
         _uniqueList.forEach(ut -> {
             TransferEvent _tmpPreTf = findPreTx(transferLog, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn());
-            if (_tmpPreTf.getSender() == null || _tmpPreTf.getSender().equalsIgnoreCase("")) {
+            if (_tmpPreTf == null || _tmpPreTf.getSender().equalsIgnoreCase("")) {
                 ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
                 return;
             }
             ut.setSender(_tmpPreTf.getSender());
-            TransferEvent _tmpAftTf = findPreTx(transferLog, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut());
-            if (_tmpPreTf.getSender() == null || _tmpPreTf.getSender().equalsIgnoreCase("")) {
+            TransferEvent _tmpAftTf = findAfterTx(transferLog, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut());
+            if (_tmpPreTf == null || _tmpPreTf.getSender().equalsIgnoreCase("")) {
                 ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
                 return;
             }
             ut.setTo(_tmpAftTf.getReceiver());
         });
 
+        // System.out.println(_uniqueList);
         // 8、swap事件和有价值地址进行交叉判断，只保留有价值的地址的swap
         ArrayList<UniswapEvent> resEventLists = new ArrayList<>();
         // swap事件是否在期望的地址中
@@ -758,6 +761,7 @@ public class PancakeSwapDataProcessFull {
         });
         Map<String, Map<String, BigInteger>> finalTransfer = calculateBalances(transferLog);
         List<TransferEvent> groupTransfer = groupTransfer(finalTransfer);
+
         transferToUniswapSell(groupTransfer, resEventLists);
 
         return resEventLists;
@@ -772,8 +776,8 @@ public class PancakeSwapDataProcessFull {
                 if (tokenEntry.getValue().compareTo(BigInteger.ZERO) > 0) {
                     list.add(TransferEvent.builder()
                             .amount(tokenEntry.getValue())
+                            .sender(address)
                             .contractAddress(tokenEntry.getKey())
-                            .contractAddress(address)
                             .build());
                 }
             }
@@ -973,7 +977,8 @@ public class PancakeSwapDataProcessFull {
                 String tReceiver = transferEvent.getReceiver();
                 if (tSender.equals(tReceiver)) {
                     System.out.printf("error : Transfer sender equal receiver! [%s] \n", hash);
-                    builder.errorMsg("error : Transfer sender equal receiver! : " + hash);
+                    //builder.errorMsg("error : Transfer sender equal receiver! : " + hash);
+                    excludeTransferLog.add(transferEvent);
                     continue;
                 }
                 // 1、uniswap 的 sender 地址 等于 transfer 的 sender 地址
@@ -987,7 +992,7 @@ public class PancakeSwapDataProcessFull {
                                 && amountOut.equals(tAmount)
                 ) {
                     // 从池子中发出了多个transfer，异常情况
-                    if (_tokenOut != "") {
+                    if (_tokenOut != "" && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
                         System.out.printf("error : Had set token out!  [%s] \n", hash);
                         builder.errorMsg("error : Had set token out! : " + hash);
                         break;
@@ -1000,8 +1005,8 @@ public class PancakeSwapDataProcessFull {
                                 && amountIn.equals(tAmount)
                 ) {
                     // 多个transfer进入了池子，异常情况
-                    if (_tokenIn != "") {
-                        System.out.printf("error : Had set token in!  [%s] \n", hash);
+                    if (_tokenIn != "" && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
+                        System.out.printf("error : Had set token in!  tokenin:[%s], tokenAddress[%s], hash:[%s] \n", _tokenIn, tokenAddress, hash);
                         builder.errorMsg("error : Had set token in! : " + hash);
                         break;
                     }
@@ -1044,7 +1049,8 @@ public class PancakeSwapDataProcessFull {
                 String tSender = transferEvent.getSender();
                 String tReceiver = transferEvent.getReceiver();
                 if (tSender.equals(tReceiver)) {
-                    builder.errorMsg("error : Transfer sender equal receiver! : " + hash);
+                    //builder.errorMsg("error : Transfer sender equal receiver! : " + hash);
+                    excludeTransferLog.add(transferEvent);
                     continue;
                 }
                 // 1、uniswap 的 sender 地址 等于 transfer 的 sender 地址
@@ -1061,7 +1067,7 @@ public class PancakeSwapDataProcessFull {
                                 && tAmount.compareTo(amountOut.add(k1)) < 0
                 ) {
                     // 从池子中发出了多个transfer，异常情况
-                    if (_tokenOut != "") {
+                    if (_tokenOut != "" && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
                         System.out.printf("error : Had set token out!  [%s]\n", hash);
                         builder.errorMsg("error : Had set token out! : " + hash);
                         break;
@@ -1075,8 +1081,8 @@ public class PancakeSwapDataProcessFull {
                                 && tAmount.compareTo(amountIn.add(k2)) < 0
                 ) {
                     // 多个transfer进入了池子，异常情况
-                    if (_tokenIn != "") {
-                        System.out.printf("error : Had set token in!  [%s]\n", hash);
+                    if (_tokenIn != "" && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
+                        System.out.printf("error : Had set token in!  tokenin:[%s], tokenAddress[%s], hash:[%s] \n", _tokenIn, tokenAddress, hash);
                         builder.errorMsg("error : Had set token in! : " + hash);
                         break;
                     }
@@ -1135,78 +1141,99 @@ public class PancakeSwapDataProcessFull {
     public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
-                    .sender(from)
-                    .receiver(to)
                     .amount(value)
+                    .receiver(to)
+                    .sender(from)
                     .contractAddress(token)
                     .build();
         }
 
-        int count = 0;
-        TransferEvent foundEvent = null;
+        List<TransferEvent> _tmpList = new ArrayList<>();
+        AtomicReference<TransferEvent> foundEvent = new AtomicReference<>();
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
             if (elem.getSender().equalsIgnoreCase(to) && elem.getContractAddress().equalsIgnoreCase(token)) {
-                count++;
-                foundEvent = elem;
-                if (count > 1) {
-                    // 如果找到多于一个符合条件的交易，返回空的 TransferEvent
-                    return TransferEvent.builder().build();
-                }
-                iterator.remove(); // 移除匹配到的元素
-                //return findAfterTx(internalTxs, elem.getAmount(), elem.getSender(), elem.getReceiver(), elem.getContractAddress());
+                _tmpList.add(elem);
             }
         }
-        if (count == 1) {
-            // 如果只找到一个符合条件的交易，递归继续查找
-            return findAfterTx(internalTxs, foundEvent.getAmount(), foundEvent.getSender(), foundEvent.getReceiver(), foundEvent.getContractAddress());
-        } else {
+
+        if(_tmpList.size() == 1){
+            foundEvent.set(_tmpList.get(0));
+        } else if (_tmpList.size() > 1) {
+            AtomicInteger count = new AtomicInteger();
+            _tmpList.forEach(tp->{
+                if(tp.getAmount().compareTo(value) == 0){
+                    count.getAndIncrement();
+                    foundEvent.set(tp);
+                }
+            });
+            // 如果找到了多个，或者1个没找到，那么返回空
+            if(count.get() > 1){
+                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more to \n", value.toString(), from, to, token);
+                return null;
+            }
+        }
+        if(foundEvent.get() == null || foundEvent.get().getContractAddress().equalsIgnoreCase("")){
             return TransferEvent.builder()
-                    .sender(from)
-                    .receiver(to)
                     .amount(value)
+                    .receiver(to)
+                    .sender(from)
                     .contractAddress(token)
                     .build();
         }
+        // 移除找到的元素
+        internalTxs.remove(foundEvent.get());
+        return findAfterTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress());
     }
 
     public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
-                    .sender(from)
-                    .receiver(to)
                     .amount(value)
+                    .receiver(to)
+                    .sender(from)
                     .contractAddress(token)
                     .build();
         }
 
-        int count = 0;
-        TransferEvent foundEvent = null;
+        List<TransferEvent> _tmpList = new ArrayList<>();
+        AtomicReference<TransferEvent> foundEvent = new AtomicReference<>();
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
             if (elem.getReceiver().equalsIgnoreCase(from) && elem.getContractAddress().equalsIgnoreCase(token)) {
-                count++;
-                foundEvent = elem;
-                if (count > 1) {
-                    // 如果找到多于一个符合条件的交易，返回空的 TransferEvent
-                    return TransferEvent.builder().build();
-                }
-                iterator.remove(); // 移除匹配到的元素
+                _tmpList.add(elem);
             }
         }
-        if (count == 1) {
-            // 如果只找到一个符合条件的交易，递归继续查找
-            return findPreTx(internalTxs, foundEvent.getAmount(), foundEvent.getSender(), foundEvent.getReceiver(), foundEvent.getContractAddress());
-        } else {
+        if(_tmpList.size() == 1){
+            foundEvent.set(_tmpList.get(0));
+        } else if (_tmpList.size() > 1) {
+            AtomicInteger count = new AtomicInteger();
+            _tmpList.forEach(tp->{
+                if(tp.getAmount().compareTo(value) == 0){
+                    count.getAndIncrement();
+                    foundEvent.set(tp);
+                }
+            });
+            // 如果找到了多个，或者1个没找到，那么返回空
+            if(count.get() > 1){
+                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more from \n", value.toString(), from, to, token);
+                return null;
+            }
+        }
+        // 如果啥也没找到
+        if(foundEvent.get() == null || foundEvent.get().getContractAddress().equalsIgnoreCase("")){
             return TransferEvent.builder()
-                    .sender(from)
-                    .receiver(to)
                     .amount(value)
+                    .receiver(to)
+                    .sender(from)
                     .contractAddress(token)
                     .build();
         }
+        // 移除找到的元素
+        internalTxs.remove(foundEvent.get());
+        return findPreTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress());
     }
 
     public static BigInteger web3HexToBigInteger(String web3Hex) {
