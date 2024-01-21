@@ -7,6 +7,7 @@ import com.aliyun.odps.udf.UDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ public class BscParse extends UDF {
     public BscParse() {
     }
 
-    public String evaluate(String inputData, String from, String to, String value, String logs, String internalTxs, String hash) throws Exception {
+    public String evaluate(String inputData, String from, String to, String value, String logs, String internalTxs, String hash) throws IOException {
         List<Map<String, String>> maps = PancakeSwapDataProcess.decodeInputData(inputData, from, to, value, logs, internalTxs, hash);
         return JSON.toJSONString(maps);
     }
