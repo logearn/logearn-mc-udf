@@ -1,10 +1,9 @@
-package cn.xlystar.parse.pancake;
+package cn.xlystar.parse.uniswap;
 
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.entity.UniswapV2Event;
 import cn.xlystar.entity.UniswapV3Event;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -76,25 +75,7 @@ public class Log {
                         .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
                         .amount0(amount0)
                         .amount1(amount1)
-                        .protocol("pancake")
-                        .version("v3")
-                        .contractAddress(contractAddress)
-                        .build();
-
-                uniswapV3Logs.add(uniswapV3Event);
-            } else if (topicLists.size() >= 3
-                    && "0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 448) {
-                // uniswap v3 解析
-                BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
-                BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
-
-                UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
-                        .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
-                        .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
-                        .amount0(amount0)
-                        .amount1(amount1)
-                        .protocol("pancake")
+                        .protocol("uniswap")
                         .version("v3")
                         .contractAddress(contractAddress)
                         .build();
@@ -133,7 +114,7 @@ public class Log {
                         .to("0x" + topicLists.get(2).substring(26).toLowerCase())
                         .amount0In(amount0In)
                         .amount1In(amount1In)
-                        .protocol("pancake")
+                        .protocol("uniswap")
                         .version("v2")
                         .amount0Out(amount0Out)
                         .amount1Out(amount1Out)
@@ -190,7 +171,7 @@ public class Log {
                                 && tAmount.compareTo(amountOut.add(k1)) < 0
                 ) {
                     // 从池子中发出了多个transfer，异常情况
-                    if (!_tokenOut.equals("") && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
+                    if (_tokenOut != "" && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
                         builder.errorMsg("error : [v2]Had set token out!  tokenin:[" +_tokenOut+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
@@ -203,7 +184,7 @@ public class Log {
                                 && tAmount.compareTo(amountIn.add(k2)) < 0
                 ) {
                     // 多个transfer进入了池子，异常情况
-                    if (!_tokenIn.equals("") && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
+                    if (_tokenIn != "" && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
                         builder.errorMsg("error : [v2]Had set token in!  tokenin:[" +_tokenIn+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
@@ -286,7 +267,7 @@ public class Log {
                 }
 
             }
-            UniswapEvent build = builder.build();
+            uniswapEvents.add(builder.build());
         });
         return new Result(uniswapEvents, excludetransferEvents);
     }

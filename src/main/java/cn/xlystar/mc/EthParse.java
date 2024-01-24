@@ -1,6 +1,7 @@
 package cn.xlystar.mc;
 
 import cn.xlystar.parse.pancake.PancakeSwapDataProcess;
+import cn.xlystar.parse.uniswap.UniSwapDataProcess;
 import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDF;
 
@@ -17,13 +18,13 @@ import java.util.Map;
  * scale: 小数点位数
  *
  */
-public class BscParse extends UDF {
+public class EthParse extends UDF {
 
-    public BscParse() {
+    public EthParse() {
     }
 
     public String evaluate(String logs, String internalTxs, String hash) throws IOException {
-        List<Map<String, String>> maps = PancakeSwapDataProcess.decodeInputData(logs, internalTxs, hash);
+        List<Map<String, String>> maps = UniSwapDataProcess.decodeInputData(logs, internalTxs, hash);
         return JSON.toJSONString(maps);
     }
 
