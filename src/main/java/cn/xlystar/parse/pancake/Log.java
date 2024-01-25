@@ -170,6 +170,10 @@ public class Log {
 
             String _tokenOut = "";
             String _tokenIn = "";
+
+            BigInteger k1 = amountOut.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
+            BigInteger k2 = amountIn.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
+
             for (TransferEvent transferEvent : transferEvents) {
                 String tokenAddress = transferEvent.getContractAddress();
                 BigInteger tAmount = transferEvent.getAmount();
@@ -181,13 +185,12 @@ public class Log {
                     continue;
                 }
                 // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", tAmount = " + tAmount + ", amountIn = " + amountIn + ", amount1Out = " + amount1Out + ", uTo = " + uTo + ", tSender = " + tSender + ", poolAddress = " + poolAddress + ", amount0Out = " + amount0Out + ", tokenAddress = " + tokenAddress);
-                BigInteger k1 = amountOut.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
-                BigInteger k2 = amountIn.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
+
                 if (
                         tReceiver.equalsIgnoreCase(uTo)
                                 && tSender.equalsIgnoreCase(poolAddress)
-                                && tAmount.compareTo(amountOut.subtract(k1)) > 0
-                                && tAmount.compareTo(amountOut.add(k1)) < 0
+//                                && tAmount.compareTo(amountOut.subtract(k1)) > 0
+//                                && tAmount.compareTo(amountOut.add(k1)) < 0
                 ) {
                     // 从池子中发出了多个transfer，异常情况
                     if (!_tokenOut.equals("") && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
@@ -199,8 +202,8 @@ public class Log {
                     excludetransferEvents.add(transferEvent);
                 } else if (
                         tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.compareTo(amountIn.subtract(k2)) > 0
-                                && tAmount.compareTo(amountIn.add(k2)) < 0
+//                                && tAmount.compareTo(amountIn.subtract(k2)) > 0
+//                                && tAmount.compareTo(amountIn.add(k2)) < 0
                 ) {
                     // 多个transfer进入了池子，异常情况
                     if (!_tokenIn.equals("") && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
@@ -286,7 +289,7 @@ public class Log {
                 }
 
             }
-            UniswapEvent build = builder.build();
+            uniswapEvents.add(builder.build());
         });
         return new Result(uniswapEvents, excludetransferEvents);
     }

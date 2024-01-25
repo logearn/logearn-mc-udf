@@ -23,14 +23,14 @@ public class UniSwapDataProcess {
         List<TransferEvent> validInternalTxs = InternalTx.parseTx(txTrace, WETH);
         // 从logs中解析swap
         List<Map<String, String>> maps = UniSwapDataProcessFull.parseFullUniswap(logs, hash, validInternalTxs);
-        for (int i = 0, len = maps.size(); i < len; i++) {
-            Map<String, String> t = maps.get(i);
-            if (t.get("errorMsg") != null || t.get("tokenIn") == null || t.get("tokenOut") == null) {
-                maps.remove(i);
-                len--;
-                i--;
-            }
-        }
+//        for (int i = 0, len = maps.size(); i < len; i++) {
+//            Map<String, String> t = maps.get(i);
+//            if (t.get("errorMsg") != null || t.get("tokenIn") == null || t.get("tokenOut") == null) {
+//                maps.remove(i);
+//                len--;
+//                i--;
+//            }
+//        }
         return maps;
     }
 

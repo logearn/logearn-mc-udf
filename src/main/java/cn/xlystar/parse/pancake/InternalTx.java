@@ -35,13 +35,13 @@ public class InternalTx {
                 JsonNode type = action.get("callType");
                 if (type == null || !"call".equals(type.asText())) continue;
                 JsonNode value = action.get("value");
-                if (value == null || new BigInteger(value.asText().substring(2), 16).compareTo(BigInteger.ZERO) <= 0)
+                if (value == null || new BigInteger(value.asText()).compareTo(BigInteger.ZERO) <= 0)
                     continue;
                 JsonNode from = action.get("from");
                 if (from == null) continue;
                 JsonNode to = action.get("to");
                 if (to == null) continue;
-                Tx tx = new Tx(new BigInteger(value.asText().substring(2), 16), from.asText(), to.asText());
+                Tx tx = new Tx(new BigInteger(value.asText()), from.asText(), to.asText());
                 txs.add(tx);
             }
         }
