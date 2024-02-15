@@ -16,7 +16,7 @@ public class Log {
 
     /**
      * 从log的String串中解析成对象
-     * */
+     */
     public static JsonNode parseLogsFromString(String logStr) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readTree(logStr);
@@ -24,7 +24,7 @@ public class Log {
 
     /**
      * 解析transfer事件
-     * */
+     */
     public static List<TransferEvent> findTransfer(JsonNode logJson) {
         JsonNode logLists = logJson.get("logs");
         List<TransferEvent> transferLog = new ArrayList<>();
@@ -35,8 +35,10 @@ public class Log {
             List<String> topicLists = parseTopics(tmp.get("topics"));
 
             if (topicLists.size() == 3
-                    && "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 64) {
+                    && (
+                    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0)) ||
+                            "0xe59fdd36d0d223c0c7d996db7ad796880f45e1936cb0bb7ac102e7082e031487".equalsIgnoreCase(topicLists.get(0))
+            ) && data.length() == 64) {
                 // Transfer
                 TransferEvent event = TransferEvent.builder()
                         .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
@@ -53,7 +55,7 @@ public class Log {
 
     /**
      * 解析Uniswapv3/PancakeV3事件
-     * */
+     */
     public static List<UniswapV3Event> findSwapV3(JsonNode logJson) {
         JsonNode logLists = logJson.get("logs");
         List<UniswapV3Event> uniswapV3Logs = new ArrayList<>();
@@ -88,7 +90,7 @@ public class Log {
 
     /**
      * 解析Uniswapv2/PancakeV2事件
-     * */
+     */
     public static List<UniswapV2Event> findSwapV2(JsonNode logJson) {
         JsonNode logLists = logJson.get("logs");
         List<UniswapV2Event> uniswapV2Logs = new ArrayList<>();
@@ -129,7 +131,7 @@ public class Log {
 
     /**
      * 将uniswapV2Event对象转为标准的uniswapEvent对象
-     * */
+     */
     public static Result parseUniswapV2ToUniswapEvent(List<TransferEvent> transferEvents, List<UniswapV2Event> uniswapV2Events, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
         ArrayList<UniswapEvent> uniswapEvents = new ArrayList<>();
@@ -176,7 +178,7 @@ public class Log {
                 ) {
                     // 从池子中发出了多个transfer，异常情况
                     if (_tokenOut != "" && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
-                        builder.errorMsg("error : [v2]Had set token out!  tokenin:[" +_tokenOut+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
+                        builder.errorMsg("error : [v2]Had set token out!  tokenin:[" + _tokenOut + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
                     _tokenOut = tokenAddress;
@@ -189,7 +191,7 @@ public class Log {
                 ) {
                     // 多个transfer进入了池子，异常情况
                     if (_tokenIn != "" && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
-                        builder.errorMsg("error : [v2]Had set token in!  tokenin:[" +_tokenIn+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
+                        builder.errorMsg("error : [v2]Had set token in!  tokenin:[" + _tokenIn + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
                     _tokenIn = tokenAddress;
@@ -208,7 +210,7 @@ public class Log {
 
     /**
      * 将uniswapV3Event对象转为标准的uniswapEvent对象
-     * */
+     */
     public static Result parseUniswapV3ToUniswapEvent(List<TransferEvent> transferEvents, List<UniswapV3Event> uniswapV3Events, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
         ArrayList<UniswapEvent> uniswapEvents = new ArrayList<>();
@@ -250,7 +252,7 @@ public class Log {
                 ) {
                     // 从池子中发出了多个transfer，异常情况
                     if (!_tokenOut.equals("") && !_tokenOut.equalsIgnoreCase(tokenAddress)) {
-                        builder.errorMsg("error : [v3]Had set token out!  tokenin:[" +_tokenOut+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
+                        builder.errorMsg("error : [v3]Had set token out!  tokenin:[" + _tokenOut + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
                     _tokenOut = tokenAddress;
@@ -262,7 +264,7 @@ public class Log {
                 ) {
                     // 多个transfer进入了池子，异常情况
                     if (!_tokenIn.equals("") && !_tokenIn.equalsIgnoreCase(tokenAddress)) {
-                        builder.errorMsg("error : [v3]Had set token in!  tokenin:[" +_tokenIn+ "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
+                        builder.errorMsg("error : [v3]Had set token in!  tokenin:[" + _tokenIn + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
                         break;
                     }
                     _tokenIn = tokenAddress;
@@ -278,7 +280,7 @@ public class Log {
 
     /**
      * 16进制转成10进制
-     * */
+     */
     private static BigInteger web3HexToBigInteger(String web3Hex) {
         if (web3Hex.startsWith("0x")) {
             web3Hex = web3Hex.substring(2);
@@ -295,7 +297,7 @@ public class Log {
 
     /**
      * 解析topics
-     * */
+     */
     private static List<String> parseTopics(JsonNode topics) {
         List<String> topicLists = new ArrayList<>();
         topics.forEach(t -> topicLists.add(t.asText()));
