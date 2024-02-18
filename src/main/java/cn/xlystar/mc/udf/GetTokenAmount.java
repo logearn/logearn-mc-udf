@@ -35,7 +35,7 @@ public class GetTokenAmount extends UDF {
     public GetTokenAmount() {
     }
 
-    public String evaluate(String wallet, String tokenAddress, int decimals, String chain, String domain) throws Exception {
+    public String evaluate(String wallet, String tokenAddress, Integer decimals, String chain, String domain) throws Exception {
         String domainUrl = protocol + domain + URL;
         // 1. 发起请求
         // 计算请求时间
@@ -63,7 +63,9 @@ public class GetTokenAmount extends UDF {
                 log.info("RequestUrl -- error! request_body: { error: {}, contractAddress: {}, count: {} } ", result, tokenAddress, count);
             }
         }
-
+        if (result.length() > 50) {
+            return "999999999999999999";
+        }
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(1);
         for (int i = 0; i < decimals; i++) {
