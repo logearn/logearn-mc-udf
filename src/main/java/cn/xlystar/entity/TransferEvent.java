@@ -14,10 +14,11 @@ import java.util.stream.Collectors;
 @Builder
 public class TransferEvent extends Event implements Serializable {
 
-    private String receiver;
     private String sender;
-    private BigInteger amount;
+    private String receiver;
+    private BigInteger logIndex;
     private String contractAddress;
+    private BigInteger amount;
     private String origin;
 
     /**
@@ -38,7 +39,11 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if (elem.getSender().equalsIgnoreCase(to) && elem.getContractAddress().equalsIgnoreCase(token)) {
+            if (elem.getSender().equalsIgnoreCase(to)
+                    && elem.getContractAddress().equalsIgnoreCase(token)
+                    && value.compareTo(elem.getAmount())>=0
+                    && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+            ) {
                 _tmpList.add(elem);
             }
         }
@@ -90,7 +95,11 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if (elem.getReceiver().equalsIgnoreCase(from) && elem.getContractAddress().equalsIgnoreCase(token)) {
+            if (elem.getReceiver().equalsIgnoreCase(from)
+                    && elem.getContractAddress().equalsIgnoreCase(token)
+                    && elem.getAmount().compareTo(value)>=0
+                    && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+            ) {
                 _tmpList.add(elem);
             }
         }
@@ -204,6 +213,5 @@ public class TransferEvent extends Event implements Serializable {
             }
         }
     }
-
 
 }

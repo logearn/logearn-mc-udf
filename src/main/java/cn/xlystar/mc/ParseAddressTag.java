@@ -3,38 +3,38 @@ package cn.xlystar.mc;
 import cn.xlystar.helpers.ChainConfig;
 import cn.xlystar.helpers.ConfigHelper;
 import cn.xlystar.parse.ammswap.AMMSwapDataProcess;
-import cn.xlystar.parse.pancake.PancakeSwapDataProcess;
-import cn.xlystar.parse.uniswap.UniSwapDataProcess;
+import cn.xlystar.parse.ammswap.AddressTagProcess;
 import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDF;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 计算引擎：maxCompute
- * bsc_parse(String num1, String num2, int scale)
+ * parse_address_tag(String num1, String num2, int scale)
  * <p>
  * num1：数值1
  * num2：数值1
  * scale: 小数点位数
  */
-public class EthParse extends UDF {
+public class ParseAddressTag extends UDF {
 
-    public EthParse() {
+    public ParseAddressTag() {
     }
 
-    public String evaluate(String logs, String internalTxs, String hash) throws IOException {
-        ChainConfig conf = new ConfigHelper().getConfig("1", "uniswap");
-        List<Map<String, String>> maps = null;
+    public String evaluate(String logs, String internalTxs, String hash, String chain, String protocol) throws IOException {
+        ChainConfig conf = new ConfigHelper().getConfig(chain, protocol);
+        Map<String, Set<String>> addressTagList = null;
         try {
-            maps = AMMSwapDataProcess.decodeInputData(conf, logs, internalTxs, hash);
+            addressTagList = AddressTagProcess.getAddressTagList(conf, logs, internalTxs, hash);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(String.format("conf:%s, logs:%s, internalTxs:%s, hash:%s", conf, logs, internalTxs, hash));
         }
-        return JSON.toJSONString(maps);
+        return JSON.toJSONString(addressTagList);
     }
 
     public static void main(String[] args) throws Exception {

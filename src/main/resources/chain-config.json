@@ -1,0 +1,32 @@
+{
+  "1": {
+    "chain_id": "1",
+    "chain_name": "ethereum",
+    "coin": "ETH",
+    "wcoin": "WETH",
+    "tokens": {
+      "WETH": {"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "scale": "1e18", "name": "WETH" }
+    },
+    "protocols": {
+      "uniswap": {
+        "v3SwapRouter": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+        "v2SwapRouter": "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
+      }
+    }
+  },
+  "56": {
+    "chain_id": "56",
+    "chain_name": "bsc",
+    "coin": "BNB",
+    "wcoin": "WBNB",
+    "tokens": {
+      "WBNB": {"address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "scale": "1e18", "name": "WBNB" }
+    },
+    "protocols": {
+      "pancake": {
+        "v3SwapRouter": "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4",
+        "v2SwapRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+      }
+    }
+  }
+}

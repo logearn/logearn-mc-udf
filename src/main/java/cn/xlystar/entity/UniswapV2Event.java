@@ -18,6 +18,7 @@ public class UniswapV2Event extends Event implements Serializable {
     private BigInteger amount1In;
     private BigInteger amount0Out;
     private BigInteger amount1Out;
+    private BigInteger logIndex;
     private String contractAddress;
     private String protocol;
     private String version;
