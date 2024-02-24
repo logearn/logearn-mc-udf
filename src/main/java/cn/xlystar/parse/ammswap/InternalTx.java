@@ -2,7 +2,6 @@ package cn.xlystar.parse.ammswap;
 
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.Tx;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -54,6 +53,7 @@ public class InternalTx {
                     .amount(t.getValue())
                     .logIndex(new BigInteger(String.valueOf(UUID.randomUUID().hashCode())))
                     .contractAddress(mainToken)
+                    .assetType("erc20")
                     .origin("internal")
                     .build();
             transfers.add(tevent);

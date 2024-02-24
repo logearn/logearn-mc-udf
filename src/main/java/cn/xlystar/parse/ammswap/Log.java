@@ -2,8 +2,6 @@ package cn.xlystar.parse.ammswap;
 
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
-import cn.xlystar.entity.UniswapV2Event;
-import cn.xlystar.entity.UniswapV3Event;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang.StringUtils;
@@ -45,13 +43,12 @@ public class Log {
             JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
             BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
             List<String> topicLists = parseTopics(tmp.get("topics"));
-
-            if (topicLists.size() == 3
-                    && (
-                    // Transfer (index_topic_1 address src, index_topic_2 address dst, uint256 wad)
-                    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0)) ||
-                            // ERC20Transfer (index_topic_1 address from, index_topic_2 address to, uint256 amount)
-                            "0xe59fdd36d0d223c0c7d996db7ad796880f45e1936cb0bb7ac102e7082e031487".equalsIgnoreCase(topicLists.get(0))
+            if (topicLists.size() != 3) continue;
+            boolean isErc404 = "0xe59fdd36d0d223c0c7d996db7ad796880f45e1936cb0bb7ac102e7082e031487".equalsIgnoreCase(topicLists.get(0));
+            boolean isErc20 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0));
+            // Transfer (index_topic_1 address src, index_topic_2 address dst, uint256 wad)
+            if ((isErc20 ||
+                    isErc404 // ERC20Transfer (index_topic_1 address from, index_topic_2 address to, uint256 amount)
             )
                     && data.length() == 64) {
                 // Transfer
@@ -65,6 +62,7 @@ public class Log {
                             .receiver(receiver)
                             .amount(new BigInteger(data.substring(24), 16))
                             .logIndex(logIndex)
+                            .assetType(isErc404 ? "erc404" : "erc20")
                             .contractAddress(contractAddress)
                             .origin("log")
                             .build();
@@ -78,9 +76,9 @@ public class Log {
     /**
      * 解析Uniswapv3/PancakeV3事件
      */
-    public static List<UniswapV3Event> findSwapV3(String protocol, JsonNode logJson) {
+    public static List<UniswapEvent> findSwapV3(String protocol, JsonNode logJson) {
         JsonNode logLists = logJson.get("logs");
-        List<UniswapV3Event> uniswapV3Logs = new ArrayList<>();
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
         for (JsonNode tmp : logLists) {
             String contractAddress = tmp.get("address").asText().toLowerCase();
             if (tmp.get("data").toString().length() <= 2) continue;
@@ -89,55 +87,51 @@ public class Log {
             BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
             List<String> topicLists = parseTopics(tmp.get("topics"));
 
-            if (topicLists.size() >= 3
+            boolean is_v3_1 = topicLists.size() >= 3
                     && "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 320) {
-                // uniswap v3 解析
-                BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
-                BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
+                    && data.length() == 320;
 
-                UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
-                        .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
-                        .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
-                        .amount0(amount0)
-                        .amount1(amount1)
-                        .logIndex(logIndex)
-                        .protocol(protocol)
-                        .version("v3")
-                        .contractAddress(contractAddress)
-                        .build();
-
-                uniswapV3Logs.add(uniswapV3Event);
-            } else if (topicLists.size() >= 3
+            boolean is_v3_2 = topicLists.size() >= 3
                     && "0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 448) {
+                    && data.length() == 448;
+
+            if (is_v3_1 || is_v3_2) {
                 // uniswap v3 解析
                 BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
                 BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
 
-                UniswapV3Event uniswapV3Event = UniswapV3Event.builder()
-                        .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
-                        .recipient("0x" + topicLists.get(2).substring(26).toLowerCase())
-                        .amount0(amount0)
-                        .amount1(amount1)
+                String sender = "0x" + topicLists.get(1).substring(26).toLowerCase();
+                String to = "0x" + topicLists.get(2).substring(26).toLowerCase();
+
+                // 对于v3，大于0的是in，小于0的是out
+                BigInteger amountIn = amount0.compareTo(amount1) > 0 ? amount0.abs() : amount1.abs();
+                BigInteger amountOut = amount0.compareTo(amount1) > 0 ? amount1.abs() : amount0.abs();
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(to)
+
+                        .amountIn(amountIn)
+                        .amountOut(amountOut)
+
                         .logIndex(logIndex)
+                        .contractAddress(contractAddress)
                         .protocol(protocol)
                         .version("v3")
-                        .contractAddress(contractAddress)
                         .build();
 
-                uniswapV3Logs.add(uniswapV3Event);
+                uniswapEvents.add(uniswapEvent);
             }
         }
-        return uniswapV3Logs;
+        return uniswapEvents;
     }
 
     /**
      * 解析Uniswapv2/PancakeV2事件
      */
-    public static List<UniswapV2Event> findSwapV2(String protocol, JsonNode logJson) {
+    public static List<UniswapEvent> findSwapV2(String protocol, JsonNode logJson) {
         JsonNode logLists = logJson.get("logs");
-        List<UniswapV2Event> uniswapV2Logs = new ArrayList<>();
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
         for (JsonNode tmp : logLists) {
             String contractAddress = tmp.get("address").asText().toLowerCase();
             if (tmp.get("data").toString().length() <= 2) continue;
@@ -149,196 +143,141 @@ public class Log {
             if (topicLists.size() >= 3
                     && "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822".equalsIgnoreCase(topicLists.get(0))
                     && data.length() == 256) {
+                String sender = "0x" + topicLists.get(1).substring(26).toLowerCase();
+                String to = "0x" + topicLists.get(2).substring(26).toLowerCase();
+
                 // uniswap v2 解析
                 BigInteger amount0In = web3HexToBigInteger(data.substring(0, 64));
                 BigInteger amount1In = web3HexToBigInteger(data.substring(64, 128));
+
                 BigInteger amount0Out = web3HexToBigInteger(data.substring(128, 192));
                 BigInteger amount1Out = web3HexToBigInteger(data.substring(192));
+
                 amount0Out = amount0Out.signum() != -1 ? amount0Out : amount0Out.negate();
                 amount1Out = amount1Out.signum() != -1 ? amount1Out : amount1Out.negate();
 
-                UniswapV2Event uniswapV2Event = UniswapV2Event.builder()
-                        .sender("0x" + topicLists.get(1).substring(26).toLowerCase())
-                        .to("0x" + topicLists.get(2).substring(26).toLowerCase())
-                        .amount0In(amount0In)
-                        .amount1In(amount1In)
-                        .protocol(protocol)
+                // 对于v2，大于0的是out，其他是in
+                BigInteger amountOut = amount0Out.compareTo(BigInteger.ONE) > 0 ? amount0Out : amount1Out;
+                BigInteger amountIn = amount1In.compareTo(BigInteger.ONE) > 0 ? amount1In : amount0In;
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(to)
+
+                        .amountIn(amountIn)
+                        .amountOut(amountOut)
+
                         .logIndex(logIndex)
-                        .version("v2")
-                        .amount0Out(amount0Out)
-                        .amount1Out(amount1Out)
                         .contractAddress(contractAddress)
+                        .protocol(protocol)
+                        .version("v2")
                         .build();
 
-                uniswapV2Logs.add(uniswapV2Event);
+                uniswapEvents.add(uniswapEvent);
             }
         }
-        return uniswapV2Logs;
+        return uniswapEvents;
     }
 
     /**
      * 将uniswapV2Event对象转为标准的uniswapEvent对象
      */
-    public static Result parseUniswapV2ToUniswapEvent(List<TransferEvent> transferEvents, List<UniswapV2Event> uniswapV2Events, String hash) {
+    public static Result fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> transferEvents, List<UniswapEvent> uniswapEvents, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
-        ArrayList<UniswapEvent> uniswapEvents = new ArrayList<>();
 
-        uniswapV2Events.forEach(u -> {
-            String poolAddress = u.getContractAddress();
-            BigInteger amount1In = u.getAmount1In();
-            BigInteger amount0In = u.getAmount0In();
-            BigInteger amount0Out = u.getAmount0Out();
-            BigInteger amount1Out = u.getAmount1Out();
-            String uSender = u.getSender();
-            String uTo = u.getTo();
+        uniswapEvents.forEach(uniswapEvent -> {
 
-            // 对于v2，大于0的是out，其他是in
-            BigInteger amountOut = amount0Out.compareTo(BigInteger.ONE) > 0 ? amount0Out : amount1Out;
-            BigInteger amountIn = amount1In.compareTo(BigInteger.ONE) > 0 ? amount1In : amount0In;
-            UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
-            builder.contractAddress(poolAddress);
-            builder.logIndex(u.getLogIndex());
-            builder.protocol(u.getProtocol());
-            builder.version(u.getVersion());
+            _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, hash, false, false, false);
 
-            String _tokenOut = "";
-            String _tokenIn = "";
+            // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                System.out.printf("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： %s \n", uniswapEvent);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, hash, false, false, false);
+            }
 
-            // 异常情况兼容
-//            BigInteger k1 = amountOut.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
-//            BigInteger k2 = amountIn.multiply(new BigInteger("30")).divide(new BigInteger("10000000"));
 
-            for (int i = 0; i < transferEvents.size(); i++) {
-                TransferEvent transferEvent = transferEvents.get(i);
-                String tokenAddress = transferEvent.getContractAddress();
-                BigInteger tAmount = transferEvent.getAmount();
-                String tSender = transferEvent.getSender();
-                String tReceiver = transferEvent.getReceiver();
-                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", tAmount = " + tAmount + ", amountIn = " + amountIn + ", amount1Out = " + amount1Out + ", uTo = " + uTo + ", tSender = " + tSender + ", poolAddress = " + poolAddress + ", amount0Out = " + amount0Out + ", tokenAddress = " + tokenAddress);
-                if (transferEvent.getLogIndex() == null) {
-                    continue;
-                }
-                if (
-                        tReceiver.equalsIgnoreCase(uTo)
-                                && tSender.equalsIgnoreCase(poolAddress)
-                                && amountOut.compareTo(tAmount)>=0
-                                && u.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0
-                                && transferEvent.getOrigin().equals("log")
-                    // && tAmount.compareTo(amountOut.subtract(k1)) > 0
-                    // && tAmount.compareTo(amountOut.add(k1)) < 0
-                ) {
-                    // 从池子中发出了多个transfer，异常情况
-                    if (!StringUtils.isEmpty(_tokenOut)) {
-                        builder.errorMsg("error : [v2]Had set token out!  tokenin:[" + _tokenOut + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
-                        break;
-                    }
-                    _tokenOut = tokenAddress;
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo);
-                    excludetransferEvents.add(transferEvent);
-                } else if (
-                        tReceiver.equalsIgnoreCase(poolAddress)
-                                && tAmount.compareTo(amountIn)>=0
-                                && u.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0
-                                && transferEvent.getOrigin().equals("log")
-                    // && tAmount.compareTo(amountIn.subtract(k2)) > 0
-                    // && tAmount.compareTo(amountIn.add(k2)) < 0
-                ) {
-                    // 多个transfer进入了池子，异常情况
-                    if (!StringUtils.isEmpty(_tokenIn)) {
-                        builder.errorMsg("error : [v2]Had set token in!  tokenin:[" + _tokenIn + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
-                        break;
-                    }
-                    _tokenIn = tokenAddress;
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender);
-                    excludetransferEvents.add(transferEvent);
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                System.out.printf("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 \n");
+                // 由于 uniswap or sushi 等 swap 都是现有 2 个 transferlog, 然后再有 swap log, 所以，默认 swap 匹配 transfer 的时候，log 的顺序会参与 transfer 筛选
+                // 因为这样的 log 顺序有利于，当 一个 swap pool 有多个转入或者转出操作的时候，大概率选择到那个正确的 transfer 进行匹配
+                // 但是 由于 solidiy 这样的 dex 是先有 swap log， 这有 transfer, 所以这个时候，放开 log index 的限制再去 匹配一遍
+                // 例如: https://etherscan.io/tx/0xff2b09ff2facfa2578c46b212af4cabffd01ee04966f32563d762728ecbccb0b#eventlog
+
+                // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
+                // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
+                _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, hash, true, true, true);
+
+                if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, hash, true, true, true);
                 }
             }
-            UniswapEvent build = builder.build();
-            if (build.getTokenIn() == null || build.getTokenOut() == null) {
-                build.setErrorMsg("error : token in or token out is null! hash : " + hash);
+
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                System.out.printf("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: %s \n", uniswapEvent);
+                uniswapEvent.setErrorMsg("error : token in or token out is null! hash : " + hash);
             }
-            uniswapEvents.add(build);
-            // 删除上次消费的 transfer
+
+            // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
         return new Result(uniswapEvents, excludetransferEvents);
     }
 
-    /**
-     * 将uniswapV3Event对象转为标准的uniswapEvent对象
-     */
-    public static Result parseUniswapV3ToUniswapEvent(List<TransferEvent> transferEvents, List<UniswapV3Event> uniswapV3Events, String hash) {
-        List<TransferEvent> excludetransferEvents = new ArrayList<>();
-        ArrayList<UniswapEvent> uniswapEvents = new ArrayList<>();
+    private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
+                                                                     UniswapEvent uniswapEvent, String hash,
+                                                                     Boolean ignoreLogIndex,
+                                                                     Boolean ignoreCompareAmount,
+                                                                     Boolean ignoreTransferOrigin
+    ) {
+        String _tokenOut = "";
+        String _tokenIn = "";
+        boolean tokenOutIsNull = uniswapEvent.getTokenOut() == null;
+        boolean tokenInIsNull = uniswapEvent.getTokenIn() == null;
 
-        uniswapV3Events.forEach(u -> {
-            String poolAddress = u.getContractAddress();
-            BigInteger amount0 = u.getAmount0();
-            BigInteger amount1 = u.getAmount1();
-            boolean token0IsOut = amount0.compareTo(BigInteger.ZERO) < 0;
-            // 对于v3，大于0的是in，小于0的是out
-            BigInteger amountOut = token0IsOut ? amount0.abs() : amount1.abs();
-            BigInteger amountIn = token0IsOut ? amount1.abs() : amount0.abs();
-            String uTo = u.getRecipient();
-            UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
-            builder.contractAddress(poolAddress);
-            builder.protocol(u.getProtocol());
-            builder.version(u.getVersion());
-            builder.logIndex(u.getLogIndex());
+        for (int i = 0; i < allTransferEvents.size(); i++) {
 
-            String _tokenOut = "";
-            String _tokenIn = "";
-            for (int i = 0; i < transferEvents.size(); i++) {
-                TransferEvent transferEvent = transferEvents.get(i);
-                String tokenAddress = transferEvent.getContractAddress();
-                BigInteger tAmount = transferEvent.getAmount();
-                String tSender = transferEvent.getSender();
-                String tReceiver = transferEvent.getReceiver();
+            TransferEvent transferEvent = allTransferEvents.get(i);
+            String tokenAddress = transferEvent.getContractAddress();
+            BigInteger tAmount = transferEvent.getAmount();
+            String tSender = transferEvent.getSender();
+            String tReceiver = transferEvent.getReceiver();
 
-                // 1、uniswap 的 sender 地址 等于 transfer 的 sender 地址
-                // 或者 uniswap 的 sender 地址 等于 transfer 的 receiver 地址
-                // 2、同时对应的金额一致
-                // 3、不相等的另一个地址等于 uniswap 的池地址
-                // System.out.println("poolAddress = " + poolAddress + ", tReceiver = " + tReceiver + ", uTo = " + uTo + ", tSender = " + tSender + ", tAmount = " + tAmount + ", amountIn = " + amountIn + ", amountOut = " + amountOut  + ", poolAddress = " + poolAddress  + ", tokenAddress = " + tokenAddress);
-                if (
-                        tReceiver.equalsIgnoreCase(uTo)
-                                && tSender.equalsIgnoreCase(poolAddress)
-//                                && amountOut.equals(tAmount)
-                                && u.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0
-                                && amountOut.compareTo(tAmount)>=0
-                                && transferEvent.getOrigin().equals("log")
-                ) {
-                    // 从池子中发出了多个transfer，异常情况
-                    if (!StringUtils.isEmpty(_tokenOut)) {
-                        builder.errorMsg("error : [v3]Had set token out!  tokenin:[" + _tokenOut + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
-                        break;
-                    }
+            if (
+                    tReceiver.equalsIgnoreCase(uniswapEvent.getTo())
+                            && tSender.equalsIgnoreCase(uniswapEvent.getContractAddress())
+                            && (uniswapEvent.getAmountOut().compareTo(tAmount) >= 0 || ignoreCompareAmount)
+                            && (uniswapEvent.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0 || ignoreLogIndex)
+                            && (transferEvent.getOrigin().equals("log") || ignoreTransferOrigin)
+                            && tokenOutIsNull
+            ) {
+                // 从池子中发出了多个transfer，异常情况, 如果有2笔交易，都走一个池子，以金额一样的为准
+                // https://phalcon.blocksec.com/explorer/tx/eth/0x77b10b570bccb107ab4e311bccd3034bd716ff0269bad8aa8ded3f3c499f2987： solidly-wbtc 池子
+                if (StringUtils.isEmpty(_tokenOut) || uniswapEvent.getAmountOut().compareTo(tAmount) == 0) {
                     _tokenOut = tokenAddress;
-                    builder.tokenOut(tokenAddress).amountOut(tAmount).to(uTo);
-                    excludetransferEvents.add(transferEvent);
-                } else if (
-                        tReceiver.equalsIgnoreCase(poolAddress)
-//                                && amountIn.equals(tAmount)
-                                && u.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0
-                                && tAmount.compareTo(amountIn)>=0
-                                && transferEvent.getOrigin().equals("log")
-                ) {
-                    // 多个transfer进入了池子，异常情况
-                    if (!StringUtils.isEmpty(_tokenIn)) {
-                        builder.errorMsg("error : [v3]Had set token in!  tokenin:[" + _tokenIn + "], tokenAddress[" + tokenAddress + "], hash:[" + hash + "] \n");
-                        break;
-                    }
+                    uniswapEvent.setTokenOut(tokenAddress);
+                    uniswapEvent.setAmountOut(tAmount);
+                    if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
+                }
+            } else if (
+                    tReceiver.equalsIgnoreCase(uniswapEvent.getContractAddress())
+                            && (tAmount.compareTo(uniswapEvent.getAmountIn()) >= 0 || ignoreCompareAmount)
+                            && (uniswapEvent.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0 || ignoreLogIndex)
+                            && (transferEvent.getOrigin().equals("log") || ignoreTransferOrigin)
+                            && tokenInIsNull
+            ) {
+                // 多个transfer进入了池子，异常情况, 如果有2笔交易，都走一个池子，以金额一样的为准
+                // https://phalcon.blocksec.com/explorer/tx/eth/0x77b10b570bccb107ab4e311bccd3034bd716ff0269bad8aa8ded3f3c499f2987： solidly-wbtc 池子
+                if (StringUtils.isEmpty(_tokenIn) || tAmount.compareTo(uniswapEvent.getAmountIn()) == 0) {
                     _tokenIn = tokenAddress;
-                    builder.tokenIn(tokenAddress).amountIn(tAmount).sender(tSender);
-                    excludetransferEvents.add(transferEvent);
+                    uniswapEvent.setTokenIn(tokenAddress);
+                    uniswapEvent.setAmountIn(tAmount);
+                    uniswapEvent.setSender(tSender);
+                    if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
                 }
             }
-            uniswapEvents.add(builder.build());
-            // 删除上次消费的 transfer
-            transferEvents.removeAll(excludetransferEvents);
-        });
-        return new Result(uniswapEvents, excludetransferEvents);
+        }
     }
+
 
     /**
      * 16进制转成10进制

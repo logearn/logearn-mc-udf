@@ -2,6 +2,7 @@ package cn.xlystar.entity;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.val;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -18,14 +19,15 @@ public class TransferEvent extends Event implements Serializable {
     private String receiver;
     private BigInteger logIndex;
     private String contractAddress;
+    private String assetType;
     private BigInteger amount;
     private String origin;
 
     /**
      * 向前找到最早的一个transferEvent
      * */
-    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
-        if (internalTxs.isEmpty()) {
+    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, String swapFrom, String swapTo) {
+        if (internalTxs.isEmpty() || swapFrom.equals(to)) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
@@ -74,14 +76,14 @@ public class TransferEvent extends Event implements Serializable {
         }
         // 移除找到的元素
         internalTxs.remove(foundEvent.get());
-        return findAfterTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress());
+        return findAfterTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
     }
 
     /**
      * 向后找到最晚的一个transferEvent
      * */
-    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token) {
-        if (internalTxs.isEmpty()) {
+    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, String swapFrom, String swapTo) {
+        if (internalTxs.isEmpty() || from.equals(swapTo)) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
@@ -130,7 +132,7 @@ public class TransferEvent extends Event implements Serializable {
         }
         // 移除找到的元素
         internalTxs.remove(foundEvent.get());
-        return findPreTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress());
+        return findPreTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
     }
 
     /**

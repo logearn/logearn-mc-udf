@@ -3,8 +3,6 @@ package cn.xlystar.mc;
 import cn.xlystar.helpers.ChainConfig;
 import cn.xlystar.helpers.ConfigHelper;
 import cn.xlystar.parse.ammswap.AMMSwapDataProcess;
-import cn.xlystar.parse.pancake.PancakeSwapDataProcess;
-import cn.xlystar.parse.uniswap.UniSwapDataProcess;
 import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDF;
 
