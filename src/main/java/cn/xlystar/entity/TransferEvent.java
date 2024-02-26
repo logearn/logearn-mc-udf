@@ -57,13 +57,18 @@ public class TransferEvent extends Event implements Serializable {
             _tmpList.forEach(tp -> {
                 if (tp.getAmount().compareTo(value) == 0) {
                     count.getAndIncrement();
-                    foundEvent.set(tp);
+
+                    // 如果匹配到多个输入金额完全一样到，就以先匹配到谁，就是采用谁
+                    if (foundEvent.get() == null) {
+                        foundEvent.set(tp);
+                    }
                 }
             });
             // 如果找到了多个，或者1个没找到，那么返回空
             if (count.get() > 1) {
-                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more to \n", value.toString(), from, to, token);
-                return null;
+                // 目前暂时不做任何处理
+//                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more to \n", value.toString(), from, to, token);
+//                return null;
             }
         }
         if (foundEvent.get() == null || foundEvent.get().getContractAddress().equalsIgnoreCase("")) {
@@ -74,7 +79,7 @@ public class TransferEvent extends Event implements Serializable {
                     .contractAddress(token)
                     .build();
         }
-        // 移除找到的元素
+        // 因为判断条件是 转出小于 swap amountOut, 所以这里就可以直接移除找到的 transfer
         internalTxs.remove(foundEvent.get());
         return findAfterTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
     }
@@ -100,7 +105,8 @@ public class TransferEvent extends Event implements Serializable {
             if (elem.getReceiver().equalsIgnoreCase(from)
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
-                    && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+                // 因为 卖的时候，用户可以转入很多个，但是只卖一下部分，所以这个地方，只需要 转入的金额大于等于 swap 的金额即可。
+//                    && elem.getAmount().divide(new BigInteger("2")).compareTo(value) > 0
             ) {
                 _tmpList.add(elem);
             }
@@ -112,13 +118,19 @@ public class TransferEvent extends Event implements Serializable {
             _tmpList.forEach(tp -> {
                 if (tp.getAmount().compareTo(value) == 0) {
                     count.getAndIncrement();
-                    foundEvent.set(tp);
+
+                    // 如果匹配到多个输入金额完全一样到，就以先匹配到谁，就是采用谁
+                    if (foundEvent.get() == null) {
+                        foundEvent.set(tp);
+                    }
                 }
             });
+
             // 如果找到了多个，或者1个没找到，那么返回空
             if (count.get() > 1) {
-                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more from \n", value.toString(), from, to, token);
-                return null;
+                // 目前暂时不做任何处理
+//                System.out.printf("value:%s , from:%s, to:%s, token:%s. find more from \n", value.toString(), from, to, token);
+//                return null;
             }
         }
         // 如果啥也没找到
@@ -130,8 +142,14 @@ public class TransferEvent extends Event implements Serializable {
                     .contractAddress(token)
                     .build();
         }
-        // 移除找到的元素
-        internalTxs.remove(foundEvent.get());
+        // 只有完全相等的时候，移除找到的元素，否则只是把 该路径消费的 amount 减去即可
+        // 因为，有时候可能是因为，一笔金额转入，然后，分成了多个池子去交易。
+        if (foundEvent.get().getAmount().equals(value)) {
+            internalTxs.remove(foundEvent.get());
+        }
+        if (foundEvent.get().getAmount().compareTo(value) > 0) {
+            foundEvent.get().setAmount(foundEvent.get().getAmount().subtract(value));
+        }
         return findPreTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
     }
 

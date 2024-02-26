@@ -2,14 +2,17 @@ package cn.xlystar.parse.ammswap;
 
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+@Slf4j
 public class Log {
 
     /**
@@ -191,13 +194,13 @@ public class Log {
 
             // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
             if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                System.out.printf("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： %s \n", uniswapEvent);
+                log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
                 _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, hash, false, false, false);
             }
 
 
             if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                System.out.printf("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 \n");
+                log.debug("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 ");
                 // 由于 uniswap or sushi 等 swap 都是现有 2 个 transferlog, 然后再有 swap log, 所以，默认 swap 匹配 transfer 的时候，log 的顺序会参与 transfer 筛选
                 // 因为这样的 log 顺序有利于，当 一个 swap pool 有多个转入或者转出操作的时候，大概率选择到那个正确的 transfer 进行匹配
                 // 但是 由于 solidiy 这样的 dex 是先有 swap log， 这有 transfer, 所以这个时候，放开 log index 的限制再去 匹配一遍
@@ -213,7 +216,7 @@ public class Log {
             }
 
             if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                System.out.printf("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: %s \n", uniswapEvent);
+                log.debug("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: {} \n", uniswapEvent);
                 uniswapEvent.setErrorMsg("error : token in or token out is null! hash : " + hash);
             }
 

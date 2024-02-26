@@ -4,11 +4,13 @@ import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.Tx;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+@Slf4j
 public class InternalTx {
 
     /**

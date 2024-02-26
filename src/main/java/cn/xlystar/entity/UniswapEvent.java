@@ -88,18 +88,19 @@ public class UniswapEvent extends Event implements Serializable {
         if (events.isEmpty()) {
             return target;
         }
-        ArrayList<UniswapEvent> tmpUniswapEvents = new ArrayList<>(events);
-        Iterator<UniswapEvent> iterator = tmpUniswapEvents.iterator();
-
+        Iterator<UniswapEvent> iterator = events.iterator();
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
             if (elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
+                // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn()) && elem.getAmountOut().equals(target.getAmountIn())
+                        // elem.getTo().equalsIgnoreCase(target.getSender())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
+                        // elem.getTo().equalsIgnoreCase(target.getContractAddress()) => 这就是merge  a -> pool1 -> pool2 -> a
                         && (elem.getTo().equalsIgnoreCase(target.getSender()) || elem.getTo().equalsIgnoreCase(target.getContractAddress()))
                 ) {
                     iterator.remove(); // 移除匹配到的元素
                     merged.add(0, elem);
-                    return findPreEvent(tmpUniswapEvents, elem, merged);
+                    return findPreEvent(events, elem, merged);
                 }
             }
         }
@@ -113,18 +114,19 @@ public class UniswapEvent extends Event implements Serializable {
         if (events.isEmpty()) {
             return target;
         }
-        ArrayList<UniswapEvent> tmpUniswapEvents = new ArrayList<>(events);
-
-        Iterator<UniswapEvent> iterator = tmpUniswapEvents.iterator();
+        Iterator<UniswapEvent> iterator = events.iterator();
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
             if (elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
+                // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut()) && elem.getAmountIn().equals(target.getAmountOut())
+                        // elem.getSender().equalsIgnoreCase(target.getTo())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
+                        // elem.getSender().equalsIgnoreCase(target.getContractAddress()) => 这就是merge  a -> pool1 -> pool2 -> a
                         && (elem.getSender().equalsIgnoreCase(target.getTo()) || elem.getSender().equalsIgnoreCase(target.getContractAddress()))
                 ) {
                     iterator.remove(); // 移除匹配到的元素
                     merged.add(elem);
-                    return findAfterEvent(tmpUniswapEvents, elem, merged);
+                    return findAfterEvent(events, elem, merged);
                 }
             }
         }
