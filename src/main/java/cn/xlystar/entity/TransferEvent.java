@@ -2,7 +2,6 @@ package cn.xlystar.entity;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.val;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -26,8 +25,8 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个transferEvent
      * */
-    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, String swapFrom, String swapTo) {
-        if (internalTxs.isEmpty() || swapFrom.equals(to)) {
+    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut)  {
+        if (internalTxs.isEmpty() || ut.getSender().equals(to)) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
@@ -37,17 +36,28 @@ public class TransferEvent extends Event implements Serializable {
         }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
+        List<TransferEvent> _bigger_tmpList = new ArrayList<>();
         AtomicReference<TransferEvent> foundEvent = new AtomicReference<>();
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
             if (elem.getSender().equalsIgnoreCase(to)
                     && elem.getContractAddress().equalsIgnoreCase(token)
-                    && value.compareTo(elem.getAmount())>=0
-                    && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
             ) {
-                _tmpList.add(elem);
+                // 这是正常情况
+                if (value.compareTo(elem.getAmount()) >= 0 && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0) {
+                    _tmpList.add(elem);
+                } else if (elem.getAmount().compareTo(value) > 0) {
+                    _bigger_tmpList.add(elem);
+                }
             }
+        }
+
+        // 如果没有找到，就要放开，允许多次交易后一次性转出的情况。这个时候就需要，找大于 swap 的 amountOut 的 Transfer
+        // 比如这条交易：https://phalcon.blocksec.com/explorer/tx/eth/0x5ec00bad52aea9d98e0b00d592cd296b187ca6d00fdca3b508a3e9ed9573b953
+        // 汇总 ETH 后转入到发起者手里
+        if (_tmpList.size() < 1) {
+            _tmpList = _bigger_tmpList;
         }
 
         if (_tmpList.size() == 1) {
@@ -79,16 +89,28 @@ public class TransferEvent extends Event implements Serializable {
                     .contractAddress(token)
                     .build();
         }
-        // 因为判断条件是 转出小于 swap amountOut, 所以这里就可以直接移除找到的 transfer
-        internalTxs.remove(foundEvent.get());
-        return findAfterTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
+        TransferEvent temp = TransferEvent.builder().build();
+//        BeanUtils.copyBeanProp(temp, foundEvent.get());
+        ut.getToMergedTransferEvent().add(temp);
+
+        // 因为，有时候可能是因为，一笔金额转入，然后，分成了多个池子去交易。
+        BigInteger nextValue = foundEvent.get().getAmount();
+
+        if (foundEvent.get().getAmount().compareTo(value) > 0) {
+            foundEvent.get().setAmount(foundEvent.get().getAmount().subtract(value));
+            nextValue = value;
+        } else {
+            internalTxs.remove(foundEvent.get());
+        }
+
+        return findAfterTx(internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**
      * 向后找到最晚的一个transferEvent
      * */
-    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, String swapFrom, String swapTo) {
-        if (internalTxs.isEmpty() || from.equals(swapTo)) {
+    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) {
+        if (internalTxs.isEmpty() || from.equals(ut.getTo())) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
@@ -142,15 +164,23 @@ public class TransferEvent extends Event implements Serializable {
                     .contractAddress(token)
                     .build();
         }
+        TransferEvent temp = TransferEvent.builder().build();
+        ut.getFromMergedTransferEvent().add(temp);
+
         // 只有完全相等的时候，移除找到的元素，否则只是把 该路径消费的 amount 减去即可
         // 因为，有时候可能是因为，一笔金额转入，然后，分成了多个池子去交易。
+        BigInteger nextValue = foundEvent.get().getAmount();
+
         if (foundEvent.get().getAmount().equals(value)) {
             internalTxs.remove(foundEvent.get());
         }
+        // 默认使用 TransferOut 金额去找下一个，但是 TransferOut > value 时候，需要使用 value
         if (foundEvent.get().getAmount().compareTo(value) > 0) {
             foundEvent.get().setAmount(foundEvent.get().getAmount().subtract(value));
+            nextValue = value;
         }
-        return findPreTx(internalTxs, foundEvent.get().getAmount(), foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), swapFrom, swapTo);
+
+        return findPreTx(internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**

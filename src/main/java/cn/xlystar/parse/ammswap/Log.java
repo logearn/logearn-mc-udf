@@ -2,7 +2,6 @@ package cn.xlystar.parse.ammswap;
 
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -119,6 +118,8 @@ public class Log {
 
                         .logIndex(logIndex)
                         .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
                         .protocol(protocol)
                         .version("v3")
                         .build();
@@ -172,6 +173,8 @@ public class Log {
 
                         .logIndex(logIndex)
                         .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
                         .protocol(protocol)
                         .version("v2")
                         .build();
@@ -259,6 +262,7 @@ public class Log {
                     _tokenOut = tokenAddress;
                     uniswapEvent.setTokenOut(tokenAddress);
                     uniswapEvent.setAmountOut(tAmount);
+                    uniswapEvent.getToMergedTransferEvent().add(transferEvent);
                     if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
                 }
             } else if (
@@ -275,6 +279,7 @@ public class Log {
                     uniswapEvent.setTokenIn(tokenAddress);
                     uniswapEvent.setAmountIn(tAmount);
                     uniswapEvent.setSender(tSender);
+                    uniswapEvent.getFromMergedTransferEvent().add(transferEvent);
                     if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
                 }
             }

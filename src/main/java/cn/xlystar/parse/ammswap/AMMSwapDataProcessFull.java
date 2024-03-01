@@ -8,11 +8,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 public class AMMSwapDataProcessFull {
@@ -39,6 +39,8 @@ public class AMMSwapDataProcessFull {
                     map.put("tokenOut", t.getTokenOut());
                     map.put("pair", t.getPair().toString());
                     map.put("logIndex", t.getLogIndex() == null ? null : t.getLogIndex().toString());
+                    map.put("fromMergedTransferEvent", null );
+                    map.put("toMergedTransferEvent", null);
                     map.put("connectedPools", t.getConnectedPools().toString());
                     map.put("protocol", conf.getProtocol());
                     map.put("version", t.getVersion());
@@ -69,6 +71,7 @@ public class AMMSwapDataProcessFull {
         // 2、从log对象中解析 transfer 事件
         List<TransferEvent> transferEvents = Log.findTransfer(txLog);
         log.debug("******* Log 中找到符合条件 TransferEvent： {} 条", transferEvents.size());
+        Collections.sort(transferEvents, Comparator.comparing(TransferEvent::getLogIndex));
 
         // 3、将有效的内部交易添加到transfer事件
         transferEvents.addAll(validInternalTxs);
@@ -79,7 +82,7 @@ public class AMMSwapDataProcessFull {
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
-            TransferEvent _tmpPreTf = TransferEvent.findPreTx(transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut.getSender(), ut.getTo());
+            TransferEvent _tmpPreTf = TransferEvent.findPreTx(transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
             if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
                 log.debug("******* ❌  not fond any pre transfer to merge \n");
                 ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
@@ -87,7 +90,7 @@ public class AMMSwapDataProcessFull {
             }
             ut.setSender(_tmpPreTf.getSender());
 
-            TransferEvent _tmpAftTf = TransferEvent.findAfterTx(transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut.getSender(), ut.getTo());
+            TransferEvent _tmpAftTf = TransferEvent.findAfterTx(transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
             if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
                 log.debug("******* ❌  not fond any after transfer to merge \n");
                 ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
@@ -117,6 +120,7 @@ public class AMMSwapDataProcessFull {
 
         uniswapEvents.addAll(uniswapV2Events);
         uniswapEvents.addAll(uniswapV3Events);
+        Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
 
         // 2、 结合 TransferEvent 将v2和v3构建为标准的 SwapEvent事件，构建完成以后并且删除构建中使用的 TransferEvent
         Result parseMapResult = Log.fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, uniswapEvents, hash);
