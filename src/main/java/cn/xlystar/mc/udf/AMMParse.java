@@ -7,6 +7,8 @@ import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDF;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +33,14 @@ public class AMMParse extends UDF {
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(String.format("conf:%s, logs:%s, internalTxs:%s, hash:%s", conf, logs, internalTxs, hash));
+        } catch (StackOverflowError e) {
+            e.printStackTrace();
+            maps = new ArrayList<>();
+            HashMap<String, String> errorSwap = new HashMap<>();
+            errorSwap.put("errorMsg", "oom");
+            errorSwap.put("chain", chainId);
+            errorSwap.put("protocol", protocol);
+            maps.add(errorSwap);
         }
         return JSON.toJSONString(maps);
     }
