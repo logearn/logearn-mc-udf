@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.common.collect.Lists;
@@ -38,9 +40,9 @@ public class AMMSwapDataProcessFull {
                     map.put("tokenOut", t.getTokenOut());
                     map.put("pair", t.getPair().toString());
                     map.put("logIndex", t.getLogIndex() == null ? null : t.getLogIndex().toString());
-                    map.put("fromMergedTransferEvent", null );
-                    map.put("toMergedTransferEvent", null);
-                    map.put("connectedPools", t.getConnectedPools().toString());
+                    map.put("fromMergedTransferEvent", t.getFromMergedTransferEvent() == null ? null : t.getFromMergedTransferEvent().toString());
+                    map.put("toMergedTransferEvent", t.getToMergedTransferEvent() == null ? null : t.getToMergedTransferEvent().toString());
+                    map.put("connectedPools",  JSONObject.parseObject(JSON.toJSONString(t.getConnectedPools()), List.class).toString());
                     map.put("protocol", conf.getProtocol());
                     map.put("version", t.getVersion());
                     map.put("errorMsg", t.getErrorMsg());
@@ -106,6 +108,27 @@ public class AMMSwapDataProcessFull {
         List<TransferEvent> getFinalTransferOutEvent = getTransferOutEvent(finalTransfer);
         transferToUniswapSell(conf, getFinalTransferOutEvent, fullUniswapEvents);
         log.info("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
+
+
+//        for (int i = 0; i < fullUniswapEvents.size(); i++) {
+//            UniswapEvent ut = fullUniswapEvents.get(i);
+////            if (ut.getTokenIn().equals("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")) {
+//            if (ut.getTokenIn().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && !ut.getTokenOut().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && !ut.getVersion().equals("transferOut")) {
+//
+//                BigDecimal t1 =  new BigDecimal(ut.getAmountIn()); //.divide(new BigDecimal("1e18"), 20, RoundingMode.HALF_UP);
+//                BigDecimal t2 =  new BigDecimal(ut.getAmountOut()); //.divide(new BigDecimal("1e9"), 20, RoundingMode.HALF_UP);
+//
+//                log.info(ut.getTokenOut() + " 卖的价格： " + t1.divide(t2, 20, RoundingMode.HALF_UP));
+//
+//            } else if (!ut.getTokenIn().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && ut.getTokenOut().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")) {
+//                BigDecimal t1 =  new BigDecimal(ut.getAmountIn()); //.divide(new BigDecimal("1e9"), 20, RoundingMode.HALF_UP);
+//                BigDecimal t2 =  new BigDecimal(ut.getAmountOut()); //.divide(new BigDecimal("1e18"), 20, RoundingMode.HALF_UP);
+//
+//                log.info(ut.getTokenIn() + " 买的价格： " + t2.divide(t1, 20, RoundingMode.HALF_UP));
+//            } else {
+//                log.info("非正常买卖，忽略价格！");
+//            }
+//        }
         return fullUniswapEvents;
     }
 
