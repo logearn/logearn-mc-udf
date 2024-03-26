@@ -113,7 +113,7 @@ public class AMMSwapDataProcessFull {
         Map<String, Map<String, BigInteger>> finalTransfer = TransferEvent.calculateBalances(transferEvents);
         List<TransferEvent> getFinalTransferOutEvent = getTransferOutEvent(finalTransfer);
         transferToUniswapSell(conf, getFinalTransferOutEvent, fullUniswapEvents);
-        log.info("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
+        log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
 
 
 //        for (int i = 0; i < fullUniswapEvents.size(); i++) {
@@ -145,11 +145,14 @@ public class AMMSwapDataProcessFull {
         List<UniswapEvent> uniswapV2Events = Log.findSwapV2(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
-        log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size());
+        List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
+
+        log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条，uniswapStableCoinEvents： {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size(), uniswapStableCoinEvents.size());
 
         uniswapEvents.addAll(uniswapV2Events);
         uniswapEvents.addAll(uniswapV3Events);
         uniswapEvents.addAll(uniswapMMEvents);
+        uniswapEvents.addAll(uniswapStableCoinEvents);
         Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
 
         // 2、 结合 TransferEvent 将v2和v3构建为标准的 SwapEvent事件，构建完成以后并且删除构建中使用的 TransferEvent

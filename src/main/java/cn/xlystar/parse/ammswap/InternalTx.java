@@ -53,7 +53,6 @@ public class InternalTx {
             TransferEvent tevent = TransferEvent.builder().sender(t.getFrom())
                     .receiver(t.getTo())
                     .amount(t.getValue())
-                    .logIndex(BigInteger.valueOf(UUID.randomUUID().toString().hashCode()))
                     .contractAddress(mainToken)
                     .assetType("erc20")
                     .origin("internal")

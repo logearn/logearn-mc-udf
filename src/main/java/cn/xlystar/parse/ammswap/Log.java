@@ -45,13 +45,14 @@ public class Log {
             JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
             BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
             List<String> topicLists = parseTopics(tmp.get("topics"));
-            if (topicLists.size() != 3) continue;
+            if (topicLists.size() != 3 && topicLists.size() != 4) continue;
             boolean isErc404 = "0xe59fdd36d0d223c0c7d996db7ad796880f45e1936cb0bb7ac102e7082e031487".equalsIgnoreCase(topicLists.get(0));
             boolean isErc20 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0));
+            boolean isErc1155 = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62".equalsIgnoreCase(topicLists.get(0));
             // Transfer (index_topic_1 address src, index_topic_2 address dst, uint256 wad)
             if ((isErc20 ||
                     isErc404 // ERC20Transfer (index_topic_1 address from, index_topic_2 address to, uint256 amount)
-            )
+            ) && topicLists.size() == 3
                     && data.length() == 64) {
                 // Transfer
                 String sender = "0x" + topicLists.get(1).substring(26).toLowerCase();
@@ -70,7 +71,26 @@ public class Log {
                             .build();
                     transferLog.add(event);
                 }
+            } else if (isErc1155 && topicLists.size() == 4 && data.length() == 128) {
+//                TransferSingle (index_topic_1 address operator, index_topic_2 address from, index_topic_3 address to, uint256 id, uint256 value)
+                String sender = "0x" + topicLists.get(2).substring(26).toLowerCase();
+                String receiver = "0x" + topicLists.get(3).substring(26).toLowerCase();
+
+                // 自己给自己转账的日志，过滤掉，因为会影响 swap 去找 transfer 的准确性
+                if (!sender.equals(receiver)) {
+                    TransferEvent event = TransferEvent.builder()
+                            .sender(sender)
+                            .receiver(receiver)
+                            .amount(new BigInteger(data.substring(88), 16))
+                            .logIndex(logIndex)
+                            .assetType("erc20")
+                            .contractAddress(contractAddress)
+                            .origin("log")
+                            .build();
+                    transferLog.add(event);
+                }
             }
+
         }
         return transferLog;
     }
@@ -250,6 +270,8 @@ public class Log {
 
             if (
                     tReceiver.equalsIgnoreCase(uniswapEvent.getTo())
+                            && transferEvent.getLogIndex() != null
+                            && uniswapEvent.getLogIndex() != null
                             && tSender.equalsIgnoreCase(uniswapEvent.getContractAddress())
                             && (uniswapEvent.getAmountOut().compareTo(tAmount) >= 0 || ignoreCompareAmount)
                             && (uniswapEvent.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0 || ignoreLogIndex)
@@ -267,6 +289,8 @@ public class Log {
                 }
             } else if (
                     tReceiver.equalsIgnoreCase(uniswapEvent.getContractAddress())
+                            && transferEvent.getLogIndex() != null
+                            && uniswapEvent.getLogIndex() != null
                             && (tAmount.compareTo(uniswapEvent.getAmountIn()) >= 0 || ignoreCompareAmount)
                             && (uniswapEvent.getLogIndex().compareTo(transferEvent.getLogIndex()) > 0 || ignoreLogIndex)
                             && (transferEvent.getOrigin().equals("log") || ignoreTransferOrigin)
@@ -358,4 +382,43 @@ public class Log {
         return uniswapEvents;
     }
 
+    // pancake 有这种池子
+    // https://phalcon.blocksec.com/explorer/tx/bsc/0x2ce4c7dc67a95cbb2a14236ebfb3dc83a99f0c2625f1ecde8f42b6e0de805869
+    public static List<UniswapEvent> findSwapStableCoin(String protocol, JsonNode logJson) {
+        JsonNode logLists = logJson.get("logs");
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+            String data = tmp.get("data").asText().substring(2);
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            if (topicLists.size() == 2
+                    // TokenExchange (index_topic_1 address buyer, uint256 sold_id, uint256 tokens_sold, uint256 bought_id, uint256 tokens_bought)
+                    && "0xb2e76ae99761dc136e598d4a629bb347eccb9532a5f8bbd72e18467c3c34cc98".equalsIgnoreCase(topicLists.get(0))) {
+
+                BigInteger amountIn = web3HexToBigInteger(data.substring(64, 128));
+                BigInteger amountOut = web3HexToBigInteger(data.substring(192, 256));
+
+                String buyer = "0x" + topicLists.get(1).substring(26).toLowerCase();
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(buyer)
+                        .to(buyer)
+                        .amountIn(amountIn)
+                        .amountOut(amountOut)
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(protocol)
+                        .version("stablecoinswap")
+                        .build();
+                uniswapEvents.add(uniswapEvent);
+            }
+        }
+        return uniswapEvents;
+    }
 }

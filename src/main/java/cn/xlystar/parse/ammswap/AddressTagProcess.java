@@ -37,9 +37,11 @@ public class AddressTagProcess {
         List<UniswapEvent> uniswapV2Events = Log.findSwapV2(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
-        uniswapEvents.addAll(uniswapMMEvents);
+        List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
         uniswapEvents.addAll(uniswapV2Events);
         uniswapEvents.addAll(uniswapV3Events);
+        uniswapEvents.addAll(uniswapMMEvents);
+        uniswapEvents.addAll(uniswapStableCoinEvents);
 
         // 3、记录所有 token 地址和 池子地址
         addressTagList.put("contract", new HashSet<>()); // 合约地址
@@ -47,6 +49,8 @@ public class AddressTagProcess {
         addressTagList.put("erc404", new HashSet<>()); // erc404 类型资产
         addressTagList.put("pool_uniswap_v2", new HashSet<>()); // uniswap v2 池子
         addressTagList.put("pool_uniswap_v3", new HashSet<>()); // uniswap v3 池子
+        addressTagList.put("pool_uniswap_mmpool", new HashSet<>()); //
+        addressTagList.put("pool_uniswap_stablecoinswap", new HashSet<>()); //
         addressTagList.put("1000_eth_trader", new HashSet<>()); // 1000eth 交易的 巨鲸
         addressTagList.put("500_eth_trader", new HashSet<>()); // 500eth 交易的 巨鲸
         addressTagList.put("100_eth_trader", new HashSet<>()); // 100eth 交易的 巨鲸
