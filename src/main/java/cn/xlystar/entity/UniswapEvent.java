@@ -36,8 +36,8 @@ public class UniswapEvent extends Event implements Serializable {
 
     /**
      * 将多个events，串联起来，形成完整的uniswapEvents事件， 串联规则：前一个swap的to是后一个sender
-     * */
-    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents){
+     */
+    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents) {
         ArrayList<UniswapEvent> fullUniswapEvents = new ArrayList<>();
 
         uniswapEvents.forEach(u -> {
@@ -84,12 +84,12 @@ public class UniswapEvent extends Event implements Serializable {
                 returnUniswapEvents.add(map);
             }
         }
-        return  returnUniswapEvents;
+        return returnUniswapEvents;
     }
 
     /**
      * 向前找到最早的一个swapEvent
-     * */
+     */
     private static UniswapEvent findPreEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged) {
         if (events.isEmpty()) {
             return target;
@@ -115,7 +115,7 @@ public class UniswapEvent extends Event implements Serializable {
 
     /**
      * 向后找到最晚的一个swapEvent
-     * */
+     */
     private static UniswapEvent findAfterEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged) {
         if (events.isEmpty()) {
             return target;
@@ -137,6 +137,14 @@ public class UniswapEvent extends Event implements Serializable {
             }
         }
         return target; // 或者返回null，如果你希望在未找到时返回空
+    }
+
+    public static Boolean isExistMergedTransferEventList(List<TransferEvent> targetLists, TransferEvent event) {
+        for (int i = 0; i < targetLists.size(); i++) {
+            TransferEvent transferEvent = targetLists.get(i);
+            if (transferEvent.getSender().equals(event.getSender()) && transferEvent.getReceiver().equals(event.getReceiver())) return true;
+        }
+        return false;
     }
 
 }

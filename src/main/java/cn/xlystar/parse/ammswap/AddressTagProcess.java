@@ -3,7 +3,6 @@ package cn.xlystar.parse.ammswap;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.StringUtils;
 
@@ -37,6 +36,8 @@ public class AddressTagProcess {
         // 4、获取 swap 事件
         List<UniswapEvent> uniswapV2Events = Log.findSwapV2(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
+        List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
+        uniswapEvents.addAll(uniswapMMEvents);
         uniswapEvents.addAll(uniswapV2Events);
         uniswapEvents.addAll(uniswapV3Events);
 

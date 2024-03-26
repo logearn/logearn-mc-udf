@@ -2,8 +2,10 @@ package cn.xlystar.entity;
 
 import lombok.Builder;
 import lombok.Data;
+import org.apache.commons.beanutils.BeanUtils;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +27,7 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个transferEvent
      * */
-    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut)  {
+    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty() || ut.getSender().equals(to)) {
             return TransferEvent.builder()
                     .amount(value)
@@ -43,6 +45,7 @@ public class TransferEvent extends Event implements Serializable {
             TransferEvent elem = iterator.next();
             if (elem.getSender().equalsIgnoreCase(to)
                     && elem.getContractAddress().equalsIgnoreCase(token)
+                    && !UniswapEvent.isExistMergedTransferEventList(ut.getToMergedTransferEvent(), elem)
             ) {
                 // 这是正常情况
                 if (value.compareTo(elem.getAmount()) >= 0 && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0) {
@@ -90,7 +93,7 @@ public class TransferEvent extends Event implements Serializable {
                     .build();
         }
         TransferEvent temp = TransferEvent.builder().build();
-//        BeanUtils.copyBeanProp(temp, foundEvent.get());
+        BeanUtils.copyProperties(temp, foundEvent.get());
         ut.getToMergedTransferEvent().add(temp);
 
         // 因为，有时候可能是因为，一笔金额转入，然后，分成了多个池子去交易。
@@ -109,7 +112,7 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向后找到最晚的一个transferEvent
      * */
-    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) {
+    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty() || from.equals(ut.getTo())) {
             return TransferEvent.builder()
                     .amount(value)
@@ -127,6 +130,7 @@ public class TransferEvent extends Event implements Serializable {
             if (elem.getReceiver().equalsIgnoreCase(from)
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
+                    && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)
                 // 因为 卖的时候，用户可以转入很多个，但是只卖一下部分，所以这个地方，只需要 转入的金额大于等于 swap 的金额即可。
 //                    && elem.getAmount().divide(new BigInteger("2")).compareTo(value) > 0
             ) {
@@ -165,6 +169,7 @@ public class TransferEvent extends Event implements Serializable {
                     .build();
         }
         TransferEvent temp = TransferEvent.builder().build();
+        BeanUtils.copyProperties(temp, foundEvent.get());
         ut.getFromMergedTransferEvent().add(temp);
 
         // 只有完全相等的时候，移除找到的元素，否则只是把 该路径消费的 amount 减去即可

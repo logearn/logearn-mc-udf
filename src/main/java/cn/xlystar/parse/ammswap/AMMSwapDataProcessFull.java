@@ -1,6 +1,7 @@
 package cn.xlystar.parse.ammswap;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,22 +84,27 @@ public class AMMSwapDataProcessFull {
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
-            TransferEvent _tmpPreTf = TransferEvent.findPreTx(transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
-            if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
-                log.debug("******* ❌  not fond any pre transfer to merge \n");
-                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
-                return;
-            }
-            ut.setSender(_tmpPreTf.getSender());
+            TransferEvent _tmpPreTf = null;
+            try {
+                _tmpPreTf = TransferEvent.findPreTx(transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+                if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
+                    log.debug("******* ❌  not fond any pre transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
+                    return;
+                }
+                ut.setSender(_tmpPreTf.getSender());
 
-            TransferEvent _tmpAftTf = TransferEvent.findAfterTx(transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
-            if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
-                log.debug("******* ❌  not fond any after transfer to merge \n");
-                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
-                return;
+                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
+                if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
+                    log.debug("******* ❌  not fond any after transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
+                    return;
+                }
+                ut.setAmountOut(_tmpAftTf.getAmount());
+                ut.setTo(_tmpAftTf.getReceiver());
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
-            ut.setAmountOut(_tmpAftTf.getAmount());
-            ut.setTo(_tmpAftTf.getReceiver());
         });
 
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
@@ -138,10 +144,12 @@ public class AMMSwapDataProcessFull {
         // 1、解析 swap v2\v3
         List<UniswapEvent> uniswapV2Events = Log.findSwapV2(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
-        log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。\n", uniswapV2Events.size(), uniswapV3Events.size());
+        List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
+        log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size());
 
         uniswapEvents.addAll(uniswapV2Events);
         uniswapEvents.addAll(uniswapV3Events);
+        uniswapEvents.addAll(uniswapMMEvents);
         Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
 
         // 2、 结合 TransferEvent 将v2和v3构建为标准的 SwapEvent事件，构建完成以后并且删除构建中使用的 TransferEvent

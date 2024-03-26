@@ -62,7 +62,7 @@ public class TokenRequestUrl extends UDF {
     public static void main(String[] args) {
         TokenRequestUrl requestUrl = new TokenRequestUrl();
         for (int i = 0; i < 3; i++) {
-            System.out.println(requestUrl.evaluate("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "1","logearn.com:443"));
+            System.out.println(requestUrl.evaluate("0x142f4330ab3eda738cb373791c2e99cc325bed20", "1","logearn.com:443"));
         }
     }
 }

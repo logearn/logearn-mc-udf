@@ -313,4 +313,49 @@ public class Log {
         return topicLists;
     }
 
+    public static List<UniswapEvent> findSwapMM(String protocol, JsonNode logJson) {
+        JsonNode logLists = logJson.get("logs");
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+            String data = tmp.get("data").asText().substring(2);
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            // 这种交易就是做市商交易。
+            // Swap (uint256 nonce, index_topic_1 address user, index_topic_2 address mm, address mmTreasury, address baseToken, address quoteToken, uint256 baseTokenAmount, uint256 quoteTokenAmount)
+            // 所以我们 logearn 理解的交易里面的 pool 地址应该是：mm 地址
+            // 所以我们 logearn 理解的交易里面的 from 地址 应该为 log 中的 contract 地址
+            // 所以我们 logearn 理解的交易里面的 to 地址 应该为 log from 地址
+
+            if (topicLists.size() >= 3
+                    && "0xe7d6f812e1a54298ddef0b881cd08a4d452d9de35eb18b5145aa580fdda18b26".equalsIgnoreCase(topicLists.get(0))
+                    && data.length() == 384) {
+                BigInteger amountIn = web3HexToBigInteger(data.substring(256, 320));
+                BigInteger amountOut = web3HexToBigInteger(data.substring(320, 384));
+
+                String sender = contractAddress;
+                String to = "0x" + topicLists.get(1).substring(26).toLowerCase();
+                String poolContract = "0x" + topicLists.get(2).substring(26).toLowerCase();
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(to)
+                        .amountIn(amountIn)
+                        .amountOut(amountOut)
+                        .logIndex(logIndex)
+                        .contractAddress(poolContract)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(protocol)
+                        .version("mmpool")
+                        .build();
+                uniswapEvents.add(uniswapEvent);
+            }
+        }
+        return uniswapEvents;
+    }
+
 }
