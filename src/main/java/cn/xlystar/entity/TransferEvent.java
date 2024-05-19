@@ -27,14 +27,18 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个transferEvent
      * */
-    public static TransferEvent findAfterTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
-        if (internalTxs.isEmpty() || ut.getSender().equals(to)) {
+    public static TransferEvent findAfterTx(String originSender, List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
+        if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
                     .sender(from)
                     .contractAddress(token)
                     .build();
+        }
+        boolean matchOriginSender = false;
+        if (from.equals(ut.getTo())) {
+            matchOriginSender = true;
         }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
@@ -46,6 +50,7 @@ public class TransferEvent extends Event implements Serializable {
             if (elem.getSender().equalsIgnoreCase(to)
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getToMergedTransferEvent(), elem)
+                    && (!matchOriginSender || originSender.equals(elem.getReceiver()))
             ) {
                 // 这是正常情况
                 if (value.compareTo(elem.getAmount()) >= 0 && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0) {
@@ -106,20 +111,24 @@ public class TransferEvent extends Event implements Serializable {
             internalTxs.remove(foundEvent.get());
         }
 
-        return findAfterTx(internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
+        return findAfterTx(originSender, internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**
      * 向后找到最晚的一个transferEvent
      * */
-    public static TransferEvent findPreTx(List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
-        if (internalTxs.isEmpty() || from.equals(ut.getTo())) {
+    public static TransferEvent findPreTx(String originSender, List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
+        if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
                     .amount(value)
                     .receiver(to)
                     .sender(from)
                     .contractAddress(token)
                     .build();
+        }
+        boolean matchOriginSender = false;
+        if (from.equals(ut.getTo())) {
+            matchOriginSender = true;
         }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
@@ -131,6 +140,7 @@ public class TransferEvent extends Event implements Serializable {
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)
+                    && (!matchOriginSender || originSender.equals(elem.getSender()))
                 // 因为 卖的时候，用户可以转入很多个，但是只卖一下部分，所以这个地方，只需要 转入的金额大于等于 swap 的金额即可。
 //                    && elem.getAmount().divide(new BigInteger("2")).compareTo(value) > 0
             ) {
@@ -185,7 +195,7 @@ public class TransferEvent extends Event implements Serializable {
             nextValue = value;
         }
 
-        return findPreTx(internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
+        return findPreTx(originSender, internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**

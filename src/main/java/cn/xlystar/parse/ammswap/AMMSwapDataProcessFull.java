@@ -1,20 +1,20 @@
 package cn.xlystar.parse.ammswap;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class AMMSwapDataProcessFull {
@@ -22,9 +22,9 @@ public class AMMSwapDataProcessFull {
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseFullUniswap(ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs) throws IOException {
+    public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs) throws IOException {
         List<Map<String, String>> lists = new ArrayList<>();
-        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(conf, logs, hash, tftxs);
+        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs);
         uniswapEvents.forEach(t -> {
                     // 非 eth 币对处理
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
@@ -43,7 +43,7 @@ public class AMMSwapDataProcessFull {
                     map.put("logIndex", t.getLogIndex() == null ? null : t.getLogIndex().toString());
                     map.put("fromMergedTransferEvent", t.getFromMergedTransferEvent() == null ? null : t.getFromMergedTransferEvent().toString());
                     map.put("toMergedTransferEvent", t.getToMergedTransferEvent() == null ? null : t.getToMergedTransferEvent().toString());
-                    map.put("connectedPools",  JSONObject.parseObject(JSON.toJSONString(t.getConnectedPools()), List.class).toString());
+                    map.put("connectedPools", JSONObject.parseObject(JSON.toJSONString(t.getConnectedPools()), List.class).toString());
                     map.put("protocol", conf.getProtocol());
                     map.put("version", t.getVersion());
                     map.put("errorMsg", t.getErrorMsg());
@@ -62,7 +62,7 @@ public class AMMSwapDataProcessFull {
     /**
      * 解析所有的swap
      */
-    public static List<UniswapEvent> parseAllUniSwapLogs(ChainConfig conf, String logs, String hash, List<TransferEvent> validInternalTxs) throws IOException {
+    public static List<UniswapEvent> parseAllUniSwapLogs(String originSender, ChainConfig conf, String logs, String hash, List<TransferEvent> validInternalTxs) throws IOException {
         if (logs.isEmpty()) {
             return new ArrayList<>();
         }
@@ -84,9 +84,8 @@ public class AMMSwapDataProcessFull {
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
-            TransferEvent _tmpPreTf = null;
             try {
-                _tmpPreTf = TransferEvent.findPreTx(transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+                TransferEvent _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
                 if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
                     log.debug("******* ❌  not fond any pre transfer to merge \n");
                     ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
@@ -94,7 +93,7 @@ public class AMMSwapDataProcessFull {
                 }
                 ut.setSender(_tmpPreTf.getSender());
 
-                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
+                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
                 if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
                     log.debug("******* ❌  not fond any after transfer to merge \n");
                     ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);

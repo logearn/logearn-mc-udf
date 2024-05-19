@@ -23,11 +23,11 @@ public class EthParse extends UDF {
     public EthParse() {
     }
 
-    public String evaluate(String logs, String internalTxs, String hash) throws IOException {
+    public String evaluate(String originSender, String logs, String internalTxs, String hash) throws IOException {
         ChainConfig conf = new ConfigHelper().getConfig("1", "uniswap");
         List<Map<String, String>> maps = null;
         try {
-            maps = AMMSwapDataProcess.decodeInputData(conf, logs, internalTxs, hash);
+            maps = AMMSwapDataProcess.decodeInputData(conf, "", originSender, "", "", logs, internalTxs, hash);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(String.format("conf:%s, logs:%s, internalTxs:%s, hash:%s", conf, logs, internalTxs, hash));

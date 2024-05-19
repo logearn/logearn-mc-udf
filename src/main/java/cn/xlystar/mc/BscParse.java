@@ -24,9 +24,9 @@ public class BscParse extends UDF {
     public BscParse() {
     }
 
-    public String evaluate(String logs, String internalTxs, String hash) throws IOException {
+    public String evaluate(String originSender, String logs, String internalTxs, String hash) throws IOException {
         ChainConfig conf = new ConfigHelper().getConfig("56", "pancake");
-        List<Map<String, String>> maps = AMMSwapDataProcess.decodeInputData(conf, logs, internalTxs, hash);
+        List<Map<String, String>> maps = AMMSwapDataProcess.decodeInputData(conf, "", originSender, "", "", logs, internalTxs, hash);
         return JSON.toJSONString(maps);
     }
 
