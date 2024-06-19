@@ -13,7 +13,7 @@ import java.util.*;
 
 public class AddressTagProcess {
 
-    public static Map<String, Set<String>> getAddressTagList(ChainConfig conf, String log, String internalTxs, String hash) throws IOException {
+    public static Map<String, Set<String>> getAddressTagList(String from, String to, ChainConfig conf, String log, String internalTxs, String hash) throws IOException {
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
 
         Map<String, Set<String>> addressTagList = new HashMap<>();
@@ -44,6 +44,10 @@ public class AddressTagProcess {
         uniswapEvents.addAll(uniswapStableCoinEvents);
 
         // 3、记录所有 token 地址和 池子地址
+        addressTagList.put("3dogs_trader", new HashSet<>()); // 3dogs 交易员
+        addressTagList.put("banana_gun_trader", new HashSet<>()); // bananaGun_trader 交易员
+        addressTagList.put("maestro_trader", new HashSet<>()); // Maestro 交易员
+        addressTagList.put("logearn", new HashSet<>()); // logearn 交易员
         addressTagList.put("contract", new HashSet<>()); // 合约地址
         addressTagList.put("erc20", new HashSet<>());  // erc420 类型资产
         addressTagList.put("erc404", new HashSet<>()); // erc404 类型资产
@@ -56,6 +60,17 @@ public class AddressTagProcess {
         addressTagList.put("100_eth_trader", new HashSet<>()); // 100eth 交易的 巨鲸
         addressTagList.put("whale_trader", new HashSet<>()); // 巨鲸
         addressTagList.put("arbitrage_trader", new HashSet<>()); // 套利合约
+
+        // logearn\3dogs_trader\bananaGun_trader\maestro_trader
+        String bananaGunRouter = conf.getProtocolConf().get("bananaGunRouter").asText();
+        String maestroRouter = conf.getProtocolConf().get("maestroRouter").asText();
+        String dogs3 = conf.getProtocolConf().get("3dogs").asText();
+        String logearn = conf.getProtocolConf().get("logearn").asText();
+        if (bananaGunRouter.equals(to)) addressTagList.get("banana_gun_trader").add(from);
+        if (maestroRouter.equals(to)) addressTagList.get("maestro_trader").add(from);
+        if (dogs3.equals(to)) addressTagList.get("3dogs_trader").add(from);
+        if (logearn.equals(to)) addressTagList.get("logearn").add(from);
+
         // 4、给 地址 打 contract 标签
         addressTagList.get("contract").addAll(Log.getContractAddress(txLog));
         addressTagList.get("contract").addAll(InternalTx.getContractAddress(internalTxs));

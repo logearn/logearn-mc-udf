@@ -53,7 +53,13 @@ public class TransferEvent extends Event implements Serializable {
                     && (!matchOriginSender || originSender.equals(elem.getReceiver()))
             ) {
                 // 这是正常情况
-                if (value.compareTo(elem.getAmount()) >= 0 && elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0) {
+                if (value.compareTo(elem.getAmount()) >= 0
+                        && (elem.getReceiver().equals(originSender)
+                                || (elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+                                    && !elem.getReceiver().equals(elem.contractAddress)
+                                )
+                        )
+                ) {
                     _tmpList.add(elem);
                 } else if (elem.getAmount().compareTo(value) > 0) {
                     _bigger_tmpList.add(elem);

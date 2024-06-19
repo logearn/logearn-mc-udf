@@ -223,6 +223,33 @@ public class AccountAmountSum extends Aggregator {
                     buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostETHHoldOfBuy, trade_token_cost_coin_now).toString();
                     buf.holdPriceUsd = ArithmeticUtils.add(buf.holdPriceUsd, hold_price_usd).toString();
                     buf.holdPriceCoin = ArithmeticUtils.add(buf.holdPriceCoin, hold_price_coin).toString();
+
+                    // 处理余额过低问题
+                    StringBuilder decimal = new StringBuilder("1");
+                    for (int i = 0; i < Integer.parseInt(decimals); i++) {
+                        decimal.append("0");
+                    }
+                    if (!ArithmeticUtils.compare(out_by_in_ratio, "0")) {
+                        return;
+                    }
+                    if (!ArithmeticUtils.compare(ArithmeticUtils.div(ArithmeticUtils.mul(out_by_in_ratio, buf.tradeAccountAmount).toString(), decimal.toString(), 18), "0.001")) {
+                        String tradeAmount = buf.tradeAccountAmount;
+                        buf.tradeAccountAmount = "0";
+                        // 累计 Sell 的 总 Cost、总 Amount。
+                        String incrCost = "0";
+                        String incrCostETH = "0";
+                        buf.tradeAccountReceiveSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveSumOfSell, incrCost).toString();
+                        buf.tradeAccountReceiveETHSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveETHSumOfSell, incrCostETH).toString();
+                        buf.tradeAccountReceiveAmountSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveAmountSumOfSell, tradeAmount).toString();
+
+                        String decrCost = ArithmeticUtils.mul(buf.holdPriceUsd, tradeAmount).toPlainString();
+                        String decrCostCoin = ArithmeticUtils.mul(buf.holdPriceCoin, tradeAmount).toPlainString();
+                        buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.compare(decrCost, buf.tradeAccountTokenCostHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostHoldOfBuy, decrCost).toString();
+                        buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.compare(decrCostCoin, buf.tradeAccountTokenCostETHHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostETHHoldOfBuy, decrCostCoin).toString();
+
+                        buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+                        buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
+                    }
                 }
                 if ("Buy".equals(type)) {
                     if ("0".equals(buf.tradeAccountAmount)) {
@@ -324,33 +351,6 @@ public class AccountAmountSum extends Aggregator {
 //                    buf.tradeAccountTokenCostSumOfBuy = "0";
 //                    buf.tradeAccountTokenAmountSumOfBuy = "0";
 //                }
-                }
-
-
-                StringBuilder decimal = new StringBuilder("1");
-                for (int i = 0; i < Integer.parseInt(decimals); i++) {
-                    decimal.append("0");
-                }
-                if (!ArithmeticUtils.compare(out_by_in_ratio, "0")) {
-                    return;
-                }
-                if (!ArithmeticUtils.compare(ArithmeticUtils.div(ArithmeticUtils.mul(out_by_in_ratio, buf.tradeAccountAmount).toString(), decimal.toString(), 18), "0.001")) {
-                    String tradeAmount = buf.tradeAccountAmount;
-                    buf.tradeAccountAmount = "0";
-                    // 累计 Sell 的 总 Cost、总 Amount。
-                    String incrCost = "0";
-                    String incrCostETH = "0";
-                    buf.tradeAccountReceiveSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveSumOfSell, incrCost).toString();
-                    buf.tradeAccountReceiveETHSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveETHSumOfSell, incrCostETH).toString();
-                    buf.tradeAccountReceiveAmountSumOfSell = ArithmeticUtils.add(buf.tradeAccountReceiveAmountSumOfSell, tradeAmount).toString();
-
-                    String decrCost = ArithmeticUtils.mul(buf.holdPriceUsd, tradeAmount).toPlainString();
-                    String decrCostCoin = ArithmeticUtils.mul(buf.holdPriceCoin, tradeAmount).toPlainString();
-                    buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.compare(decrCost, buf.tradeAccountTokenCostHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostHoldOfBuy, decrCost).toString();
-                    buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.compare(decrCostCoin, buf.tradeAccountTokenCostETHHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostETHHoldOfBuy, decrCostCoin).toString();
-
-                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
-                    buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                 }
 
             }

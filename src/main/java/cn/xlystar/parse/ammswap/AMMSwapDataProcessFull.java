@@ -5,7 +5,6 @@ import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -28,37 +27,87 @@ public class AMMSwapDataProcessFull {
         uniswapEvents.forEach(t -> {
                     // 非 eth 币对处理
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
+                        // 找到第一个 ETH 的池子
+                        List<UniswapEvent> connectedPools = t.getConnectedPools();
+                        if (connectedPools!=null && connectedPools.size()>0) {
+                            UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
+                            UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
+                            for (int i = 0; i < connectedPools.size(); i++) {
+                                UniswapEvent uniswapEvent = connectedPools.get(i);
+                                if (uniswapEvent.getTokenOut().equals(conf.getWCoinAddress())) {
+                                    // sell
+                                    ethSellUniswap = UniswapEvent.builder()
+                                            .sender(t.getSender())
+                                            .to(t.getSender())
+                                            .tokenIn(t.getTokenIn())
+                                            .amountIn(t.getAmountIn())
+                                            .tokenOut(conf.getWCoinAddress())
+                                            .amountOut(uniswapEvent.getAmountOut())
+                                            .pair(t.getPair())
+                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                            .connectedPools(t.getConnectedPools())
+                                            .version(t.getVersion())
+                                            .errorMsg(t.getErrorMsg());
+                                    lists.add(swapResultStruct(conf, ethSellUniswap.build()));
+
+                                    // buy eth币对
+                                    ethBuyUniswap = UniswapEvent.builder()
+                                            .sender(t.getSender())
+                                            .to(t.getTo())
+                                            .tokenIn(conf.getWCoinAddress())
+                                            .amountIn(uniswapEvent.getAmountOut())
+                                            .tokenOut(t.getTokenOut())
+                                            .amountOut(t.getAmountOut())
+                                            .pair(t.getPair())
+                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                            .connectedPools(t.getConnectedPools())
+                                            .version(t.getVersion())
+                                            .errorMsg(t.getErrorMsg());
+
+                                    lists.add(swapResultStruct(conf, ethBuyUniswap.build()));
+                                    return;
+                                }
+
+                            }
+                        }
+                        // 不存在 eth 的池子
                         t.setAmountOut(BigInteger.ZERO);
                         t.setTokenOut(conf.getWCoinAddress());
                     }
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("caller", t.getSender());
-                    map.put("methodId", "others");
-                    map.put("to", t.getTo());
-                    map.put("amountIn", t.getAmountIn() == null ? null : t.getAmountIn().toString());
-                    map.put("amountOut", t.getAmountOut() == null ? null : t.getAmountOut().toString());
-                    map.put("tokenIn", t.getTokenIn());
-                    map.put("tokenOut", t.getTokenOut());
-                    map.put("pair", t.getPair().toString());
-                    map.put("logIndex", t.getLogIndex() == null ? null : t.getLogIndex().toString());
-                    map.put("fromMergedTransferEvent", t.getFromMergedTransferEvent() == null ? null : t.getFromMergedTransferEvent().toString());
-                    map.put("toMergedTransferEvent", t.getToMergedTransferEvent() == null ? null : t.getToMergedTransferEvent().toString());
-                    map.put("connectedPools", JSONObject.parseObject(JSON.toJSONString(t.getConnectedPools()), List.class).toString());
-                    map.put("protocol", conf.getProtocol());
-                    map.put("version", t.getVersion());
-                    map.put("errorMsg", t.getErrorMsg());
-                    map.put("chain", conf.getChainId());
-                    if (conf.getWCoinAddress().equals(t.getTokenIn())) {
-                        map.put("eventType", "buy");
-                    } else {
-                        map.put("eventType", "sell");
-                    }
-                    lists.add(map);
+
+                    lists.add(swapResultStruct(conf,t));
                 }
         );
         return lists;
     }
 
+    private static HashMap<String, String> swapResultStruct(ChainConfig conf, UniswapEvent swap) {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("caller", swap.getSender());
+        map.put("methodId", "others");
+        map.put("to", swap.getTo());
+        map.put("amountIn", swap.getAmountIn() == null ? null : swap.getAmountIn().toString());
+        map.put("amountOut", swap.getAmountOut() == null ? null : swap.getAmountOut().toString());
+        map.put("tokenIn", swap.getTokenIn());
+        map.put("tokenOut", swap.getTokenOut());
+        map.put("pair", swap.getPair().toString());
+        map.put("logIndex", swap.getLogIndex() == null ? null : swap.getLogIndex().toString());
+        map.put("fromMergedTransferEvent", swap.getFromMergedTransferEvent() == null ? null : swap.getFromMergedTransferEvent().toString());
+        map.put("toMergedTransferEvent", swap.getToMergedTransferEvent() == null ? null : swap.getToMergedTransferEvent().toString());
+        map.put("connectedPools",  JSONObject.parseObject(JSON.toJSONString(swap.getConnectedPools()), List.class).toString());
+        map.put("protocol", conf.getProtocol());
+        map.put("version", swap.getVersion());
+        map.put("errorMsg", swap.getErrorMsg());
+        map.put("chain", conf.getChainId());
+        if (conf.getWCoinAddress().equals(swap.getTokenIn())) {
+            map.put("eventType", "buy");
+        } else {
+            map.put("eventType", "sell");
+        }
+        return map;
+    }
     /**
      * 解析所有的swap
      */
@@ -84,24 +133,28 @@ public class AMMSwapDataProcessFull {
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
+            TransferEvent _tmpPreTf = null;
             try {
-                TransferEvent _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
-                if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
-                    log.debug("******* ❌  not fond any pre transfer to merge \n");
-                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
-                    return;
-                }
-                ut.setSender(_tmpPreTf.getSender());
+                _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+            if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
+                log.debug("******* ❌  not fond any pre transfer to merge \n");
+                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
+                return;
+            }
+            ut.setSender(_tmpPreTf.getSender());
 
-                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
-                if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
-                    log.debug("******* ❌  not fond any after transfer to merge \n");
-                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
-                    return;
-                }
-                ut.setAmountOut(_tmpAftTf.getAmount());
-                ut.setTo(_tmpAftTf.getReceiver());
-            } catch (InvocationTargetException | IllegalAccessException e) {
+            TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
+            if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
+                log.debug("******* ❌  not fond any after transfer to merge \n");
+                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
+                return;
+            }
+            ut.setAmountOut(_tmpAftTf.getAmount());
+            ut.setTo(_tmpAftTf.getReceiver());
+
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         });
