@@ -14,6 +14,7 @@
         "bananaGunRouter": "0x3328f7f4a1d1c57c35df56bbf0c9dcafca309c49",
         "maestroRouter": "0x80a64c6d7f12c47b7c66c5b4e20e72bc1fcd5d9e",
         "3dogs": "0xc8c7a58d262803369fe76d4a4a4b8975cc04493e",
+        "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0x5c5f69ce88ea25146bdc348b8078ba86b3dcfce2"
       }
     }
@@ -33,6 +34,7 @@
         "bananaGunRouter": "0x3328f7f4a1d1c57c35df56bbf0c9dcafca309c49",
         "maestroRouter": "0x013bb8a204499523ddf717e0abaa14e6dc849060",
         "3dogs": "0x5e6bb47d89fea09cf5a75ea7e3fa2e804798eb55",
+        "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0xf0839b435d06a5dbad99d037a40d97251eb0d8bb"
       }
     }
@@ -52,6 +54,7 @@
         "bananaGunRouter": "0x1fba6b0bbae2b74586fba407fb45bd4788b7b130",
         "maestroRouter": "0x013bb8a204499523ddf717e0abaa14e6dc849060",
         "3dogs": "0x5e6bb47d89fea09cf5a75ea7e3fa2e804798eb55",
+        "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0xf0839b435d06a5dbad99d037a40d97251eb0d8bb"
       }
     }

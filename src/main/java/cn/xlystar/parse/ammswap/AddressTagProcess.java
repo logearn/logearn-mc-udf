@@ -48,6 +48,7 @@ public class AddressTagProcess {
         addressTagList.put("banana_gun_trader", new HashSet<>()); // bananaGun_trader 交易员
         addressTagList.put("maestro_trader", new HashSet<>()); // Maestro 交易员
         addressTagList.put("logearn", new HashSet<>()); // logearn 交易员
+        addressTagList.put("sigma", new HashSet<>()); // sigma 交易员
         addressTagList.put("contract", new HashSet<>()); // 合约地址
         addressTagList.put("erc20", new HashSet<>());  // erc420 类型资产
         addressTagList.put("erc404", new HashSet<>()); // erc404 类型资产
@@ -61,14 +62,16 @@ public class AddressTagProcess {
         addressTagList.put("whale_trader", new HashSet<>()); // 巨鲸
         addressTagList.put("arbitrage_trader", new HashSet<>()); // 套利合约
 
-        // logearn\3dogs_trader\bananaGun_trader\maestro_trader
+        // logearn\sigma\3dogs_trader\bananaGun_trader\maestro_trader
         String bananaGunRouter = conf.getProtocolConf().get("bananaGunRouter").asText();
         String maestroRouter = conf.getProtocolConf().get("maestroRouter").asText();
         String dogs3 = conf.getProtocolConf().get("3dogs").asText();
+        String sigma = conf.getProtocolConf().get("sigma").asText();
         String logearn = conf.getProtocolConf().get("logearn").asText();
         if (bananaGunRouter.equals(to)) addressTagList.get("banana_gun_trader").add(from);
         if (maestroRouter.equals(to)) addressTagList.get("maestro_trader").add(from);
         if (dogs3.equals(to)) addressTagList.get("3dogs_trader").add(from);
+        if (sigma.equals(to)) addressTagList.get("sigma").add(from);
         if (logearn.equals(to)) addressTagList.get("logearn").add(from);
 
         // 4、给 地址 打 contract 标签
