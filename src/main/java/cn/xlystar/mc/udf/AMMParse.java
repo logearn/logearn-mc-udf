@@ -46,6 +46,8 @@ public class AMMParse extends UDF {
     }
 
     public static void main(String[] args) throws Exception {
-
+        AMMParse ammParse = new AMMParse();
+        ammParse.evaluate("0x812ba41e071c7b7fa4ebcfb62df5f45f6fa853ee", "1","uniswap"
+        ,"","","0x29516fb5f6699286a76545e4815dac6e10da0d3fe492ae661dcadc67aecaf673");
     }
 }

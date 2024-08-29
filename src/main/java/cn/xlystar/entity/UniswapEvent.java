@@ -27,6 +27,7 @@ public class UniswapEvent extends Event implements Serializable {
     // swap 串联之前的 池子地址
     // swap 串联之后的池子地址
     private List<String> pair;
+    private List<UniswapEvent> rawSwapLog;
     private List<UniswapEvent> connectedPools;
     // 扩展边都合并都 transfer, 记录一下，好排查bug, 但是不需要条到数据仓库
     private List<TransferEvent> fromMergedTransferEvent;

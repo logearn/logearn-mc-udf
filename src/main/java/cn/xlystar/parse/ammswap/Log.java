@@ -1,5 +1,6 @@
 package cn.xlystar.parse.ammswap;
 
+import cn.xlystar.entity.LiquidityEvent;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -210,15 +211,18 @@ public class Log {
      */
     public static Result fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> transferEvents, List<UniswapEvent> uniswapEvents, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
+        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
 
-        uniswapEvents.forEach(uniswapEvent -> {
+        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
+        ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>(uniswapEvents);
+        rawUniswapEvents.forEach(uniswapEvent -> {
 
-            _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, hash, false, false, false);
+            _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, false, false, false);
 
             // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
             if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
                 log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
-                _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, hash, false, false, false);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, false, false, false);
             }
 
 
@@ -231,10 +235,46 @@ public class Log {
 
                 // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
                 // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
-                _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, hash, true, true, true);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, true, true, true);
 
                 if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, hash, true, true, true);
+                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, true, true, true);
+                }
+            }
+
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                log.debug("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: {} \n", uniswapEvent);
+                uniswapEvent.setErrorMsg("error : token in or token out is null! hash : " + hash);
+            }
+
+            // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
+            rawTransferEvent.removeAll(excludeRawTransferEvents);
+        });
+
+        uniswapEvents.forEach(uniswapEvent -> {
+
+            _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, false, hash, false, false, false);
+
+            // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, false, hash, false, false, false);
+            }
+
+
+            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                log.debug("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 ");
+                // 由于 uniswap or sushi 等 swap 都是现有 2 个 transferlog, 然后再有 swap log, 所以，默认 swap 匹配 transfer 的时候，log 的顺序会参与 transfer 筛选
+                // 因为这样的 log 顺序有利于，当 一个 swap pool 有多个转入或者转出操作的时候，大概率选择到那个正确的 transfer 进行匹配
+                // 但是 由于 solidiy 这样的 dex 是先有 swap log， 这有 transfer, 所以这个时候，放开 log index 的限制再去 匹配一遍
+                // 例如: https://etherscan.io/tx/0xff2b09ff2facfa2578c46b212af4cabffd01ee04966f32563d762728ecbccb0b#eventlog
+
+                // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
+                // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
+                _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, false, hash, true, true, true);
+
+                if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, false, hash, true, true, true);
                 }
             }
 
@@ -246,11 +286,13 @@ public class Log {
             // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
-        return new Result(uniswapEvents, excludetransferEvents);
+        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents);
     }
 
     private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
-                                                                     UniswapEvent uniswapEvent, String hash,
+                                                                     UniswapEvent uniswapEvent,
+                                                                     Boolean rawAmount,
+                                                                     String hash,
                                                                      Boolean ignoreLogIndex,
                                                                      Boolean ignoreCompareAmount,
                                                                      Boolean ignoreTransferOrigin
@@ -283,7 +325,7 @@ public class Log {
                 if (StringUtils.isEmpty(_tokenOut) || uniswapEvent.getAmountOut().compareTo(tAmount) == 0) {
                     _tokenOut = tokenAddress;
                     uniswapEvent.setTokenOut(tokenAddress);
-                    uniswapEvent.setAmountOut(tAmount);
+                    if (!rawAmount) uniswapEvent.setAmountOut(tAmount);
                     uniswapEvent.getToMergedTransferEvent().add(transferEvent);
                     if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
                 }
@@ -301,7 +343,7 @@ public class Log {
                 if (StringUtils.isEmpty(_tokenIn) || tAmount.compareTo(uniswapEvent.getAmountIn()) == 0) {
                     _tokenIn = tokenAddress;
                     uniswapEvent.setTokenIn(tokenAddress);
-                    uniswapEvent.setAmountIn(tAmount);
+                    if (!rawAmount) uniswapEvent.setAmountIn(tAmount);
                     uniswapEvent.setSender(tSender);
                     uniswapEvent.getFromMergedTransferEvent().add(transferEvent);
                     if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
@@ -421,4 +463,123 @@ public class Log {
         }
         return uniswapEvents;
     }
+
+    /**
+     * 补充流动性事件的2个边，使用 TransferEvent
+     */
+    public static List<LiquidityEvent> fillLiquidityEventWithTransferEvent(List<TransferEvent> transferEvents, List<LiquidityEvent> liquidityEvents, String hash) {
+
+        liquidityEvents.forEach(liquidityEvent -> {
+            List<TransferEvent> excludetransferEvents = new ArrayList<>();
+            for (int i = 0; i < transferEvents.size(); i++) {
+
+                TransferEvent transferEvent = transferEvents.get(i);
+                BigInteger tAmount = transferEvent.getAmount();
+                String tReceiver = transferEvent.getReceiver();
+                String token_address = transferEvent.getContractAddress();
+                if (
+                        tReceiver.equalsIgnoreCase(liquidityEvent.getPoolAddress())
+                                && (liquidityEvent.getAmount0().compareTo(tAmount) == 0 || liquidityEvent.getAmount1().compareTo(tAmount) == 0)
+                ) {
+                    liquidityEvent.getMergedTransferEvent().add(transferEvent);
+                    if (liquidityEvent.getAmount0().compareTo(tAmount) == 0) {
+                        liquidityEvent.setToken0(token_address);
+                    } else {
+                        liquidityEvent.setToken1(token_address);
+                    }
+
+                    if (excludetransferEvents != null) {
+                        excludetransferEvents.add(transferEvent);
+                    }
+                }
+            }
+
+
+            // 删除上次消费的 transfer
+            transferEvents.removeAll(excludetransferEvents);
+        });
+        return liquidityEvents;
+    }
+
+
+    /**
+     * 解析 Uniswap v3/v2 添加/删除 流动性事件
+     */
+    public static List<LiquidityEvent> findLiquidityEvents(String originSender, String protocol, JsonNode logJson) {
+        JsonNode logLists = logJson.get("logs");
+        List<LiquidityEvent> liquidityEvents = new ArrayList<>();
+
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+
+            String data = tmp.get("data").asText().substring(2);
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            boolean is_v2_add_liquidity = topicLists.size() == 2
+                    && "0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f".equalsIgnoreCase(topicLists.get(0))
+                    && data.length() == 128;
+
+//            boolean is_v2_remove_liquidity = topicLists.size() == 3
+//                    && "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496".equalsIgnoreCase(topicLists.get(0))
+//                    && data.length() == 128;
+
+            boolean is_v3_add_liquidity = topicLists.size() == 4
+                    && "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde".equalsIgnoreCase(topicLists.get(0))
+                    && data.length() == 256;
+
+//            boolean is_v3_remove_liquidity = topicLists.size() == 4
+//                    && "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c".equalsIgnoreCase(topicLists.get(0))
+//                    && data.length() == 192;
+
+            if (is_v3_add_liquidity || is_v2_add_liquidity ) {
+                BigInteger amount0 = null;
+                BigInteger amount1 = null;
+                String version = null;
+                String eventType = null;
+
+                if (is_v2_add_liquidity ) {
+                    amount0 = web3HexToBigInteger(data.substring(0, 64));
+                    amount1 = web3HexToBigInteger(data.substring(64, 128));
+                    version = "v2";
+                    eventType = is_v2_add_liquidity ? "add" : "remove";
+                }
+
+                if (is_v3_add_liquidity) {
+                    amount0 = web3HexToBigInteger(data.substring(128, 192));
+                    amount1 = web3HexToBigInteger(data.substring(192, 256));
+                    version = "v3";
+                    eventType = "add";
+                }
+
+//                if (is_v3_remove_liquidity) {
+//                    amount0 = web3HexToBigInteger(data.substring(64, 128));
+//                    amount1 = web3HexToBigInteger(data.substring(128, 192));
+//                    version = "v3";
+//                    eventType = "remove";
+//                }
+
+                LiquidityEvent liquidityEvent = LiquidityEvent.builder()
+
+                        .amount0(amount0)
+                        .amount1(amount1)
+
+                        .caller(originSender)
+                        .logIndex(logIndex)
+                        .poolAddress(contractAddress)
+                        .mergedTransferEvent(new ArrayList<>())
+                        .protocol(protocol)
+                        .eventType(eventType)
+                        .version(version)
+                        .build();
+                liquidityEvents.add(liquidityEvent);
+            }
+        }
+        return liquidityEvents;
+    }
+
+
+
 }

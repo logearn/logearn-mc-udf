@@ -31,9 +31,7 @@ public class AMMSwapDataProcess {
         return maps;
     }
 
-//    public static List<Map<String, String>> decodeInputData(ChainConfig conf, String logs, String internalTxs, String hash) throws JsonProcessingException {
-//        return decodeInputData(conf, "", "0x3e57efef507b4db7acfa2ee79ceca6b19e18d106", "", "", logs, internalTxs, hash);
-//    }
+
 
 
 }

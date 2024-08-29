@@ -47,6 +47,7 @@ public class AMMSwapDataProcessFull {
                                             .fromMergedTransferEvent(t.getFromMergedTransferEvent())
                                             .toMergedTransferEvent(t.getToMergedTransferEvent())
                                             .connectedPools(t.getConnectedPools())
+                                            .rawSwapLog(t.getRawSwapLog())
                                             .version(t.getVersion())
                                             .errorMsg(t.getErrorMsg());
                                     lists.add(swapResultStruct(conf, ethSellUniswap.build()));
@@ -63,6 +64,7 @@ public class AMMSwapDataProcessFull {
                                             .fromMergedTransferEvent(t.getFromMergedTransferEvent())
                                             .toMergedTransferEvent(t.getToMergedTransferEvent())
                                             .connectedPools(t.getConnectedPools())
+                                            .rawSwapLog(t.getRawSwapLog())
                                             .version(t.getVersion())
                                             .errorMsg(t.getErrorMsg());
 
@@ -97,6 +99,7 @@ public class AMMSwapDataProcessFull {
         map.put("fromMergedTransferEvent", swap.getFromMergedTransferEvent() == null ? null : swap.getFromMergedTransferEvent().toString());
         map.put("toMergedTransferEvent", swap.getToMergedTransferEvent() == null ? null : swap.getToMergedTransferEvent().toString());
         map.put("connectedPools",  JSONObject.parseObject(JSON.toJSONString(swap.getConnectedPools()), List.class).toString());
+        map.put("raw_swap_log", JSONObject.parseObject(JSON.toJSONString(swap.getRawSwapLog()), List.class).toString());
         map.put("protocol", conf.getProtocol());
         map.put("version", swap.getVersion());
         map.put("errorMsg", swap.getErrorMsg());
@@ -129,8 +132,11 @@ public class AMMSwapDataProcessFull {
         log.debug("******* InnerTx 和 Transfer 合并, 当前 总共 transferEvents： {} 条。", transferEvents.size());
 
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
-        List<UniswapEvent> fullUniswapEvents = getUniswapEvents(conf, transferEvents, txLog, hash);
-
+        // 4、获取 swap 事件, 且删除构建中使用的transferEvent
+        Result resultEvent = getUniswapEvents(conf, transferEvents, txLog, hash);
+        // 3、将构建好的所有 swapEven t的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents());
+        log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
             TransferEvent _tmpPreTf = null;
@@ -187,10 +193,11 @@ public class AMMSwapDataProcessFull {
 //                log.info("非正常买卖，忽略价格！");
 //            }
 //        }
+        fullUniswapEvents.forEach(t -> t.setRawSwapLog(resultEvent.getRawUniswapEvents()));
         return fullUniswapEvents;
     }
 
-    public static List<UniswapEvent> getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash) {
+    public static Result getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash) {
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
 
         // 1、解析 swap v2\v3
@@ -211,11 +218,7 @@ public class AMMSwapDataProcessFull {
         Result parseMapResult = Log.fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, uniswapEvents, hash);
         log.debug("******* 将 {} 条 swapEvent 转化成标准 Swap，共消费 {} 条 transferEvents", parseMapResult.getUniswapEvents().size(), parseMapResult.getTransferEvents().size());
         log.debug("******* 当前 Swap: {}, 条， 还剩余 transferEvents： {} 条", uniswapEvents.size(), transferEvents.size());
-
-        // 3、将构建好的所有 swapEven t的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
-        uniswapEvents = UniswapEvent.merge(uniswapEvents);
-        log.debug("******* 所有 Swap 首尾相连后为： {} 条", uniswapEvents.size());
-        return uniswapEvents;
+        return parseMapResult;
     }
 
     private static List<TransferEvent> getTransferOutEvent(Map<String, Map<String, BigInteger>> finalTransfer) {
