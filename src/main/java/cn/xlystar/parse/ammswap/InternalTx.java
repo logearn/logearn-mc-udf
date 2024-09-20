@@ -75,7 +75,7 @@ public class InternalTx {
                 if (value != null && new BigInteger(value.asText().substring(2), 16).compareTo(BigInteger.ZERO) > 0) continue;
                 JsonNode input = action.get("input");
                 // input 长度大于 10
-                if (input == null || input.size() < 10) continue;
+                if (input == null || input.asText().length() < 10) continue;
                 JsonNode to = action.get("to");
                 if (to == null) continue;
                 contractAddressList.add(to.asText());
