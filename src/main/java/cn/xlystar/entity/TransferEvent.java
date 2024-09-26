@@ -27,7 +27,7 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个transferEvent
      * */
-    public static TransferEvent findAfterTx(String originSender, List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
+    public static TransferEvent findAfterTx(String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
                     .amount(value)
@@ -47,18 +47,25 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if (elem.getSender().equalsIgnoreCase(to)
+            if ((elem.getSender().equalsIgnoreCase(to) || poolAddressLists.contains(elem.getSender()))
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getToMergedTransferEvent(), elem)
                     && (!matchOriginSender || originSender.equals(elem.getReceiver()))
             ) {
                 // 这是正常情况
+                // 1、条件：elem.getReceiver().equals(originSender)
+                // 问题：https://app.blocksec.com/explorer/tx/eth/0x7febc10d8302b775a1dfb11f1656534359adc9068fa7a2458e4356523750cb3d
+                // 解决 token 超过百分之50的 稅问题
+                // 解决：
+                // 2、elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+                //                                && !elem.getReceiver().equals(elem.contractAddress)
+                // 解决 token 低于百分之50的 稅问题
                 if (value.compareTo(elem.getAmount()) >= 0
                         && (elem.getReceiver().equals(originSender)
-                                || (elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
-                                    && !elem.getReceiver().equals(elem.contractAddress)
-                                )
-                        )
+                        || (elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
+                        && !elem.getReceiver().equals(elem.contractAddress)
+                )
+                )
                 ) {
                     _tmpList.add(elem);
                 } else if (elem.getAmount().compareTo(value) > 0) {
@@ -117,13 +124,13 @@ public class TransferEvent extends Event implements Serializable {
             internalTxs.remove(foundEvent.get());
         }
 
-        return findAfterTx(originSender, internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
+        return findAfterTx(originSender, internalTxs, poolAddressLists, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**
      * 向后找到最晚的一个transferEvent
      * */
-    public static TransferEvent findPreTx(String originSender, List<TransferEvent> internalTxs, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
+    public static TransferEvent findPreTx(String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
                     .amount(value)
@@ -142,7 +149,7 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if (elem.getReceiver().equalsIgnoreCase(from)
+            if ((elem.getReceiver().equalsIgnoreCase(from)  || poolAddressLists.contains(elem.getReceiver()))
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)
@@ -201,7 +208,7 @@ public class TransferEvent extends Event implements Serializable {
             nextValue = value;
         }
 
-        return findPreTx(originSender, internalTxs, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
+        return findPreTx(originSender, internalTxs, poolAddressLists, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**

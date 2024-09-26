@@ -29,7 +29,7 @@ public class AMMSwapDataProcessFull {
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
                         // 找到第一个 ETH 的池子
                         List<UniswapEvent> connectedPools = t.getConnectedPools();
-                        if (connectedPools!=null && connectedPools.size()>0) {
+                        if (connectedPools != null && connectedPools.size() > 0) {
                             UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
                             UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
                             for (int i = 0; i < connectedPools.size(); i++) {
@@ -79,7 +79,7 @@ public class AMMSwapDataProcessFull {
                         t.setTokenOut(conf.getWCoinAddress());
                     }
 
-                    lists.add(swapResultStruct(conf,t));
+                    lists.add(swapResultStruct(conf, t));
                 }
         );
         return lists;
@@ -98,7 +98,7 @@ public class AMMSwapDataProcessFull {
         map.put("logIndex", swap.getLogIndex() == null ? null : swap.getLogIndex().toString());
         map.put("fromMergedTransferEvent", swap.getFromMergedTransferEvent() == null ? null : swap.getFromMergedTransferEvent().toString());
         map.put("toMergedTransferEvent", swap.getToMergedTransferEvent() == null ? null : swap.getToMergedTransferEvent().toString());
-        map.put("connectedPools",  JSONObject.parseObject(JSON.toJSONString(swap.getConnectedPools()), List.class).toString());
+        map.put("connectedPools", JSONObject.parseObject(JSON.toJSONString(swap.getConnectedPools()), List.class).toString());
         map.put("raw_swap_log", JSONObject.parseObject(JSON.toJSONString(swap.getRawSwapLog()), List.class).toString());
         map.put("protocol", conf.getProtocol());
         map.put("version", swap.getVersion());
@@ -111,6 +111,7 @@ public class AMMSwapDataProcessFull {
         }
         return map;
     }
+
     /**
      * 解析所有的swap
      */
@@ -139,25 +140,23 @@ public class AMMSwapDataProcessFull {
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
-            TransferEvent _tmpPreTf = null;
             try {
-                _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
-            if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
-                log.debug("******* ❌  not fond any pre transfer to merge \n");
-                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
-                return;
-            }
-            ut.setSender(_tmpPreTf.getSender());
+                TransferEvent _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, resultEvent.getPoolAddressLists(), ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+                if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
+                    log.debug("******* ❌  not fond any pre transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
+                    return;
+                }
+                ut.setSender(_tmpPreTf.getSender());
 
-            TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
-            if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
-                log.debug("******* ❌  not fond any after transfer to merge \n");
-                ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
-                return;
-            }
-            ut.setAmountOut(_tmpAftTf.getAmount());
-            ut.setTo(_tmpAftTf.getReceiver());
-
+                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, resultEvent.getPoolAddressLists(), ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
+                if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
+                    log.debug("******* ❌  not fond any after transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
+                    return;
+                }
+                ut.setAmountOut(_tmpAftTf.getAmount());
+                ut.setTo(_tmpAftTf.getReceiver());
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e);
             } catch (IllegalAccessException e) {

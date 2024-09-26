@@ -10,7 +10,10 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 public class Log {
@@ -95,6 +98,86 @@ public class Log {
         }
         return transferLog;
     }
+
+    /**
+     * 解析 Uniswap v3/v2 添加/删除 流动性事件
+     */
+    public static List<LiquidityEvent> findLiquidityEvents(String originSender, String protocol, JsonNode logJson) {
+        JsonNode logLists = logJson.get("logs");
+        List<LiquidityEvent> liquidityEvents = new ArrayList<>();
+
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+
+            String data = tmp.get("data").asText().substring(2);
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            boolean is_v2_add_liquidity = topicLists.size() == 2
+                    && "0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f".equalsIgnoreCase(topicLists.get(0))
+                    && data.length() == 128;
+
+//            boolean is_v2_remove_liquidity = topicLists.size() == 3
+//                    && "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496".equalsIgnoreCase(topicLists.get(0))
+//                    && data.length() == 128;
+
+            boolean is_v3_add_liquidity = topicLists.size() == 4
+                    && "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde".equalsIgnoreCase(topicLists.get(0))
+                    && data.length() == 256;
+
+//            boolean is_v3_remove_liquidity = topicLists.size() == 4
+//                    && "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c".equalsIgnoreCase(topicLists.get(0))
+//                    && data.length() == 192;
+
+            if (is_v3_add_liquidity || is_v2_add_liquidity ) {
+                BigInteger amount0 = null;
+                BigInteger amount1 = null;
+                String version = null;
+                String eventType = null;
+
+                if (is_v2_add_liquidity ) {
+                    amount0 = web3HexToBigInteger(data.substring(0, 64));
+                    amount1 = web3HexToBigInteger(data.substring(64, 128));
+                    version = "v2";
+                    eventType = is_v2_add_liquidity ? "add" : "remove";
+                }
+
+                if (is_v3_add_liquidity) {
+                    amount0 = web3HexToBigInteger(data.substring(128, 192));
+                    amount1 = web3HexToBigInteger(data.substring(192, 256));
+                    version = "v3";
+                    eventType = "add";
+                }
+
+//                if (is_v3_remove_liquidity) {
+//                    amount0 = web3HexToBigInteger(data.substring(64, 128));
+//                    amount1 = web3HexToBigInteger(data.substring(128, 192));
+//                    version = "v3";
+//                    eventType = "remove";
+//                }
+
+                LiquidityEvent liquidityEvent = LiquidityEvent.builder()
+
+                        .amount0(amount0)
+                        .amount1(amount1)
+
+                        .caller(originSender)
+                        .logIndex(logIndex)
+                        .poolAddress(contractAddress)
+                        .mergedTransferEvent(new ArrayList<>())
+                        .protocol(protocol)
+                        .eventType(eventType)
+                        .version(version)
+                        .build();
+                liquidityEvents.add(liquidityEvent);
+            }
+        }
+        return liquidityEvents;
+    }
+
+
 
     /**
      * 解析Uniswapv3/PancakeV3事件
@@ -215,6 +298,11 @@ public class Log {
 
         ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
         ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>(uniswapEvents);
+        List<String> poolAddressLists = new ArrayList<>();
+        uniswapEvents.forEach(u -> {
+            if (!StringUtils.isEmpty(u.getContractAddress())) poolAddressLists.add(u.getContractAddress());
+        });
+
         rawUniswapEvents.forEach(uniswapEvent -> {
 
             _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, false, false, false);
@@ -286,7 +374,7 @@ public class Log {
             // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
-        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents);
+        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
     }
 
     private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
@@ -352,6 +440,42 @@ public class Log {
         }
     }
 
+    /**
+     * 补充流动性事件的2个边，使用 TransferEvent
+     */
+    public static List<LiquidityEvent> fillLiquidityEventWithTransferEvent(List<TransferEvent> transferEvents, List<LiquidityEvent> liquidityEvents, String hash) {
+
+        liquidityEvents.forEach(liquidityEvent -> {
+            List<TransferEvent> excludetransferEvents = new ArrayList<>();
+            for (int i = 0; i < transferEvents.size(); i++) {
+
+                TransferEvent transferEvent = transferEvents.get(i);
+                BigInteger tAmount = transferEvent.getAmount();
+                String tReceiver = transferEvent.getReceiver();
+                String token_address = transferEvent.getContractAddress();
+                if (
+                        tReceiver.equalsIgnoreCase(liquidityEvent.getPoolAddress())
+                                && (liquidityEvent.getAmount0().compareTo(tAmount) == 0 || liquidityEvent.getAmount1().compareTo(tAmount) == 0)
+                ) {
+                    liquidityEvent.getMergedTransferEvent().add(transferEvent);
+                    if (liquidityEvent.getAmount0().compareTo(tAmount) == 0) {
+                        liquidityEvent.setToken0(token_address);
+                    } else {
+                        liquidityEvent.setToken1(token_address);
+                    }
+
+                    if (excludetransferEvents != null) {
+                        excludetransferEvents.add(transferEvent);
+                    }
+                }
+            }
+
+
+            // 删除上次消费的 transfer
+            transferEvents.removeAll(excludetransferEvents);
+        });
+        return liquidityEvents;
+    }
 
     /**
      * 16进制转成10进制
@@ -463,123 +587,4 @@ public class Log {
         }
         return uniswapEvents;
     }
-
-    /**
-     * 补充流动性事件的2个边，使用 TransferEvent
-     */
-    public static List<LiquidityEvent> fillLiquidityEventWithTransferEvent(List<TransferEvent> transferEvents, List<LiquidityEvent> liquidityEvents, String hash) {
-
-        liquidityEvents.forEach(liquidityEvent -> {
-            List<TransferEvent> excludetransferEvents = new ArrayList<>();
-            for (int i = 0; i < transferEvents.size(); i++) {
-
-                TransferEvent transferEvent = transferEvents.get(i);
-                BigInteger tAmount = transferEvent.getAmount();
-                String tReceiver = transferEvent.getReceiver();
-                String token_address = transferEvent.getContractAddress();
-                if (
-                        tReceiver.equalsIgnoreCase(liquidityEvent.getPoolAddress())
-                                && (liquidityEvent.getAmount0().compareTo(tAmount) == 0 || liquidityEvent.getAmount1().compareTo(tAmount) == 0)
-                ) {
-                    liquidityEvent.getMergedTransferEvent().add(transferEvent);
-                    if (liquidityEvent.getAmount0().compareTo(tAmount) == 0) {
-                        liquidityEvent.setToken0(token_address);
-                    } else {
-                        liquidityEvent.setToken1(token_address);
-                    }
-
-                    if (excludetransferEvents != null) {
-                        excludetransferEvents.add(transferEvent);
-                    }
-                }
-            }
-
-
-            // 删除上次消费的 transfer
-            transferEvents.removeAll(excludetransferEvents);
-        });
-        return liquidityEvents;
-    }
-
-
-    /**
-     * 解析 Uniswap v3/v2 添加/删除 流动性事件
-     */
-    public static List<LiquidityEvent> findLiquidityEvents(String originSender, String protocol, JsonNode logJson) {
-        JsonNode logLists = logJson.get("logs");
-        List<LiquidityEvent> liquidityEvents = new ArrayList<>();
-
-        for (JsonNode tmp : logLists) {
-            String contractAddress = tmp.get("address").asText().toLowerCase();
-            if (tmp.get("data").toString().length() <= 2) continue;
-
-            String data = tmp.get("data").asText().substring(2);
-            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
-            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
-            List<String> topicLists = parseTopics(tmp.get("topics"));
-
-            boolean is_v2_add_liquidity = topicLists.size() == 2
-                    && "0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 128;
-
-//            boolean is_v2_remove_liquidity = topicLists.size() == 3
-//                    && "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496".equalsIgnoreCase(topicLists.get(0))
-//                    && data.length() == 128;
-
-            boolean is_v3_add_liquidity = topicLists.size() == 4
-                    && "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde".equalsIgnoreCase(topicLists.get(0))
-                    && data.length() == 256;
-
-//            boolean is_v3_remove_liquidity = topicLists.size() == 4
-//                    && "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c".equalsIgnoreCase(topicLists.get(0))
-//                    && data.length() == 192;
-
-            if (is_v3_add_liquidity || is_v2_add_liquidity ) {
-                BigInteger amount0 = null;
-                BigInteger amount1 = null;
-                String version = null;
-                String eventType = null;
-
-                if (is_v2_add_liquidity ) {
-                    amount0 = web3HexToBigInteger(data.substring(0, 64));
-                    amount1 = web3HexToBigInteger(data.substring(64, 128));
-                    version = "v2";
-                    eventType = is_v2_add_liquidity ? "add" : "remove";
-                }
-
-                if (is_v3_add_liquidity) {
-                    amount0 = web3HexToBigInteger(data.substring(128, 192));
-                    amount1 = web3HexToBigInteger(data.substring(192, 256));
-                    version = "v3";
-                    eventType = "add";
-                }
-
-//                if (is_v3_remove_liquidity) {
-//                    amount0 = web3HexToBigInteger(data.substring(64, 128));
-//                    amount1 = web3HexToBigInteger(data.substring(128, 192));
-//                    version = "v3";
-//                    eventType = "remove";
-//                }
-
-                LiquidityEvent liquidityEvent = LiquidityEvent.builder()
-
-                        .amount0(amount0)
-                        .amount1(amount1)
-
-                        .caller(originSender)
-                        .logIndex(logIndex)
-                        .poolAddress(contractAddress)
-                        .mergedTransferEvent(new ArrayList<>())
-                        .protocol(protocol)
-                        .eventType(eventType)
-                        .version(version)
-                        .build();
-                liquidityEvents.add(liquidityEvent);
-            }
-        }
-        return liquidityEvents;
-    }
-
-
-
 }
