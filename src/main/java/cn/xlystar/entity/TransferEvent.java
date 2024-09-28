@@ -40,6 +40,10 @@ public class TransferEvent extends Event implements Serializable {
         if (ut.getSender().equals(to)) {
             matchOriginSender = true;
         }
+        boolean notMatchPoolAddress = false;
+        if (poolAddressLists.contains(to)) {
+            notMatchPoolAddress = true;
+        }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
         List<TransferEvent> _bigger_tmpList = new ArrayList<>();
@@ -47,7 +51,7 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if ((elem.getSender().equalsIgnoreCase(to) || poolAddressLists.contains(elem.getSender()))
+            if ((elem.getSender().equalsIgnoreCase(to) || notMatchPoolAddress)
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getToMergedTransferEvent(), elem)
                     && (!matchOriginSender || originSender.equals(elem.getReceiver()))
@@ -143,13 +147,17 @@ public class TransferEvent extends Event implements Serializable {
         if (from.equals(ut.getTo())) {
             matchOriginSender = true;
         }
+        boolean notMatchPoolAddress = false;
+        if (poolAddressLists.contains(from)) {
+            notMatchPoolAddress = true;
+        }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
         AtomicReference<TransferEvent> foundEvent = new AtomicReference<>();
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if ((elem.getReceiver().equalsIgnoreCase(from)  || poolAddressLists.contains(elem.getReceiver()))
+            if ((elem.getReceiver().equalsIgnoreCase(from)  || notMatchPoolAddress)
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)
