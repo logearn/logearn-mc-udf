@@ -19,6 +19,7 @@ public class TransferEvent extends Event implements Serializable {
     private String sender;
     private String receiver;
     private BigInteger logIndex;
+    private Integer blockTime;
     private String contractAddress;
     private String assetType;
     private BigInteger amount;
@@ -40,10 +41,6 @@ public class TransferEvent extends Event implements Serializable {
         if (ut.getSender().equals(to)) {
             matchOriginSender = true;
         }
-        boolean notMatchPoolAddress = false;
-        if (poolAddressLists.contains(to)) {
-            notMatchPoolAddress = true;
-        }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
         List<TransferEvent> _bigger_tmpList = new ArrayList<>();
@@ -51,10 +48,17 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if ((elem.getSender().equalsIgnoreCase(to) || notMatchPoolAddress)
+            //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
+            //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
+            // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
+            //   代码：-> !poolAddressLists.contains(elem.getSender());
+            // 但是，对一个 swap 向后找时，transfer 的 from 和 to 必须判断一个，不能都忽略判断 -> 代码：!matchTransferSender || matchOriginSender;
+//            boolean matchTransferSender = !poolAddressLists.contains(elem.getSender());
+//            boolean matchTransferReceiver = !matchTransferSender || matchOriginSender;
+            if ((elem.getSender().equalsIgnoreCase(to))
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getToMergedTransferEvent(), elem)
-                    && (!matchOriginSender || originSender.equals(elem.getReceiver()))
+                    && ((!matchOriginSender) || originSender.equals(elem.getReceiver()))
             ) {
                 // 这是正常情况
                 // 1、条件：elem.getReceiver().equals(originSender)
@@ -147,17 +151,20 @@ public class TransferEvent extends Event implements Serializable {
         if (from.equals(ut.getTo())) {
             matchOriginSender = true;
         }
-        boolean notMatchPoolAddress = false;
-        if (poolAddressLists.contains(from)) {
-            notMatchPoolAddress = true;
-        }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
         AtomicReference<TransferEvent> foundEvent = new AtomicReference<>();
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if ((elem.getReceiver().equalsIgnoreCase(from)  || notMatchPoolAddress)
+            //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
+            //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
+            // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
+            //   代码：-> !poolAddressLists.contains(elem.getSender());
+            // 但是，对一个 swap 向后找时，transfer 的 from 和 to 必须判断一个，不能都忽略判断 -> 代码：!matchTransferSender || matchOriginSender;
+//            boolean matchTransferReceiver = !poolAddressLists.contains(elem.getReceiver());
+//            boolean matchTransferSender = !matchTransferReceiver || matchOriginSender;
+            if ((elem.getReceiver().equalsIgnoreCase(from))
                     && elem.getContractAddress().equalsIgnoreCase(token)
                     && elem.getAmount().compareTo(value)>=0
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)

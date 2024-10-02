@@ -131,13 +131,13 @@ public class Log {
 //                    && "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c".equalsIgnoreCase(topicLists.get(0))
 //                    && data.length() == 192;
 
-            if (is_v3_add_liquidity || is_v2_add_liquidity ) {
+            if (is_v3_add_liquidity || is_v2_add_liquidity) {
                 BigInteger amount0 = null;
                 BigInteger amount1 = null;
                 String version = null;
                 String eventType = null;
 
-                if (is_v2_add_liquidity ) {
+                if (is_v2_add_liquidity) {
                     amount0 = web3HexToBigInteger(data.substring(0, 64));
                     amount1 = web3HexToBigInteger(data.substring(64, 128));
                     version = "v2";
@@ -176,7 +176,6 @@ public class Log {
         }
         return liquidityEvents;
     }
-
 
 
     /**
@@ -294,50 +293,51 @@ public class Log {
      */
     public static Result fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> transferEvents, List<UniswapEvent> uniswapEvents, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
-        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
+//        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
 
-        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
-        ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>(uniswapEvents);
+//        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
+//        ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>(uniswapEvents);
         List<String> poolAddressLists = new ArrayList<>();
         uniswapEvents.forEach(u -> {
             if (!StringUtils.isEmpty(u.getContractAddress())) poolAddressLists.add(u.getContractAddress());
         });
 
-        rawUniswapEvents.forEach(uniswapEvent -> {
-
-            _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, false, false, false);
-
-            // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
-            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
-                _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, false, false, false);
-            }
-
-
-            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                log.debug("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 ");
-                // 由于 uniswap or sushi 等 swap 都是现有 2 个 transferlog, 然后再有 swap log, 所以，默认 swap 匹配 transfer 的时候，log 的顺序会参与 transfer 筛选
-                // 因为这样的 log 顺序有利于，当 一个 swap pool 有多个转入或者转出操作的时候，大概率选择到那个正确的 transfer 进行匹配
-                // 但是 由于 solidiy 这样的 dex 是先有 swap log， 这有 transfer, 所以这个时候，放开 log index 的限制再去 匹配一遍
-                // 例如: https://etherscan.io/tx/0xff2b09ff2facfa2578c46b212af4cabffd01ee04966f32563d762728ecbccb0b#eventlog
-
-                // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
-                // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
-                _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, true, true, true);
-
-                if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, true, true, true);
-                }
-            }
-
-            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                log.debug("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: {} \n", uniswapEvent);
-                uniswapEvent.setErrorMsg("error : token in or token out is null! hash : " + hash);
-            }
-
-            // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
-            rawTransferEvent.removeAll(excludeRawTransferEvents);
-        });
+        // 处理帐不平问题时，发现这段代码多余或者想不起来作用，后面没有对 rawUniswapEvents 做任何处理，所以这段代码注视了
+//        rawUniswapEvents.forEach(uniswapEvent -> {
+//
+//            _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, false, false, false);
+//
+//            // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
+//            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+//                log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
+//                _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, false, false, false);
+//            }
+//
+//
+//            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+//                log.debug("******* 共享边后，还是找不到对应的 Transfer， 然后放开 log index 限制再找一遍 ");
+//                // 由于 uniswap or sushi 等 swap 都是现有 2 个 transferlog, 然后再有 swap log, 所以，默认 swap 匹配 transfer 的时候，log 的顺序会参与 transfer 筛选
+//                // 因为这样的 log 顺序有利于，当 一个 swap pool 有多个转入或者转出操作的时候，大概率选择到那个正确的 transfer 进行匹配
+//                // 但是 由于 solidiy 这样的 dex 是先有 swap log， 这有 transfer, 所以这个时候，放开 log index 的限制再去 匹配一遍
+//                // 例如: https://etherscan.io/tx/0xff2b09ff2facfa2578c46b212af4cabffd01ee04966f32563d762728ecbccb0b#eventlog
+//
+//                // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
+//                // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
+//                _fillSwapTokenInAndTokenOutWithTransferEvent(rawTransferEvent, excludeRawTransferEvents, uniswapEvent, true, hash, true, true, true);
+//
+//                if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+//                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludeRawTransferEvents, null, uniswapEvent, true, hash, true, true, true);
+//                }
+//            }
+//
+//            if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
+//                log.debug("******* ❌ 但是Swap 还是找不到对应的 Transfer , swap: {} \n", uniswapEvent);
+//                uniswapEvent.setErrorMsg("error : token in or token out is null! hash : " + hash);
+//            }
+//
+//            // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
+//            rawTransferEvent.removeAll(excludeRawTransferEvents);
+//        });
 
         uniswapEvents.forEach(uniswapEvent -> {
 
@@ -374,7 +374,7 @@ public class Log {
             // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
-        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
+        return new Result(uniswapEvents, uniswapEvents, excludetransferEvents, poolAddressLists);
     }
 
     private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
@@ -413,9 +413,13 @@ public class Log {
                 if (StringUtils.isEmpty(_tokenOut) || uniswapEvent.getAmountOut().compareTo(tAmount) == 0) {
                     _tokenOut = tokenAddress;
                     uniswapEvent.setTokenOut(tokenAddress);
-                    if (!rawAmount) uniswapEvent.setAmountOut(tAmount);
                     uniswapEvent.getToMergedTransferEvent().add(transferEvent);
-                    if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
+                    if (excludetransferEvents != null) {
+                        excludetransferEvents.add(transferEvent);
+                    }
+                    // 共享边问题
+//                    if (!rawAmount) uniswapEvent.setAmountOut(tAmount);
+                    uniswapEvent.setAmountOut(tAmount);
                 }
             } else if (
                     tReceiver.equalsIgnoreCase(uniswapEvent.getContractAddress())
@@ -431,10 +435,14 @@ public class Log {
                 if (StringUtils.isEmpty(_tokenIn) || tAmount.compareTo(uniswapEvent.getAmountIn()) == 0) {
                     _tokenIn = tokenAddress;
                     uniswapEvent.setTokenIn(tokenAddress);
-                    if (!rawAmount) uniswapEvent.setAmountIn(tAmount);
                     uniswapEvent.setSender(tSender);
                     uniswapEvent.getFromMergedTransferEvent().add(transferEvent);
-                    if (excludetransferEvents != null) excludetransferEvents.add(transferEvent);
+                    if (excludetransferEvents != null) {
+                        excludetransferEvents.add(transferEvent);
+                    }
+                    // 共享边问题
+                    uniswapEvent.setAmountIn(tAmount);
+                    //                    if (!rawAmount) uniswapEvent.setAmountIn(tAmount);
                 }
             }
         }
@@ -464,9 +472,7 @@ public class Log {
                         liquidityEvent.setToken1(token_address);
                     }
 
-                    if (excludetransferEvents != null) {
-                        excludetransferEvents.add(transferEvent);
-                    }
+                    excludetransferEvents.add(transferEvent);
                 }
             }
 
