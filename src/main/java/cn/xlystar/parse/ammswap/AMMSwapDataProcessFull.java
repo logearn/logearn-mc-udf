@@ -81,6 +81,34 @@ public class AMMSwapDataProcessFull {
                     lists.add(swapResultStruct(conf, t));
                 }
         );
+        Set<Integer> logIndexRange = new HashSet<>();
+        int minLogIndex = Integer.MAX_VALUE;
+        for (int i = 0; i < lists.size(); i++) {
+            Map<String, String> entry = lists.get(i);
+            if (entry.get("logIndex") == null) continue;
+
+            Integer logIndex = Integer.valueOf(entry.get("logIndex"));
+            logIndexRange.add(logIndex);
+            minLogIndex = Math.min(minLogIndex, logIndex);
+        }
+
+        // 设定初始的 logIndex 值，从 0 开始自增
+        int nextLogIndex = 0;
+        for (int i = 0; i < lists.size(); i++) {
+            Map<String, String> map = lists.get(i);
+            if (map.get("logIndex") == null) {
+                // 找到不重复的 logIndex 值
+                while (logIndexRange.contains(nextLogIndex)) {
+                    nextLogIndex++;
+                }
+                // 给当前 map 设置 logIndex 值
+                map.put("logIndex", String.valueOf(nextLogIndex));
+                // 更新 logIndexRange
+                logIndexRange.add(nextLogIndex);
+                nextLogIndex++;
+            }
+        }
+
         return lists;
     }
 
