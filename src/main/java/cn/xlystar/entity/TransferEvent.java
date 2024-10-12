@@ -27,7 +27,7 @@ public class TransferEvent extends Event implements Serializable {
 
     /**
      * 向前找到最早的一个transferEvent
-     * */
+     */
     public static TransferEvent findAfterTx(String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
@@ -137,7 +137,7 @@ public class TransferEvent extends Event implements Serializable {
 
     /**
      * 向后找到最晚的一个transferEvent
-     * */
+     */
     public static TransferEvent findPreTx(String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
@@ -166,7 +166,7 @@ public class TransferEvent extends Event implements Serializable {
 //            boolean matchTransferSender = !matchTransferReceiver || matchOriginSender;
             if ((elem.getReceiver().equalsIgnoreCase(from))
                     && elem.getContractAddress().equalsIgnoreCase(token)
-                    && elem.getAmount().compareTo(value)>=0
+                    && elem.getAmount().compareTo(value) >= 0
                     && !UniswapEvent.isExistMergedTransferEventList(ut.getFromMergedTransferEvent(), elem)
                     && (!matchOriginSender || originSender.equals(elem.getSender()))
                 // 因为 卖的时候，用户可以转入很多个，但是只卖一下部分，所以这个地方，只需要 转入的金额大于等于 swap 的金额即可。
@@ -228,32 +228,53 @@ public class TransferEvent extends Event implements Serializable {
 
     /**
      * 统计所有transferEvents的 用户-token-余额
-     * */
-    public static Map<String, Map<String, BigInteger>> calculateBalances(List<TransferEvent> transactions) {
-        Map<String, Map<String, BigInteger>> balances = new HashMap<>();
+     */
+    public static List<TransferEvent> calculateBalances(List<TransferEvent> transactions) {
+        // 使用 Map<String, BigInteger> 来保存分组后的累计值，key 为 "sender_receiver_contractAddress"
+        Map<String, BigInteger> aggregatedTransfers = new HashMap<>();
+        Map<String, BigInteger> aggregatedTransfersIndex = new HashMap<>();
 
         for (TransferEvent transaction : transactions) {
-            String receiver = transaction.getReceiver();
             String sender = transaction.getSender();
-            BigInteger amount = transaction.getAmount();
+            String receiver = transaction.getReceiver();
             String contractAddress = transaction.getContractAddress();
+            BigInteger amount = transaction.getAmount();
 
-            balances.putIfAbsent(receiver, new HashMap<>());
-            balances.putIfAbsent(sender, new HashMap<>());
+            // 构建唯一的分组键，sender_receiver_contractAddress
+            String key = sender + "_" + receiver + "_" + contractAddress;
 
-            balances.get(receiver).put(contractAddress,
-                    balances.get(receiver).getOrDefault(contractAddress, BigInteger.ZERO).add(amount));
-            balances.get(sender).put(contractAddress,
-                    balances.get(sender).getOrDefault(contractAddress, BigInteger.ZERO).subtract(amount));
+            // 累加每个分组的交易金额
+            aggregatedTransfers.put(key,
+                    aggregatedTransfers.getOrDefault(key, BigInteger.ZERO).add(amount));
+            if (transaction.getLogIndex() != null) aggregatedTransfersIndex.put(key, transaction.getLogIndex());
         }
 
-        return balances;
+        List<TransferEvent> list = new ArrayList<>();
+        for (Map.Entry<String, BigInteger> entry : aggregatedTransfers.entrySet()) {
+            String[] key = entry.getKey().split("_");
+            String sender = key[0];
+            String receiver = key[1];
+            String tokenAddress = key[2];
+            BigInteger amount = entry.getValue();
+
+            BigInteger index = aggregatedTransfersIndex.getOrDefault(entry.getKey(), BigInteger.ZERO);
+            if (amount.compareTo(BigInteger.ZERO) != 0) {
+                list.add(TransferEvent.builder()
+                        .amount(amount)
+                        .sender(sender)
+                        .receiver(receiver)
+                        .logIndex(index)
+                        .contractAddress(tokenAddress)
+                        .build());
+            }
+        }
+        return list;
     }
 
     /**
      * 获取有价值的地址
-     * */
-    public static List<String> validAddrs(Map<String, Map<String, BigInteger>> tokenBalances){
+     */
+    public static List<String> validAddrs(Map<String, Map<String, BigInteger>> tokenBalances) {
         Map<String, Map<String, BigInteger>> _balances = tokenBalances.entrySet().stream()
                 .filter(entry -> entry.getValue().size() >= 2 && hasPositiveAndNegative(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -271,7 +292,7 @@ public class TransferEvent extends Event implements Serializable {
 
     /**
      * 有价值的地址筛选，拥有的token个数 >=2 并且 其中的余额必须有正数和负数（有进有出）
-     * */
+     */
     private static boolean hasPositiveAndNegative(Map<String, BigInteger> tokenBalances) {
         boolean hasPositive = false;
         boolean hasNegative = false;
@@ -291,7 +312,7 @@ public class TransferEvent extends Event implements Serializable {
 
     /**
      * 人性化打印计算余额的结果 用户-token-余额
-     * */
+     */
     public static void printBalances(Map<String, Map<String, BigInteger>> balances) {
         // 使用 TreeMap 以保证地址的顺序
         TreeMap<String, Map<String, BigInteger>> sortedBalances = new TreeMap<>(balances);

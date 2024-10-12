@@ -27,13 +27,16 @@ public class AMMParse extends UDF {
 
     public String evaluate(String originSender, String chainId, String protocol, String logs, String internalTxs, String hash) throws IOException {
         ChainConfig conf = new ConfigHelper().getConfig(chainId, protocol);
-        List<Map<String, String>> maps = null;
+        List<Map<String, String>> maps = new ArrayList<>();
+        String res = "";
+        if (logs.length() >= 8388608 || internalTxs.length() >= 8388608) return res;
         try {
             maps = AMMSwapDataProcess.decodeInputData(conf, "", originSender, "", "", logs, internalTxs, hash);
+            res = JSON.toJSONString(maps);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(String.format("conf:%s, logs:%s, internalTxs:%s, hash:%s", conf, logs, internalTxs, hash));
-        } catch (StackOverflowError e) {
+        } catch (StackOverflowError | OutOfMemoryError e) {
             e.printStackTrace();
             maps = new ArrayList<>();
             HashMap<String, String> errorSwap = new HashMap<>();
@@ -41,13 +44,14 @@ public class AMMParse extends UDF {
             errorSwap.put("chain", chainId);
             errorSwap.put("protocol", protocol);
             maps.add(errorSwap);
+            throw new RuntimeException(String.format("conf:%s, logs:%s, internalTxs:%s, hash:%s", conf, logs, internalTxs, hash));
         }
-        return JSON.toJSONString(maps);
+        return res;
     }
 
     public static void main(String[] args) throws Exception {
         AMMParse ammParse = new AMMParse();
-        ammParse.evaluate("0x812ba41e071c7b7fa4ebcfb62df5f45f6fa853ee", "1","uniswap"
-        ,"","","0x29516fb5f6699286a76545e4815dac6e10da0d3fe492ae661dcadc67aecaf673");
+        ammParse.evaluate("0x812ba41e071c7b7fa4ebcfb62df5f45f6fa853ee", "1", "uniswap"
+                , "", "", "0x29516fb5f6699286a76545e4815dac6e10da0d3fe492ae661dcadc67aecaf673");
     }
 }

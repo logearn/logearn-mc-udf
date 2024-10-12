@@ -1,8 +1,6 @@
 package cn.xlystar.parse.ammswap;
 
-import cn.xlystar.entity.LiquidityEvent;
-import cn.xlystar.entity.TransferEvent;
-import cn.xlystar.entity.UniswapEvent;
+import cn.xlystar.entity.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -175,6 +173,75 @@ public class Log {
             }
         }
         return liquidityEvents;
+    }
+
+    /**
+     * 解析 Renounce events
+     */
+    public static List<RenounceEvent> findRenounceEvents(JsonNode logJson, String hash, Integer blockTimestamp) {
+        JsonNode logLists = logJson.get("logs");
+        List<RenounceEvent> renounceEvents = new ArrayList<>();
+
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            boolean isRenounce = topicLists.size() == 3
+                    && "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0".equalsIgnoreCase(topicLists.get(0));
+
+            if (isRenounce) {
+                RenounceEvent renounceEvent = RenounceEvent.builder()
+                        .previousOwner("0x" + topicLists.get(1).substring(26).toLowerCase())
+                        .newOwner("0x" + topicLists.get(2).substring(26).toLowerCase())
+                        .tokenAddress(contractAddress)
+                        .transactionHash(hash)
+                        .logIndex(logIndex.toString())
+                        .renounceTime(Long.valueOf(blockTimestamp))
+                        .build();
+                renounceEvents.add(renounceEvent);
+            }
+        }
+        return renounceEvents;
+    }
+
+    /**
+     * 解析 Uniswap v3/v2 添加/删除 流动性事件
+     */
+    public static List<LockEvent> findLockEvents(JsonNode logJson, String hash, Integer blockTimestamp) {
+        JsonNode logLists = logJson.get("logs");
+        List<LockEvent> lockEvents = new ArrayList<>();
+
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (tmp.get("data").toString().length() <= 2) continue;
+
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+
+            boolean isLock = topicLists.size() == 3
+                    && "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".equalsIgnoreCase(topicLists.get(0))
+                    && contractAddress.equals("pool");
+            if (isLock) {
+                LockEvent lockEvent = LockEvent.builder()
+                        .lockPlatform(contractAddress)
+                        .poolAddress(contractAddress)
+                        .lockCaller("0x" + topicLists.get(1).substring(26).toLowerCase())
+                        .lockAmount(web3HexToBigInteger(tmp.get("data").toString()).toString())
+                        .transactionHash(hash)
+                        .logIndex(logIndex.toString())
+                        .lockDate(blockTimestamp + "")
+                        .unlockDate(blockTimestamp * 10 + "")
+                        .lockTime(Long.valueOf(blockTimestamp))
+                        .build();
+                lockEvents.add(lockEvent);
+            }
+        }
+        return lockEvents;
     }
 
 
