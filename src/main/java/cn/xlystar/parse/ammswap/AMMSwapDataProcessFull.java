@@ -269,7 +269,7 @@ public class AMMSwapDataProcessFull {
             // transferOut 事件构造成 Uniswap Sell 操作
             if (t.getAmount().equals(BigInteger.ZERO)) return;
             // from是0地址，表示增加总供应，实际并没有转账，所以过滤
-            if (t.getSender().equals(AMMSwapDataProcess.ZEROADDR)) return;
+//            if (t.getSender().equals(AMMSwapDataProcess.ZEROADDR)) return;
             if (conf.getWCoinAddress().equals(t.getContractAddress())) return;
             UniswapEvent build = UniswapEvent.builder()
                     .protocol("transferOut")
