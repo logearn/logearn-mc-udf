@@ -4,9 +4,11 @@ import cn.xlystar.entity.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -363,9 +365,18 @@ public class Log {
 //        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
 
 //        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
-//        ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>(uniswapEvents);
+        ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>();
         List<String> poolAddressLists = new ArrayList<>();
         uniswapEvents.forEach(u -> {
+            UniswapEvent build = UniswapEvent.builder().build();
+            try {
+                BeanUtils.copyProperties(build, u);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            rawUniswapEvents.add(build);
             if (!StringUtils.isEmpty(u.getContractAddress())) poolAddressLists.add(u.getContractAddress());
         });
 
@@ -441,7 +452,7 @@ public class Log {
             // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
-        return new Result(uniswapEvents, uniswapEvents, excludetransferEvents, poolAddressLists);
+        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
     }
 
     private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
