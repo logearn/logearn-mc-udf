@@ -362,18 +362,25 @@ public class Log {
      */
     public static Result fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> transferEvents, List<UniswapEvent> uniswapEvents, String hash) {
         List<TransferEvent> excludetransferEvents = new ArrayList<>();
-//        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
+        List<TransferEvent> excludeRawTransferEvents = new ArrayList<>();
 
-//        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>(transferEvents);
+        ArrayList<TransferEvent> rawTransferEvent = new ArrayList<>();
         ArrayList<UniswapEvent> rawUniswapEvents = new ArrayList<>();
         List<String> poolAddressLists = new ArrayList<>();
+        transferEvents.forEach(t -> {
+            TransferEvent build = TransferEvent.builder().build();
+            try {
+                BeanUtils.copyProperties(build, t);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            rawTransferEvent.add(build);
+        });
         uniswapEvents.forEach(u -> {
             UniswapEvent build = UniswapEvent.builder().build();
             try {
                 BeanUtils.copyProperties(build, u);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
             rawUniswapEvents.add(build);
@@ -417,6 +424,14 @@ public class Log {
 //            rawTransferEvent.removeAll(excludeRawTransferEvents);
 //        });
 
+        _fillSwapTokenInAndTokenOut(uniswapEvents, transferEvents, excludetransferEvents, hash);
+        _fillSwapTokenInAndTokenOut(rawUniswapEvents, rawTransferEvent, excludeRawTransferEvents, hash);
+
+        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
+    }
+
+    public static void _fillSwapTokenInAndTokenOut(List<UniswapEvent> uniswapEvents, List<TransferEvent> transferEvents,
+                                                   List<TransferEvent> excludetransferEvents, String hash) {
         uniswapEvents.forEach(uniswapEvent -> {
 
             _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, false, hash, false, false, false);
@@ -452,7 +467,6 @@ public class Log {
             // 删除上次消费的 transfer, 因为如果是 2个swap 都有同一个输入，就需要删除，这样第二个才能找的准确
             transferEvents.removeAll(excludetransferEvents);
         });
-        return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
     }
 
     private static void _fillSwapTokenInAndTokenOutWithTransferEvent(List<TransferEvent> allTransferEvents, List<TransferEvent> excludetransferEvents,
