@@ -424,22 +424,22 @@ public class Log {
 //            rawTransferEvent.removeAll(excludeRawTransferEvents);
 //        });
 
-        _fillSwapTokenInAndTokenOut(uniswapEvents, transferEvents, excludetransferEvents, hash);
-        _fillSwapTokenInAndTokenOut(rawUniswapEvents, rawTransferEvent, excludeRawTransferEvents, hash);
+        _fillSwapTokenInAndTokenOut(uniswapEvents, transferEvents, excludetransferEvents, hash, false);
+        _fillSwapTokenInAndTokenOut(rawUniswapEvents, rawTransferEvent, excludeRawTransferEvents, hash, true);
 
         return new Result(uniswapEvents, rawUniswapEvents, excludetransferEvents, poolAddressLists);
     }
 
     public static void _fillSwapTokenInAndTokenOut(List<UniswapEvent> uniswapEvents, List<TransferEvent> transferEvents,
-                                                   List<TransferEvent> excludetransferEvents, String hash) {
+                                                   List<TransferEvent> excludetransferEvents, String hash, Boolean rawAmount) {
         uniswapEvents.forEach(uniswapEvent -> {
 
-            _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, false, hash, false, false, false);
+            _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, rawAmount, hash, false, false, false);
 
             // 2个 Swap 共用一个边的时候，第二个 swap 从 transferEvents，里面找会 会找不到，需要从 excludetransferEvents 再找一遍
             if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
                 log.debug("******* ***** 有 2个 Swap 共用一个 Transfer, 第二个 Swap 为： {}", uniswapEvent);
-                _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, false, hash, false, false, false);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, rawAmount, hash, false, false, false);
             }
 
 
@@ -452,10 +452,10 @@ public class Log {
 
                 // suswap V2, 中，有时候，就是 transfer in 的金额 比，swap log 的 amount in 要大，所以，要允许 忽略 金额的大小比较
                 // suswap v2 中，直接 swap 成 eth 或者 eth 直接 swap 成其他 token 的池子，都不是 swap 对应 2个 Transfer log, ETH 的变动不会发出log, 所以需要允许 intex 的 log 参与匹配。
-                _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, false, hash, true, true, true);
+                _fillSwapTokenInAndTokenOutWithTransferEvent(transferEvents, excludetransferEvents, uniswapEvent, rawAmount, hash, true, true, true);
 
                 if (uniswapEvent.getTokenIn() == null || uniswapEvent.getTokenOut() == null) {
-                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, false, hash, true, true, true);
+                    _fillSwapTokenInAndTokenOutWithTransferEvent(excludetransferEvents, null, uniswapEvent, rawAmount, hash, true, true, true);
                 }
             }
 
@@ -510,8 +510,8 @@ public class Log {
                         excludetransferEvents.add(transferEvent);
                     }
                     // 共享边问题
-//                    if (!rawAmount) uniswapEvent.setAmountOut(tAmount);
-                    uniswapEvent.setAmountOut(tAmount);
+                    if (!rawAmount) uniswapEvent.setAmountOut(tAmount);
+//                    uniswapEvent.setAmountOut(tAmount);
                 }
             } else if (
                     tReceiver.equalsIgnoreCase(uniswapEvent.getContractAddress())
@@ -533,8 +533,8 @@ public class Log {
                         excludetransferEvents.add(transferEvent);
                     }
                     // 共享边问题
-                    uniswapEvent.setAmountIn(tAmount);
-                    //                    if (!rawAmount) uniswapEvent.setAmountIn(tAmount);
+//                    uniswapEvent.setAmountIn(tAmount);
+                    if (!rawAmount) uniswapEvent.setAmountIn(tAmount);
                 }
             }
         }
