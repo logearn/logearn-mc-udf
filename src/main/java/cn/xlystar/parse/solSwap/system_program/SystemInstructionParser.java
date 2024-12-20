@@ -95,12 +95,12 @@ public class SystemInstructionParser {
         byte[] owner = Arrays.copyOfRange(data, position, position + 32);
         
         position -= 8; // space
-        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, 8);
         spaceBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long space = spaceBuffer.getLong();
         
         position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
         lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long lamports = lamportsBuffer.getLong();
 
@@ -135,7 +135,7 @@ public class SystemInstructionParser {
         
         int position = data.length;
         position -= 8; // lamports
-        ByteBuffer transferBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer transferBuffer = ByteBuffer.wrap(data, position, 8);
         transferBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long amount = transferBuffer.getLong();
 
@@ -156,17 +156,17 @@ public class SystemInstructionParser {
         byte[] programId = Arrays.copyOfRange(data, position, position + 32);
         
         position -= 8; // space
-        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, 8);
         spaceBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long space = spaceBuffer.getLong();
         
         position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
         lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long lamports = lamportsBuffer.getLong();
         
         position -= 4; // seed length
-        int seedLength = ByteBuffer.wrap(data, position, position + 4)
+        int seedLength = ByteBuffer.wrap(data, position, 4)
                 .order(ByteOrder.LITTLE_ENDIAN).getInt();
         
         position -= seedLength; // seed
@@ -220,12 +220,12 @@ public class SystemInstructionParser {
         byte[] fromOwner = Arrays.copyOfRange(data, position, position + 32);
 
         position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
         lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long lamports = lamportsBuffer.getLong();
 
         position -= 4; // seed length
-        int seedLength = ByteBuffer.wrap(data, position, position + 4)
+        int seedLength = ByteBuffer.wrap(data, position, 4)
                 .order(ByteOrder.LITTLE_ENDIAN).getInt();
 
         position -= seedLength; // seed
@@ -248,7 +248,7 @@ public class SystemInstructionParser {
         
         int position = data.length;
         position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
         lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long lamports = lamportsBuffer.getLong();
 
@@ -305,12 +305,12 @@ public class SystemInstructionParser {
         byte[] owner = Arrays.copyOfRange(data, position, position + 32);
 
         position -= 8; // space
-        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, 8);
         spaceBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long space = spaceBuffer.getLong();
 
         position -= 4; // seed length
-        int seedLength = ByteBuffer.wrap(data, position, position + 4)
+        int seedLength = ByteBuffer.wrap(data, position, 4)
                 .order(ByteOrder.LITTLE_ENDIAN).getInt();
 
         position -= seedLength; // seed
@@ -335,7 +335,7 @@ public class SystemInstructionParser {
         byte[] owner = Arrays.copyOfRange(data, position, position + 32);
 
         position -= 4; // seed length
-        int seedLength = ByteBuffer.wrap(data, position, position + 4)
+        int seedLength = ByteBuffer.wrap(data, position, 4)
                 .order(ByteOrder.LITTLE_ENDIAN).getInt();
 
         position -= seedLength; // seed

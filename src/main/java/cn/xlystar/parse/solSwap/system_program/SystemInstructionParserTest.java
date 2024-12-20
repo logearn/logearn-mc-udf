@@ -12,16 +12,16 @@ public class SystemInstructionParserTest {
 //        testTransfer();
 
         // Assign 测试用例
-        testAssign();
+//        testAssign();
 
 //        // CreateAccountWithSeed 测试用例
-//        testCreateAccountWithSeed();
+        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
 //        testAdvanceNonce();
 //
 //        // Allocate 测试用例
-        testAllocate();
+//        testAllocate();
 //
 //        // TransferWithSeed 测试用例
 //        testTransferWithSeed();
@@ -142,13 +142,14 @@ public class SystemInstructionParserTest {
     // CreateAccountWithSeed 测试用例
     private static void testCreateAccountWithSeed() {
         System.out.println("\n=== Testing CreateAccountWithSeed ===");
-
-        // Case 1: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
+        //跑不通
+        // Case 1: tx_hash: 5bAqHa6mc266a5NFrbaUjAn81AVP8khjDyhkqXnt8HPeu3HwTMCBkWaMDN
         String[] accounts1 = new String[]{
-                "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",
-                "DriqvP3yg3KJ2yzqYKXwrKtujE3X99RdvCsGyfmqFBBF"
+                "CeoGoucJbwjno6KC1BiX4efKGqQyBjRzqgyhLYwJfgfr",
+                "EbBdupRW44MV4DmgXvsQJdjSY3nov4unLzeqB7t5hqhM",
+                "CeoGoucJbwjno6KC1BiX4efKGqQyBjRzqgyhLYwJfgfr"
         };
-        String base58Data1 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLMyTestSeed";
+        String base58Data1 = "M8hWuWgr2nEokPKCx6qSpUgmEczjQ8ECEvVeXRUv1z14d6cjw75SSuJU9MUESSH2BXgM5SsTDYaPxAni2K8iVNqmiKkgFePRFfb5PRSZkcJxeesZySLSVZqxhzDtdbzCAJUoS";
         testInstruction("CreateAccountWithSeed Case 1", base58Data1, accounts1);
 
         // Case 2: tx_hash: 57TG3QU6Xq1eQhYQfKU48k1wqUWsHzsDyUBgWiTqZhXgkVdBJZwXqHiZQykiqYrXBhbwPLxNwZKKZVxGvNhRyPry
