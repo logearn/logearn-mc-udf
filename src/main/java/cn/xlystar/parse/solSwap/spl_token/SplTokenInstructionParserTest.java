@@ -57,9 +57,9 @@ public class SplTokenInstructionParserTest {
 //        testTransferChecked();    // Case 12
 //
 //        // 铸造和销毁
-//        testMintTo();            // Case 7
+        testMintTo();            // Case 7
 //        testMintToChecked();     // Case 14
-//        testBurn();              // Case 8
+        testBurn();              // Case 8
 //        testBurnChecked();       // Case 15
 //
 //        // 原生代币相关
@@ -121,13 +121,13 @@ public class SplTokenInstructionParserTest {
     private static void testMintTo() {
         System.out.println("\n=== Testing MintTo ===");
 
-        // Case 1: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
+        // Case 1: tx_hash: 3f4wHLPZvE3tx3DQyKYqjccRqnxuEf8r3nADrL1arAxfnUYhFTiDc5bx7RTVag3P2PUeaUyejenjK2e8RMwNH5z2
         String[] accounts1 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "DEZbNByMGMNkBMFq8VAagUAcHD1THqbEepk4K7uSpump",
+                "G56JoBDaMbFWD1XjPuUZacZRYK5GPgbccaakm4TUef4c",
+                "HeyX2JUzc1s7Q9Z3WEZGoFBBAmuCrnvuEekzzxVZBdJE"
         };
-        String base58Data1 = "7Bxs4cgF7g81qBE7";
+        String base58Data1 = "6ApXSNCamGdm";
         testInstruction("MintTo Case 1", base58Data1, accounts1);
 
         // Case 2 & 3 similar structure...
@@ -144,31 +144,31 @@ public class SplTokenInstructionParserTest {
     private static void testBurn() {
         System.out.println("\n=== Testing Burn ===");
 
-        // Case 1: tx_hash: 5YHEkNjVGKRDw3KJNkyxEqHFxGQYqUxm6vt7kUdtJPBXJu6mZPaGF8vZmZHGGM6Hz8Vj8tQRKUyVmdyxXt1Sjoey
+        // Case 1: tx_hash: 4cVseSMYC1jvLsMTyVq5KgZA3NJwUceebNjv8VNg9PpQ6PLXFJFgPvkXiYVcc4Rk6hYfZ5sUvBx7DK4zABa1zCzE
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "2YbgGQD6cugB4kbsG5kxDQX6VTCqqvApyUJ3JYDKLMri",
+                "AdjNkNpFYyq8VtY16ebMiM4BdtHX7PLBCWTEuP4w2Zj8",
+                "FZiFnxb4mGmfEEbS66ospcmEeumytfrWZ7x5UxBqgqiM"
         };
-        String base58Data1 = "8Bxs4cgF7g81qBE7";
+        String base58Data1 = "7LTzq4boYv4f";
         testInstruction("Burn Case 1", base58Data1, accounts1);
 
-        // Case 2: tx_hash: 2ZGLGHrxZKZqNMUoWZh6rZmzxEQ4wDwNqRh8TFdJ6s9ToBvEmz7xHFWYWPHG3QVVxwH1zUvLo4JsBxo4x4JqCGPK
+        // Case 2: tx_hash: 4cVseSMYC1jvLsMTyVq5KgZA3NJwUceebNjv8VNg9PpQ6PLXFJFgPvkXiYVcc4Rk6hYfZ5sUvBx7DK4zABa1zCzE
         String[] accounts2 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "9fsN6o3nCfJRLPQogdYcAMdGPRr7CGSr3LoxN25w28W2",
+                "AdjNkNpFYyq8VtY16ebMiM4BdtHX7PLBCWTEuP4w2Zj8",
+                "AhGLPpXNqgHxg4vw3GV5T6iXiRpjdBjwEpRc1RpfYdSw"
         };
-        String base58Data2 = "8Bxs4cgF7g81qBE7";
+        String base58Data2 = "6zSpuZ2R39Lb";
         testInstruction("Burn Case 2", base58Data2, accounts2);
 
-        // Case 3: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
+        // Case 3: tx_hash: 4cVseSMYC1jvLsMTyVq5KgZA3NJwUceebNjv8VNg9PpQ6PLXFJFgPvkXiYVcc4Rk6hYfZ5sUvBx7DK4zABa1zCzE
         String[] accounts3 = new String[]{
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "8F8NNmC1Thvij7RBfzrjmNJvvLyG7rcdKqEn6fu2K3k6",
+                "AdjNkNpFYyq8VtY16ebMiM4BdtHX7PLBCWTEuP4w2Zj8",
+                "HpFaRraopmdKfAXfA6ZgAuyYr2Ymb9Qs1ck86yyJYncG"
         };
-        String base58Data3 = "8Bxs4cgF7g81qBE7";
+        String base58Data3 = "7AJzEnuAAQGf";
         testInstruction("Burn Case 3", base58Data3, accounts3);
     }
 
@@ -278,13 +278,13 @@ public class SplTokenInstructionParserTest {
     private static void testCloseAccount() {
         System.out.println("\n=== Testing CloseAccount ===");
 
-        // Case 1: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
+        // Case 1: tx_hash: 4cVseSMYC1jvLsMTyVq5KgZA3NJwUceebNjv8VNg9PpQ6PLXFJFgPvkXiYVcc4Rk6hYfZ5sUvBx7DK4zABa1zCzE
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "8F8NNmC1Thvij7RBfzrjmNJvvLyG7rcdKqEn6fu2K3k6",
+                "CS34MZNEY2pdhriN4Y6rRE2FDkoYf9G3NFD2UAjCnCn9",
+                "HpFaRraopmdKfAXfA6ZgAuyYr2Ymb9Qs1ck86yyJYncG"
         };
-        String base58Data1 = "9";
+        String base58Data1 = "A";
         testInstruction("CloseAccount Case 1", base58Data1, accounts1);
     }
 
