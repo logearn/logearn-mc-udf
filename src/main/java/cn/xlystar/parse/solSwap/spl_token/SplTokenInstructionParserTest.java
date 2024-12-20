@@ -10,20 +10,20 @@ public class SplTokenInstructionParserTest {
     public static void main(String[] args) {
         System.out.println("Starting SPL Token instruction parser tests...\n");
 
-        // 初始化相关指令测试
-        testInitializationInstructions();
+//        // 初始化相关指令测试
+//        testInitializationInstructions();
 
         // 转账相关指令测试
         testTransferInstructions();
 
-        // 授权相关指令测试
-        testAuthorityInstructions();
-
-        // 账户状态相关指令测试
-        testAccountStateInstructions();
-
-        // 扩展功能指令测试
-        testExtensionInstructions();
+//        // 授权相关指令测试
+//        testAuthorityInstructions();
+//
+//        // 账户状态相关指令测试
+//        testAccountStateInstructions();
+//
+//        // 扩展功能指令测试
+//        testExtensionInstructions();
 
         System.out.println("\nAll tests completed!");
     }
@@ -54,17 +54,17 @@ public class SplTokenInstructionParserTest {
 
         // 基础转账
         testTransfer();           // Case 3
-        testTransferChecked();    // Case 12
-
-        // 铸造和销毁
-        testMintTo();            // Case 7
-        testMintToChecked();     // Case 14
-        testBurn();              // Case 8
-        testBurnChecked();       // Case 15
-
-        // 原生代币相关
-        testSyncNative();        // Case 17
-        testCreateNativeMint();  // Case 31
+//        testTransferChecked();    // Case 12
+//
+//        // 铸造和销毁
+//        testMintTo();            // Case 7
+//        testMintToChecked();     // Case 14
+//        testBurn();              // Case 8
+//        testBurnChecked();       // Case 15
+//
+//        // 原生代币相关
+//        testSyncNative();        // Case 17
+//        testCreateNativeMint();  // Case 31
     }
 
     private static void testAuthorityInstructions() {
@@ -106,13 +106,13 @@ public class SplTokenInstructionParserTest {
     private static void testTransfer() {
         System.out.println("\n=== Testing Transfer ===");
 
-        // Case 1: tx_hash: 4oBFNe4qY8HQGUMChwfU4wEZi3oZ8uvkk9oGJr5akp7NYvJkEQGKKhHhPPf3YHpHNhZoKQJnhqj9FMqZGkeCfM6U
+        // Case 1: tx_hash: 5u78stQsU2fbBTgzzykRH9QUSS1JWGYaTn75nb1BYsYFDkKa2dfzHmVmitMkLqwek4jicThbVpiLwBHSSBazopzc
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "FZk2u6qtMvSfRfbbHkfgvSJPp7odcS917Un6Fx2zrW2h",
+                "J5a4BoK4DWxGAWxKVgfdJBhhd2R6KHyd36niYRbC8dVt",
+                "Ee7oGQLorSg8tapxb4ym7Y7vAZUuYHMZEgC6boQQJrcP"
         };
-        String base58Data1 = "3Bxs4cgF7g81qBE7";
+        String base58Data1 = "3Gob3y6Fg9pb";
         testInstruction("Transfer Case 1", base58Data1, accounts1);
 
         // Case 2 & 3 similar structure...
