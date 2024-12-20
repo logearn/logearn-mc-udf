@@ -5,12 +5,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RaydiumAmmInstructionParser {
-    
+
     private static final String PROGRAM_ID = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
 
     public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
         Map<String, Object> result = new HashMap<>();
-        
+
         if (data == null || data.length == 0) {
             result.put("error", "Invalid instruction data");
             return result;
@@ -19,66 +19,98 @@ public class RaydiumAmmInstructionParser {
         try {
             int discriminator = data[0] & 0xFF;
             RaydiumAmmInstruction instructionType = RaydiumAmmInstruction.fromValue(discriminator);
-            result.put("type", instructionType.name());
 
             ByteBuffer buffer = ByteBuffer.wrap(data, 1, data.length - 1);
             Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
             result.put("info", info);
-            
+
         } catch (Exception e) {
             result.put("error", "Failed to parse instruction: " + e.getMessage());
         }
-        
+
         return result;
     }
 
     private static Map<String, Object> parseInstructionInfo(RaydiumAmmInstruction instruction, ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         try {
             switch (instruction) {
                 case INITIALIZE:
-                    return parseInitialize(buffer, accounts);
+                    info = parseInitialize(buffer, accounts);
+                    info.put("type", "initialize");
+                    return info;
                 case INITIALIZE2:
-                    return parseInitialize2(buffer, accounts);
+                    info = parseInitialize2(buffer, accounts);
+                    info.put("type", "initialize2");
+                    return info;
                 case PRE_INITIALIZE:
-                    return parsePreInitialize(buffer, accounts);
+                    info = parsePreInitialize(buffer, accounts);
+                    info.put("type", "preInitialize");
+                    return info;
                 case SWAP_BASE_IN:
-                    return parseSwapBaseIn(buffer, accounts);
+                    info = parseSwapBaseIn(buffer, accounts);
+                    info.put("type", "swapBaseIn");
+                    return info;
                 case SWAP_BASE_OUT:
-                    return parseSwapBaseOut(buffer, accounts);
+                    info = parseSwapBaseOut(buffer, accounts);
+                    info.put("type", "swapBaseOut");
+                    return info;
                 case DEPOSIT:
-                    return parseDeposit(buffer, accounts);
+                    info = parseDeposit(buffer, accounts);
+                    info.put("type", "deposit");
+                    return info;
                 case WITHDRAW:
-                    return parseWithdraw(buffer, accounts);
+                    info = parseWithdraw(buffer, accounts);
+                    info.put("type", "withdraw");
+                    return info;
                 case WITHDRAW_PNL:
-                    return parseWithdrawPnl(buffer, accounts);
+                    info = parseWithdrawPnl(buffer, accounts);
+                    info.put("type", "withdrawPnl");
+                    return info;
                 case WITHDRAW_SRM:
-                    return parseWithdrawSrm(buffer, accounts);
+                    info = parseWithdrawSrm(buffer, accounts);
+                    info.put("type", "withdrawSrm");
+                    return info;
                 case CREATE_CONFIG_ACCOUNT:
-                    return parseCreateConfigAccount(buffer, accounts);
+                    info = parseCreateConfigAccount(buffer, accounts);
+                    info.put("type", "createConfigAccount");
+                    return info;
                 case UPDATE_CONFIG_ACCOUNT:
-                    return parseUpdateConfigAccount(buffer, accounts);
+                    info = parseUpdateConfigAccount(buffer, accounts);
+                    info.put("type", "updateConfigAccount");
+                    return info;
                 case SET_PARAMS:
-                    return parseSetParams(buffer, accounts);
+                    info = parseSetParams(buffer, accounts);
+                    info.put("type", "setParams");
+                    return info;
                 case MONITOR_STEP:
-                    return parseMonitorStep(buffer, accounts);
+                    info = parseMonitorStep(buffer, accounts);
+                    info.put("type", "monitorStep");
+                    return info;
                 case SIMULATE_INFO:
-                    return parseSimulateInfo(buffer, accounts);
+                    info = parseSimulateInfo(buffer, accounts);
+                    info.put("type", "simulateInfo");
+                    return info;
                 case MIGRATE_TO_OPEN_BOOK:
-                    return parseMigrateToOpenBook(buffer, accounts);
+                    info = parseMigrateToOpenBook(buffer, accounts);
+                    info.put("type", "migrateToOpenBook");
+                    return info;
                 case ADMIN_CANCEL_ORDERS:
-                    return parseAdminCancelOrders(buffer, accounts);
+                    info = parseAdminCancelOrders(buffer, accounts);
+                    info.put("type", "adminCancelOrders");
+                    return info;
                 default:
                     info.put("error", "Unknown instruction type: " + instruction.name());
+                    info.put("type", "unknown");
                     return info;
             }
         } catch (Exception e) {
             info.put("error", "Failed to parse " + instruction.name() + " parameters: " + e.getMessage());
+            info.put("type", "error");
             return info;
         }
     }
-
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         int nonce = buffer.getInt();
@@ -95,11 +127,11 @@ public class RaydiumAmmInstructionParser {
         Map<String, Object> info = new HashMap<>();
         long startTime = buffer.getLong();
         int poolNonce = buffer.getInt();
-        
+
         info.put("startTime", startTime);
         info.put("poolNonce", poolNonce);
         info.put("accounts", parseInitialize2Accounts(accounts));
-        
+
         return info;
     }
 
@@ -142,11 +174,11 @@ public class RaydiumAmmInstructionParser {
         Map<String, Object> info = new HashMap<>();
         long amountIn = buffer.getLong();
         long minimumAmountOut = buffer.getLong();
-        
+
         info.put("amountIn", amountIn);
         info.put("minimumAmountOut", minimumAmountOut);
         info.put("accounts", parseSwapAccounts(accounts));
-        
+
         return info;
     }
 
@@ -154,11 +186,11 @@ public class RaydiumAmmInstructionParser {
         Map<String, Object> info = new HashMap<>();
         long maximumAmountIn = buffer.getLong();
         long amountOut = buffer.getLong();
-        
+
         info.put("maximumAmountIn", maximumAmountIn);
         info.put("amountOut", amountOut);
         info.put("accounts", parseSwapAccounts(accounts));
-        
+
         return info;
     }
 
@@ -594,4 +626,4 @@ public class RaydiumAmmInstructionParser {
     }
 
 
-} 
+}

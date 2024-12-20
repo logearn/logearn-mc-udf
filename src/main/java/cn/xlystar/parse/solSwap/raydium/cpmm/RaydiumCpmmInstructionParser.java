@@ -38,35 +38,56 @@ public class RaydiumCpmmInstructionParser {
         try {
             switch (instruction) {
                 case CREATE_AMM_CONFIG: // 0
-                    return parseCreateAmmConfig(buffer, accounts);
+                    info = parseCreateAmmConfig(buffer, accounts);
+                    info.put("type", "createAmmConfig");
+                    return info;
                 case UPDATE_AMM_CONFIG: // 1
-                    return parseUpdateAmmConfig(buffer, accounts);
+                    info = parseUpdateAmmConfig(buffer, accounts);
+                    info.put("type", "updateAmmConfig");
+                    return info;
                 case UPDATE_POOL_STATUS: // 2
-                    return parseUpdatePoolStatus(buffer, accounts);
+                    info = parseUpdatePoolStatus(buffer, accounts);
+                    info.put("type", "updatePoolStatus");
+                    return info;
                 case COLLECT_PROTOCOL_FEE: // 3
-                    return parseCollectProtocolFee(buffer, accounts);
+                    info = parseCollectProtocolFee(buffer, accounts);
+                    info.put("type", "collectProtocolFee");
+                    return info;
                 case COLLECT_FUND_FEE: // 4
-                    return parseCollectFundFee(buffer, accounts);
+                    info = parseCollectFundFee(buffer, accounts);
+                    info.put("type", "collectFundFee");
+                    return info;
                 case INITIALIZE: // 5
-                    return parseInitialize(buffer, accounts);
+                    info = parseInitialize(buffer, accounts);
+                    info.put("type", "initialize");
+                    return info;
                 case DEPOSIT: // 6
-                    return parseDeposit(buffer, accounts);
+                    info = parseDeposit(buffer, accounts);
+                    info.put("type", "deposit");
+                    return info;
                 case WITHDRAW: // 7
-                    return parseWithdraw(buffer, accounts);
+                    info = parseWithdraw(buffer, accounts);
+                    info.put("type", "withdraw");
+                    return info;
                 case SWAP_BASE_IN: // 8
-                    return parseSwapBaseIn(buffer, accounts);
+                    info = parseSwapBaseIn(buffer, accounts);
+                    info.put("type", "swapBaseIn");
+                    return info;
                 case SWAP_BASE_OUT: // 9
-                    return parseSwapBaseOut(buffer, accounts);
+                    info = parseSwapBaseOut(buffer, accounts);
+                    info.put("type", "swapBaseOut");
+                    return info;
                 default:
                     info.put("error", "Unknown instruction type: " + instruction.name());
+                    info.put("type", "unknown");
                     return info;
             }
         } catch (Exception e) {
             info.put("error", "Failed to parse " + instruction.name() + " parameters: " + e.getMessage());
+            info.put("type", "error");
             return info;
         }
     }
-
     private static Map<String, Object> parseCreateAmmConfig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         int index = buffer.getShort() & 0xFFFF;
