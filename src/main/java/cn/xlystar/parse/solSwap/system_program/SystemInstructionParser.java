@@ -200,7 +200,7 @@ public class SystemInstructionParser {
 
         int position = data.length;
         position -= 8; // space
-        ByteBuffer allocateBuffer = ByteBuffer.wrap(data, position, position + 8);
+        ByteBuffer allocateBuffer = ByteBuffer.wrap(data, position, 8);
         allocateBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long space = allocateBuffer.getLong();
 

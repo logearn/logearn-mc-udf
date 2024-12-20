@@ -21,7 +21,7 @@ public class SystemInstructionParserTest {
 //        testAdvanceNonce();
 //
 //        // Allocate 测试用例
-//        testAllocate();
+        testAllocate();
 //
 //        // TransferWithSeed 测试用例
 //        testTransferWithSeed();
@@ -115,29 +115,28 @@ public class SystemInstructionParserTest {
     private static void testAssign() {
         System.out.println("\n=== Testing Assign ===");
 
-        // Case 1: tx_hash: 4bqEMhPCx1Yj6EFhxu4e2qAGxEJvY9w9qLrtTyEZfYKvuXXHGPFqmqrNZJr6xGfXhKTZN4TrfgVVrMqkDd7wHFBm
+        // Case 1: tx_hash: 5u78stQsU2fbBTgzzykRH9QUSS1JWGYaTn75nb1BYsYFDkKa2dfzHmVmitMkLqwek4jicThbVpiLwBHSSBazopzc
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                "2oywasUQKq4BuLpjW1gHcKkNsTdoiauhXVyVAfnNZuNR"
         };
-        String base58Data1 = "1111111111111111";
+        String base58Data1 = "SYXsBkG6yKW2wWDcW8EDHR6D3P82bKxJGPpM65DD8nHqBfMP";
         testInstruction("Assign Case 1", base58Data1, accounts1);
 
-        // Case 2: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
-        String[] accounts2 = new String[]{
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-                "11111111111111111111111111111111"
-        };
-        String base58Data2 = "1111111111111111";
-        testInstruction("Assign Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 5YHEkNjVGKRDw3KJNkyxEqHFxGQYqUxm6vt7kUdtJPBXJu6mZPaGF8vZmZHGGM6Hz8Vj8tQRKUyVmdyxXt1Sjoey
-        String[] accounts3 = new String[]{
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        };
-        String base58Data3 = "1111111111111111";
-        testInstruction("Assign Case 3", base58Data3, accounts3);
+//        // Case 2: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
+//        String[] accounts2 = new String[]{
+//                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
+//                "11111111111111111111111111111111"
+//        };
+//        String base58Data2 = "1111111111111111";
+//        testInstruction("Assign Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 5YHEkNjVGKRDw3KJNkyxEqHFxGQYqUxm6vt7kUdtJPBXJu6mZPaGF8vZmZHGGM6Hz8Vj8tQRKUyVmdyxXt1Sjoey
+//        String[] accounts3 = new String[]{
+//                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
+//                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+//        };
+//        String base58Data3 = "1111111111111111";
+//        testInstruction("Assign Case 3", base58Data3, accounts3);
     }
 
     // CreateAccountWithSeed 测试用例
@@ -207,24 +206,24 @@ public class SystemInstructionParserTest {
 
         // Case 1: tx_hash: 4oBFNe4qY8HQGUMChwfU4wEZi3oZ8uvkk9oGJr5akp7NYvJkEQGKKhHhPPf3YHpHNhZoKQJnhqj9FMqZGkeCfM6U
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ"
+                "2oywasUQKq4BuLpjW1gHcKkNsTdoiauhXVyVAfnNZuNR"
         };
-        String base58Data1 = "81111111111111";
+        String base58Data1 = "9krTDGKLJBg7SB59";
         testInstruction("Allocate Case 1", base58Data1, accounts1);
 
-        // Case 2: tx_hash: 2xFB11vhYC6mwK8kPn4bwV66ZkRNPsNJyGZMPEYwuBrNZmqVBh1o5KzN8MC3aWRnUGwFUyYGvGmwxz7xUJvpa7Gy
-        String[] accounts2 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi"
-        };
-        String base58Data2 = "81111111111111";
-        testInstruction("Allocate Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy
-        String[] accounts3 = new String[]{
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i"
-        };
-        String base58Data3 = "81111111111111";
-        testInstruction("Allocate Case 3", base58Data3, accounts3);
+//        // Case 2: tx_hash: 2xFB11vhYC6mwK8kPn4bwV66ZkRNPsNJyGZMPEYwuBrNZmqVBh1o5KzN8MC3aWRnUGwFUyYGvGmwxz7xUJvpa7Gy
+//        String[] accounts2 = new String[]{
+//                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi"
+//        };
+//        String base58Data2 = "81111111111111";
+//        testInstruction("Allocate Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy
+//        String[] accounts3 = new String[]{
+//                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i"
+//        };
+//        String base58Data3 = "81111111111111";
+//        testInstruction("Allocate Case 3", base58Data3, accounts3);
     }
 
     // TransferWithSeed 测试用例
