@@ -186,10 +186,10 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseAdvanceNonce(String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         
-        info.put("nonce", accounts[0]);
-        info.put("authority", accounts[1]);
-        info.put("recentBlockhashes", accounts[2]);
-        
+        info.put("nonceAuthority", accounts[0]);
+        info.put("recentBlockhashesSysvar", accounts[1]);
+        info.put("nonceAccount", accounts[2]);
+
         return info;
     }
 

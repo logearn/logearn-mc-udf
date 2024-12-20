@@ -12,16 +12,16 @@ public class SystemInstructionParserTest {
 //        testTransfer();
 
         // Assign 测试用例
-        testAssign();
+//        testAssign();
 
 //        // CreateAccountWithSeed 测试用例
 //        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
-//        testAdvanceNonce();
+        testAdvanceNonce();
 //
 //        // Allocate 测试用例
-        testAllocate();
+//        testAllocate();
 //
 //        // TransferWithSeed 测试用例
 //        testTransferWithSeed();
@@ -116,19 +116,18 @@ public class SystemInstructionParserTest {
         System.out.println("\n=== Testing Assign ===");
 
         // Case 1: tx_hash: 5u78stQsU2fbBTgzzykRH9QUSS1JWGYaTn75nb1BYsYFDkKa2dfzHmVmitMkLqwek4jicThbVpiLwBHSSBazopzc
-        String[] accounts1 = new String[]{
-                "2oywasUQKq4BuLpjW1gHcKkNsTdoiauhXVyVAfnNZuNR"
-        };
-        String base58Data1 = "SYXsBkG6yKW2wWDcW8EDHR6D3P82bKxJGPpM65DD8nHqBfMP";
-        testInstruction("Assign Case 1", base58Data1, accounts1);
-
-//        // Case 2: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
-//        String[] accounts2 = new String[]{
-//                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-//                "11111111111111111111111111111111"
+//        String[] accounts1 = new String[]{
+//                "2oywasUQKq4BuLpjW1gHcKkNsTdoiauhXVyVAfnNZuNR"
 //        };
-//        String base58Data2 = "1111111111111111";
-//        testInstruction("Assign Case 2", base58Data2, accounts2);
+//        String base58Data1 = "SYXsBkG6yKW2wWDcW8EDHR6D3P82bKxJGPpM65DD8nHqBfMP";
+//        testInstruction("Assign Case 1", base58Data1, accounts1);
+
+//        // Case 2: tx_hash: 5RKpJzcDAfg3Ljd8if4odrXyvTEvNxUKSUzDoh4765iBZq4eeHu1osXzhEoyWpXrvLSGZ1Z4RS67maRmbpZBGWrd
+        String[] accounts2 = new String[]{
+                "6DZmdPkpi9v9sAjiQW4PMGPsj5qwkMCPNB1gAi9hDjEo"
+        };
+        String base58Data2 = "SYXsBSQy3GeifSEQSGvTbrPNposbSAiSoh1YA85wcvGKSnYg";
+        testInstruction("Assign Case 2", base58Data2, accounts2);
 //
 //        // Case 3: tx_hash: 5YHEkNjVGKRDw3KJNkyxEqHFxGQYqUxm6vt7kUdtJPBXJu6mZPaGF8vZmZHGGM6Hz8Vj8tQRKUyVmdyxXt1Sjoey
 //        String[] accounts3 = new String[]{
@@ -142,62 +141,63 @@ public class SystemInstructionParserTest {
     // CreateAccountWithSeed 测试用例
     private static void testCreateAccountWithSeed() {
         System.out.println("\n=== Testing CreateAccountWithSeed ===");
-
-        // Case 1: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
+         //跑不通
+        // Case 1: tx_hash: 5bAqHa6mc266a5NFrbaUjAn81AVP8khjDyhkqXnt8HPeu3HwTMCBkWaMDN
         String[] accounts1 = new String[]{
-                "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",
-                "DriqvP3yg3KJ2yzqYKXwrKtujE3X99RdvCsGyfmqFBBF"
+                "CeoGoucJbwjno6KC1BiX4efKGqQyBjRzqgyhLYwJfgfr",
+                "EbBdupRW44MV4DmgXvsQJdjSY3nov4unLzeqB7t5hqhM",
+                "CeoGoucJbwjno6KC1BiX4efKGqQyBjRzqgyhLYwJfgfr"
         };
-        String base58Data1 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLMyTestSeed";
+        String base58Data1 = "M8hWuWgr2nEokPKCx6qSpUgmEczjQ8ECEvVeXRUv1z14d6cjw75SSuJU9MUESSH2BXgM5SsTDYaPxAni2K8iVNqmiKkgFePRFfb5PRSZkcJxeesZySLSVZqxhzDtdbzCAJUoS";
         testInstruction("CreateAccountWithSeed Case 1", base58Data1, accounts1);
 
         // Case 2: tx_hash: 57TG3QU6Xq1eQhYQfKU48k1wqUWsHzsDyUBgWiTqZhXgkVdBJZwXqHiZQykiqYrXBhbwPLxNwZKKZVxGvNhRyPry
-        String[] accounts2 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c"
-        };
-        String base58Data2 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLSeedTest2";
-        testInstruction("CreateAccountWithSeed Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 2EARWf5jKMxRpvnqxRBKgGGVXVoXY4qxkJyYCbPwcZbV2bjZhcvJwPkL4LgKtBsHGxSQB7FcdZqR7menjXTyKsXt
-        String[] accounts3 = new String[]{
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L"
-        };
-        String base58Data3 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLSeedTest3";
-        testInstruction("CreateAccountWithSeed Case 3", base58Data3, accounts3);
+//        String[] accounts2 = new String[]{
+//                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
+//                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c"
+//        };
+//        String base58Data2 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLSeedTest2";
+//        testInstruction("CreateAccountWithSeed Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 2EARWf5jKMxRpvnqxRBKgGGVXVoXY4qxkJyYCbPwcZbV2bjZhcvJwPkL4LgKtBsHGxSQB7FcdZqR7menjXTyKsXt
+//        String[] accounts3 = new String[]{
+//                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
+//                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L"
+//        };
+//        String base58Data3 = "31119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrLSeedTest3";
+//        testInstruction("CreateAccountWithSeed Case 3", base58Data3, accounts3);
     }
 
     // AdvanceNonce 测试用例
     private static void testAdvanceNonce() {
         System.out.println("\n=== Testing AdvanceNonce ===");
 
-        // Case 1: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
+        // Case 1: tx_hash: s9BC5Zz5aF736SaYmnMDSNs3fGYR3RL8UDskMFo7eZVGanVDvwBhebNtKtkn4Ato3ES4NJNRpST8o71m7uJwSES
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",
-                "SysvarRecentB1ockHashes11111111111111111111"
+                "3NDJuM73JT9UWxbKVLpbEjXZie9se53Vy3fEzVyEZ9yA",
+                "SysvarRecentB1ockHashes11111111111111111111",
+                "APhyMCpYjQ9RdEBn8cs4ifyBXjxAS5JtM3wYpWMJjsY5"
         };
-        String base58Data1 = "4";
+        String base58Data1 = "6vx8P";
         testInstruction("AdvanceNonce Case 1", base58Data1, accounts1);
 
-        // Case 2: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy
-        String[] accounts2 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c",
-                "SysvarRecentB1ockHashes11111111111111111111"
-        };
-        String base58Data2 = "4";
-        testInstruction("AdvanceNonce Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 5fqXJZpyvkE8YvSHbR3VgZEpWxzVaFGV4TakFyCGgBhzHxVr6yzZRqtR7xo6VrBHVmuEwGPjVoXcGxp3A9S4iFhk
-        String[] accounts3 = new String[]{
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
-                "SysvarRecentB1ockHashes11111111111111111111"
-        };
-        String base58Data3 = "4";
-        testInstruction("AdvanceNonce Case 3", base58Data3, accounts3);
+//        // Case 2: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy
+//        String[] accounts2 = new String[]{
+//                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
+//                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c",
+//                "SysvarRecentB1ockHashes11111111111111111111"
+//        };
+//        String base58Data2 = "4";
+//        testInstruction("AdvanceNonce Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 5fqXJZpyvkE8YvSHbR3VgZEpWxzVaFGV4TakFyCGgBhzHxVr6yzZRqtR7xo6VrBHVmuEwGPjVoXcGxp3A9S4iFhk
+//        String[] accounts3 = new String[]{
+//                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
+//                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
+//                "SysvarRecentB1ockHashes11111111111111111111"
+//        };
+//        String base58Data3 = "4";
+//        testInstruction("AdvanceNonce Case 3", base58Data3, accounts3);
     }
 
     // Allocate 测试用例
