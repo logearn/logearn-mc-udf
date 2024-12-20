@@ -15,7 +15,7 @@ public class SystemInstructionParserTest {
 //        testAssign();
 
 //        // CreateAccountWithSeed 测试用例
-//        testCreateAccountWithSeed();
+        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
         testAdvanceNonce();

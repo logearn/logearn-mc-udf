@@ -2,9 +2,8 @@ package cn.xlystar.parse.solSwap.spl_token_2022;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
 import org.bitcoinj.core.Base58;
 
 public class SplToken2022InstructionParser {
@@ -116,17 +115,51 @@ public class SplToken2022InstructionParser {
             case Transfer:
                 info.put("source", accounts[0]);
                 info.put("destination", accounts[1]);
-                info.put("authority", accounts[2]);
+                info.put("multisigAuthority", accounts[2]);
+                // 判断是否是多重签名
+                if (accounts.length > 3) {
+                    info.put("multisigAuthority", accounts[2]);
+                    // 从第4个账户开始都是签名者
+                    List<String> signers = new ArrayList<>();
+                    for (int i = 3; i < accounts.length; i++) {
+                        signers.add(accounts[i]);
+                    }
+                    info.put("signers", signers);
+                } else {
+                    info.put("authority", accounts[2]);
+                }
                 break;
             case MintTo:
                 info.put("mint", accounts[0]);
-                info.put("destination", accounts[1]);
-                info.put("mintAuthority", accounts[2]);
+                info.put("account", accounts[1]);
+                // 判断是否是多重签名
+                if (accounts.length > 3) {
+                    info.put("multisigAuthority", accounts[2]);
+                    // 从第4个账户开始都是签名者
+                    List<String> signers = new ArrayList<>();
+                    for (int i = 3; i < accounts.length; i++) {
+                        signers.add(accounts[i]);
+                    }
+                    info.put("signers", signers);
+                } else {
+                    info.put("authority", accounts[2]);
+                }
                 break;
             case Burn:
                 info.put("account", accounts[0]);
                 info.put("mint", accounts[1]);
-                info.put("authority", accounts[2]);
+                // 判断是否是多重签名
+                if (accounts.length > 3) {
+                    info.put("multisigAuthority", accounts[2]);
+                    // 从第4个账户开始都是签名者
+                    List<String> signers = new ArrayList<>();
+                    for (int i = 3; i < accounts.length; i++) {
+                        signers.add(accounts[i]);
+                    }
+                    info.put("signers", signers);
+                } else {
+                    info.put("authority", accounts[2]);
+                }
                 break;
         }
         
