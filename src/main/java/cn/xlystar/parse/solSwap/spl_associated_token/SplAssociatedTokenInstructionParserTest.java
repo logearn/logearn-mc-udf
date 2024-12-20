@@ -31,12 +31,12 @@ public class SplAssociatedTokenInstructionParserTest {
     private static void testCreateIdempotent() {
         System.out.println("\n=== Testing CreateIdempotent ===");
 
-        // Case 1: tx_hash: 2ZxDm8JBCYbJ5YQYWVqNvqZgz3jBpygY7FE6HmeTEFbxqVqxgXXvKPYGrRKpvZKBdLuVtJhNvqPHeLqxrEh9tWWx
+        // Case 1: tx_hash: 26DYrwW9tLeMhRM93vqhjYq1j9VQZwUsFUUnAU2asSaRLzbVkcLCNnLkghYzEDf8cBrMBmTHXNv1Mo4v8fCqzBpn
         String[] accounts1 = new String[]{
-                "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",  // funding
-                "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",  // ata
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",  // wallet
-                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",   // mint
+                "13jonn5DNhVd3H6UzwXLnpvootXpUGZzL9RNiUPRnGTR",  // funding
+                "46Sfh6h49EQ95cPDhET1JjPMjvUWnMhfcQaZLBVZcX2s",  // ata
+                "13jonn5DNhVd3H6UzwXLnpvootXpUGZzL9RNiUPRnGTR",  // wallet
+                "FNu1NKrgyZQjhaULhFH5phXqUwCPBAMkzbddjdBHfRAV",   // mint
                 "11111111111111111111111111111111",              // system
                 "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",   // token
                 "SysvarRent111111111111111111111111111111111"    // rent

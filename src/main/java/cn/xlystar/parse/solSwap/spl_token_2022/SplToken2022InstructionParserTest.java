@@ -28,13 +28,14 @@ public class SplToken2022InstructionParserTest {
     private static void testBasicOperations() {
         System.out.println("\n=== Testing Basic Operations ===");
         
-        // Transfer
+        // Transfer hash: 5dzREFL7wJauJeVNsc4Ykfkk2Htbkc46N36RKe2FGsUYfVY2629smBsBJVABRwKMsby98DcXj6SMTtL9EKh5WiLu
         String[] transferAccounts = new String[]{
-            "DjYyqKdwYcdXNMwzaykMwr6hvRJEHGmTQQnEBvqKvUYZ",  // source
-            "4QJwbmXp9L6NoAnyPwhat9yyGKJCTMKfH3HGEkhHGkZF",  // destination
-            "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi"   // authority
+            "FAXysofACTQvzawFYycG2ksqzPKTAeqb9M6FhFg2NMYf",  // source
+            "HxjEdXrawPQQ6NhPnEPnazeCoCXWyVz7pfPeYxSd8iVs",  // destination
+            "7gEQ6syDZmyPE4JdfJm4qatawnDqvqdh6i8jJjCXio6h",   // authority
+            "7gEQ6syDZmyPE4JdfJm4qatawnDqvqdh6i8jJjCXio6h"   // authority
         };
-        String transferData = "03000000e8d4a51000000000";  // Transfer 10 tokens
+        String transferData = "3MzSiboSGouR";  // Transfer 10 tokens
         testInstruction("Transfer", transferData, transferAccounts);
         
         // TransferChecked

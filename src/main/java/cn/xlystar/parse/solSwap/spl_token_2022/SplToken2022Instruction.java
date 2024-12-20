@@ -1,5 +1,6 @@
 package cn.xlystar.parse.solSwap.spl_token_2022;
 
+// 合约地址: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
 public enum SplToken2022Instruction {
     InitializeMint(0),
     InitializeAccount(1),
