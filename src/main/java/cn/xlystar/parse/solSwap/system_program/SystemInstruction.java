@@ -1,6 +1,10 @@
 package cn.xlystar.parse.solSwap.system_program;
 
-// data 有填充，所有参数从后往前读
+/**
+ * 合约地址: 11111111111111111111111111111111
+ * data 布局备注: data 有填充，所有参数从后往前读
+  */
+
 public enum SystemInstruction {
     CreateAccount(0),            // 创建账户
     Assign(1),                   // 分配所有者

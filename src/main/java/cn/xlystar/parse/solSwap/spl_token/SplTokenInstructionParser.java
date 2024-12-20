@@ -25,53 +25,101 @@ public class SplTokenInstructionParser {
             Map<String, Object> info = new HashMap<>();
 
             switch (instruction) {
-                case InitializeMint:
+                case InitializeMint: // 0
                     info = parseInitializeMint(instructionData, accounts);
                     break;
-                case InitializeAccount:
+                case InitializeAccount: // 1
                     info = parseInitializeAccount(accounts);
                     break;
-                case InitializeMultisig:
+                case InitializeMultisig: // 2
                     info = parseInitializeMultisig(instructionData, accounts);
                     break;
-                case Transfer:
+                case Transfer: // 3
                     info = parseTransfer(instructionData, accounts);
                     break;
-                case Approve:
+                case Approve: // 4
                     info = parseApprove(instructionData, accounts);
                     break;
-                case Revoke:
+                case Revoke: // 5
                     info = parseRevoke(accounts);
                     break;
-                case SetAuthority:
+                case SetAuthority: // 6
                     info = parseSetAuthority(instructionData, accounts);
                     break;
-                case MintTo:
+                case MintTo: // 7
                     info = parseMintTo(instructionData, accounts);
                     break;
-                case Burn:
+                case Burn: // 8
                     info = parseBurn(instructionData, accounts);
                     break;
-                case CloseAccount:
+                case CloseAccount: // 9
                     info = parseCloseAccount(accounts);
                     break;
-                case FreezeAccount:
+                case FreezeAccount: // 10
                     info = parseFreezeAccount(accounts);
                     break;
-                case ThawAccount:
+                case ThawAccount: // 11
                     info = parseThawAccount(accounts);
                     break;
-                case TransferChecked:
+                case TransferChecked: // 12
                     info = parseTransferChecked(instructionData, accounts);
                     break;
-                case ApproveChecked:
+                case ApproveChecked: // 13
                     info = parseApproveChecked(instructionData, accounts);
                     break;
-                case MintToChecked:
+                case MintToChecked: // 14
                     info = parseMintToChecked(instructionData, accounts);
                     break;
-                case BurnChecked:
+                case BurnChecked: // 15
                     info = parseBurnChecked(instructionData, accounts);
+                    break;
+                case InitializeAccount2: // 16
+                    info = parseInitializeAccount2(accounts);
+                    break;
+                case SyncNative: // 17
+                    info = parseSyncNative(accounts);
+                    break;
+                case InitializeAccount3: // 18
+                    info = parseInitializeAccount3(accounts);
+                    break;
+                case InitializeMultisig2: // 19
+                    info = parseInitializeMultisig2(instructionData, accounts);
+                    break;
+                case InitializeMint2: // 20
+                    info = parseInitializeMint2(instructionData, accounts);
+                    break;
+                case GetAccountDataSize: // 21
+                    info = parseGetAccountDataSize(instructionData);
+                    break;
+                case InitializeImmutableOwner: // 22
+                    info = parseInitializeImmutableOwner(accounts);
+                    break;
+                case AmountToUiAmount: // 23
+                    info = parseAmountToUiAmount(instructionData);
+                    break;
+                case UiAmountToAmount: // 24
+                    info = parseUiAmountToAmount(instructionData);
+                    break;
+                case InitializeMintCloseAuthority: // 25
+                    info = parseInitializeMintCloseAuthority(instructionData, accounts);
+                    break;
+                case TransferFeeExtension: // 26
+                    info = parseTransferFeeExtension(instructionData, accounts);
+                    break;
+                case ConfidentialTransferExtension: // 27
+                    info = parseConfidentialTransferExtension(instructionData, accounts);
+                    break;
+                case DefaultAccountStateExtension: // 28
+                    info = parseDefaultAccountStateExtension(instructionData, accounts);
+                    break;
+                case Reallocate: // 29
+                    info = parseReallocate(instructionData, accounts);
+                    break;
+                case MemoTransferExtension: // 30
+                    info = parseMemoTransferExtension(accounts);
+                    break;
+                case CreateNativeMint: // 31
+                    info = parseCreateNativeMint(accounts);
                     break;
                 default:
                     info.put("message", "Unsupported instruction type: " + instruction.name());
@@ -376,6 +424,195 @@ public class SplTokenInstructionParser {
         System.arraycopy(accounts, 2, signers, 0, signers.length);
         info.put("signers", signers);
 
+        return info;
+    }
+
+    // InitializeAccount2 - 不需要 rent sysvar 的账户初始化
+    private static Map<String, Object> parseInitializeAccount2(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("account", accounts[0]);
+        info.put("mint", accounts[1]);
+        info.put("owner", accounts[2]);
+        return info;
+    }
+
+    // SyncNative - 同步原生代币余额
+    private static Map<String, Object> parseSyncNative(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("account", accounts[0]);
+        return info;
+    }
+
+    // InitializeAccount3 - 带有额外选项的账户初始化
+    private static Map<String, Object> parseInitializeAccount3(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("account", accounts[0]);
+        info.put("mint", accounts[1]);
+        info.put("owner", accounts[2]);
+        return info;
+    }
+
+    // InitializeMultisig2 - 不需要 rent sysvar 的多重签名初始化
+    private static Map<String, Object> parseInitializeMultisig2(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        int m = buffer.get() & 0xFF;  // 需要的签名数量
+
+        info.put("multisig", accounts[0]);
+        String[] signers = Arrays.copyOfRange(accounts, 1, accounts.length);
+        info.put("signers", signers);
+        info.put("m", m);
+
+        return info;
+    }
+
+    // InitializeMint2 - 不需要 rent sysvar 的铸造初始化
+    private static Map<String, Object> parseInitializeMint2(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        int decimals = buffer.get() & 0xFF;
+
+        info.put("mint", accounts[0]);
+        info.put("mintAuthority", accounts[1]);
+        if (accounts.length > 2) {
+            info.put("freezeAuthority", accounts[2]);
+        }
+        info.put("decimals", decimals);
+
+        return info;
+    }
+
+    // GetAccountDataSize - 计算账户所需空间
+    private static Map<String, Object> parseGetAccountDataSize(byte[] data) {
+        Map<String, Object> info = new HashMap<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        long extensionTypes = buffer.getLong();
+        info.put("extensionTypes", extensionTypes);
+
+        return info;
+    }
+
+    // InitializeImmutableOwner - 初始化不可变所有者
+    private static Map<String, Object> parseInitializeImmutableOwner(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("account", accounts[0]);
+        return info;
+    }
+
+    // AmountToUiAmount - 金额转UI金额
+    private static Map<String, Object> parseAmountToUiAmount(byte[] data) {
+        Map<String, Object> info = new HashMap<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        long amount = buffer.getLong();
+        info.put("amount", amount);
+
+        return info;
+    }
+
+    // UiAmountToAmount - UI金额转金额
+    private static Map<String, Object> parseUiAmountToAmount(byte[] data) {
+        Map<String, Object> info = new HashMap<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        double uiAmount = buffer.getDouble();
+        info.put("uiAmount", uiAmount);
+
+        return info;
+    }
+
+    // InitializeMintCloseAuthority - 初始化铸造关闭权限
+    private static Map<String, Object> parseInitializeMintCloseAuthority(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("mint", accounts[0]);
+        if (data.length > 0) {
+            info.put("closeAuthority", accounts[1]);
+        }
+
+        return info;
+    }
+
+    // TransferFeeExtension - 转账费用扩展
+    private static Map<String, Object> parseTransferFeeExtension(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("mint", accounts[0]);
+        info.put("authority", accounts[1]);
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        int transferFeeBasisPoints = buffer.getInt();
+        long maximumFee = buffer.getLong();
+
+        info.put("transferFeeBasisPoints", transferFeeBasisPoints);
+        info.put("maximumFee", maximumFee);
+
+        return info;
+    }
+
+    // ConfidentialTransferExtension - 机密转账扩展
+    private static Map<String, Object> parseConfidentialTransferExtension(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("mint", accounts[0]);
+        info.put("authority", accounts[1]);
+        // 机密转账的具体参数解析
+        return info;
+    }
+
+    // DefaultAccountStateExtension - 默认账户状态扩展
+    private static Map<String, Object> parseDefaultAccountStateExtension(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("mint", accounts[0]);
+        info.put("authority", accounts[1]);
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        int accountState = buffer.get() & 0xFF;
+        info.put("accountState", accountState);
+
+        return info;
+    }
+
+    // Reallocate - 重新分配账户空间
+    private static Map<String, Object> parseReallocate(byte[] data, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("account", accounts[0]);
+        info.put("payer", accounts[1]);
+        info.put("systemProgram", accounts[2]);
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        long extensionTypes = buffer.getLong();
+        info.put("extensionTypes", extensionTypes);
+
+        return info;
+    }
+
+    // MemoTransferExtension - 备注转账扩展
+    private static Map<String, Object> parseMemoTransferExtension(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("account", accounts[0]);
+        info.put("authority", accounts[1]);
+        return info;
+    }
+
+    // CreateNativeMint - 创建原生代币铸造
+    private static Map<String, Object> parseCreateNativeMint(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("payer", accounts[0]);
+        info.put("nativeMint", accounts[1]);
+        info.put("systemProgram", accounts[2]);
         return info;
     }
 

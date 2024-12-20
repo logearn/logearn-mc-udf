@@ -1,5 +1,6 @@
 package cn.xlystar.parse.solSwap.spl_token;
 
+// 合约地址： TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
 public enum SplTokenInstruction {
     InitializeMint(0),              // 初始化代币铸造
     InitializeAccount(1),           // 初始化代币账户
