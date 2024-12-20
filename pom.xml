@@ -85,6 +85,16 @@
             <version>${sdk.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.syntifi.near</groupId>
+            <artifactId>borshj</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
+            <version>0.15.10</version> <!-- 使用适合的版本 -->
+        </dependency>
+        <dependency>
             <groupId>com.aliyun.odps</groupId>
             <artifactId>odps-mapred-local</artifactId>
             <version>${sdk.version}</version>
@@ -175,6 +185,14 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
+                </configuration>
             </plugin>
         </plugins>
     </build>

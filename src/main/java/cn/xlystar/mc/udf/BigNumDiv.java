@@ -23,13 +23,11 @@ public class BigNumDiv extends UDF {
     }
 
     public String evaluate(String num1, String num2, Integer scale) throws Exception {
-        long startTime = System.currentTimeMillis();
         if (StringUtils.isEmpty(num1) || StringUtils.isEmpty(num2) ) return "0";
         BigDecimal b1 = new BigDecimal(num1);
         BigDecimal b2 = new BigDecimal(num2);
-        if (b1.equals(BigDecimal.ZERO) || b2.equals(BigDecimal.ZERO)) return "0";
+        if (b1.compareTo(BigDecimal.ZERO)  == 0 || b2.compareTo(BigDecimal.ZERO) == 0) return "0";
         String res = b1.setScale(scale, RoundingMode.HALF_UP).divide(b2, RoundingMode.HALF_UP).toPlainString();
-        System.out.println("num1:" + num1 + ", num2:" + num2 + ", res:" + res+", time:" + (System.currentTimeMillis() - startTime)+"ms");
         return res;
     }
 

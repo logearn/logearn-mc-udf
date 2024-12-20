@@ -273,6 +273,7 @@ public class Log {
                 // uniswap v3 解析
                 BigInteger amount0 = web3HexToBigInteger(data.substring(0, 64));
                 BigInteger amount1 = web3HexToBigInteger(data.substring(64, 128));
+                BigInteger v3Liquidity = web3HexToBigInteger(data.substring(192, 256));
 
                 String sender = "0x" + topicLists.get(1).substring(26).toLowerCase();
                 String to = "0x" + topicLists.get(2).substring(26).toLowerCase();
@@ -287,6 +288,7 @@ public class Log {
 
                         .amountIn(amountIn)
                         .amountOut(amountOut)
+                        .v3Liquidity(v3Liquidity)
 
                         .logIndex(logIndex)
                         .contractAddress(contractAddress)
@@ -558,11 +560,19 @@ public class Log {
                                 && (liquidityEvent.getAmount0().compareTo(tAmount) == 0 || liquidityEvent.getAmount1().compareTo(tAmount) == 0)
                 ) {
                     liquidityEvent.getMergedTransferEvent().add(transferEvent);
-                    if (liquidityEvent.getAmount0().compareTo(tAmount) == 0) {
-                        liquidityEvent.setToken0(token_address);
+                    String token0 = liquidityEvent.getToken0();
+                    // 处理 注入 amount 一致的问题
+                    if (StringUtils.isEmpty(token0)) {
+                        if (liquidityEvent.getAmount0().compareTo(tAmount) == 0) {
+                            liquidityEvent.setToken0(token_address);
+                        } else {
+                            liquidityEvent.setToken1(token_address);
+                        }
                     } else {
-                        liquidityEvent.setToken1(token_address);
+                        liquidityEvent.setToken0(token0.compareTo(token_address) <= 0 ? token0 : token_address);
+                        liquidityEvent.setToken1(token0.compareTo(token_address) > 0 ? token0 : token_address);
                     }
+
 
                     excludetransferEvents.add(transferEvent);
                 }

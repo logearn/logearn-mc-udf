@@ -8,6 +8,7 @@ import com.aliyun.odps.io.Writable;
 import com.aliyun.odps.udf.Aggregator;
 import com.aliyun.odps.udf.UDFException;
 import com.aliyun.odps.udf.annotation.Resolve;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,7 @@ public class BigNumSumUDAF extends Aggregator {
         if (args[0] == null) {
             return;
         }
-        String num = args[0].toString();
+        String num = StringUtils.isEmpty(args[0].toString()) ? "0" : args[0].toString();
         int scale = Integer.parseInt(args[1].toString());
         SumBuffer buf = (SumBuffer) buffer;
         buf.scale = scale;

@@ -18,6 +18,7 @@ public class UniswapEvent extends Event implements Serializable {
     private String tokenOut;
     private BigInteger amountIn;
     private BigInteger amountOut;
+    private BigInteger v3Liquidity;
 
     private BigInteger logIndex;
     private String contractAddress;

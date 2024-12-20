@@ -1,0 +1,69 @@
+{
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA": [
+    {
+      "instruction_name": "initializeAccount3",
+      "input_method_id": 18,
+      "instruction_params": [
+        {
+          "type": "account_index",
+          "index": "0",
+          "name": "account"
+        },
+        {
+          "type": "account_index",
+          "index": "1",
+          "name": "mint"
+        },
+        {
+          "type": "account",
+          "length": "32",
+          "name": "owner"
+        }
+      ]
+    },
+    {
+      "instruction_name": "initializeImmutableOwner",
+      "input_method_id": 22,
+      "instruction_params": [
+        {
+          "type": "account_index",
+          "index": "0",
+          "name": "account"
+        }
+      ]
+    }
+  ],
+  "11111111111111111111111111111111": [
+    {
+      "instruction_name": "createAccount",
+      "input_method_id": 0,
+      "instruction_params": [
+        {
+          "type": "int",
+          "length": "8",
+          "name": "lamports"
+        },
+        {
+          "type": "account_index",
+          "index": "1",
+          "name": "newAccount"
+        },
+        {
+          "type": "account",
+          "length": "32",
+          "name": "owner"
+        },
+        {
+          "type": "account_index",
+          "index": "0",
+          "name": "source"
+        },
+        {
+          "type": "int",
+          "length": "4",
+          "name": "space"
+        }
+      ]
+    }
+  ]
+}

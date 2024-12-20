@@ -148,7 +148,7 @@ public class TransferEvent extends Event implements Serializable {
                     .build();
         }
         boolean matchOriginSender = false;
-        if (from.equals(ut.getTo())) {
+        if (from.equals(ut.getTo()) && from.equals(originSender)) {
             matchOriginSender = true;
         }
 

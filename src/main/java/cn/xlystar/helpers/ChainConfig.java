@@ -16,4 +16,11 @@ public class ChainConfig {
         String wcoinAddress = this.getTokens().get(wcoin).get("address").asText();
         return wcoinAddress;
     }
+
+    public String getSplTokenProgramId() {
+        return this.getProtocolConf().get("SPL_TOKEN_PROGRAM_ID").asText();
+    }
+    public String getSystemProgramId() {
+        return this.getProtocolConf().get("SYSTEM_PROGRAM_ID").asText();
+    }
 }

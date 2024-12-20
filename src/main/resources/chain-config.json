@@ -58,5 +58,20 @@
         "logearn": "0xf0839b435d06a5dbad99d037a40d97251eb0d8bb"
       }
     }
+  },
+  "-10": {
+    "chain_id": "-10",
+    "chain_name": "solana",
+    "coin": "SOL",
+    "wcoin": "SOL",
+    "tokens": {
+      "SQL": {"address": "sol", "scale": "1e9", "name": "SOL" }
+    },
+    "protocols": {
+      "system_program": {
+        "SPL_TOKEN_PROGRAM_ID": "TokenkegQfeZyiNwAJbN6aJcU5dGp7t7XcWp6fdGvMcbP",
+        "SYSTEM_PROGRAM_ID": "11111111111111111111111111111111"
+      }
+    }
   }
 }
