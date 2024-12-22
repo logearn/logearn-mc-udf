@@ -1,8 +1,14 @@
 package cn.xlystar.parse.solSwap.system_program;
 
 /**
- * 合约地址: 11111111111111111111111111111111
- * data 布局备注: data 有填充，所有参数从后往前读
+ *  Solana System Program (11111111111111111111111111111111)
+ *  Verified against:
+ *  - Contract source: https://github.com/solana-labs/solana/blob/master/sdk/program/src/system_instruction.rs
+ *  - SDK: https://github.com/solana-labs/solana/blob/master/sdk/program/src/system_program.rs
+ *  - Docs: https://docs.solana.com/developing/runtime-facilities/programs#system-program
+ *  - IDL: https://github.com/solana-labs/solana/blob/master/sdk/program/src/system_instruction.rs#L11-L138
+ *
+ *  data 布局备注: data 有填充，所有参数从后往前读
   */
 
 public enum SystemInstruction {
@@ -10,10 +16,10 @@ public enum SystemInstruction {
     Assign(1),                   // 分配所有者
     Transfer(2),                 // 转账
     CreateAccountWithSeed(3),    // 使用种子创建账户
-    AdvanceNonce(4),            // 推进 Nonce
-    WithdrawNonce(5),           // 提取 Nonce 账户的租金
-    InitializeNonce(6),         // 初始化 Nonce 账户
-    AuthorizeNonce(7),          // 授权 Nonce 账户
+    AdvanceNonceAccount(4),            // 推进 Nonce
+    WithdrawNonceAccount(5),           // 提取 Nonce 账户的租金
+    InitializeNonceAccount(6),         // 初始化 Nonce 账户
+    AuthorizeNonceAccount(7),          // 授权 Nonce 账户
     Allocate(8),                // 分配空间
     AllocateWithSeed(9),        // 使用种子分配空间
     AssignWithSeed(10),         // 使用种子分配所有者

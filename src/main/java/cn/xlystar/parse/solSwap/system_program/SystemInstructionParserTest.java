@@ -14,7 +14,7 @@ public class SystemInstructionParserTest {
         // Assign 测试用例
 //        testAssign();
 
-//        // CreateAccountWithSeed 测试用例 跑不通
+//        // CreateAccountWithSeed
 //        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
@@ -23,26 +23,26 @@ public class SystemInstructionParserTest {
 //        // Allocate 测试用例
 //        testAllocate();
 //
-//        // TransferWithSeed 测试用例 跑不通
+//        // TransferWithSeed 测试用例
 //        testTransferWithSeed();
 //
 //        // InitializeNonce 测试用例
-        testInitializeNonce();
+//        testInitializeNonce();
 //
-//        // WithdrawNonce 测试用例跑不通
+//        // WithdrawNonce
 //        testWithdrawNonce();
 //
-//        // AuthorizeNonce 测试用例跑不通
+//        // AuthorizeNonce
 //        testAuthorizeNonce();
 //
-//        // AllocateWithSeed 测试用例跑不通
+//        // AllocateWithSeed
 //        testAllocateWithSeed();
 //
-//        // AssignWithSeed 测试用例跑不通
+//        // AssignWithSeed
 //        testAssignWithSeed();
 //
-//        // UpgradeNonceAccount 测试用例跑不通
-//        testUpgradeNonceAccount();
+//        // UpgradeNonceAccount
+        testUpgradeNonceAccount();
     }
 
     // CreateAccount 测试用例
@@ -145,8 +145,8 @@ public class SystemInstructionParserTest {
         // Case 1: tx_hash: 33YxcEUMKq4oS9EnsSTFW9FMp8zmEpdjXwUur3keJwAMtySY5GrvE6hM8TgDBm2tC2FHNC6ktnCY3qaMJvovv9Hj
         String[] accounts1 = new String[]{
                 "4Ysj3UTb51DXzJbTZ1fiUeiW3fJe54UNPzPj6EutPyq9",
+                "AyMxdnoKcfk1vTABTV3VQiAncrYGojATJ38VHciCPffq",
                 "AyMxdnoKcfk1vTABTV3VQiAncrYGojATJ38VHciCPffq"
-
         };
         String base58Data1 = "3ipZWfp3a73q9NetBMTv89y7k8CLcN6xtTtDHmVoiBYzLYSy2bJtV2aacYyYvqUciyC3XEDGhi5vHb3Qyvcrh3NMY1ovRD567smu99MyZ8rMiuHa2DvGMyQYHDdpr7fcy6rvRUkqZgsoJxbNHM31MFWhdDhmfJEG2YGW3j1CU";
         testInstruction("CreateAccountWithSeed Case 1", base58Data1, accounts1);

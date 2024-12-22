@@ -1,6 +1,21 @@
 package cn.xlystar.parse.solSwap.spl_token;
 
-// 合约地址： TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+/**
+ * Solana Token Program (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)
+ *
+ * Verified against:
+ * - Contract source: https://github.com/solana-labs/solana-program-library/blob/master/token/program/src/instruction.rs
+ * - SDK: https://github.com/solana-labs/solana-program-library/tree/master/token/program
+ * - Docs: https://spl.solana.com/token
+ * - IDL: https://github.com/solana-labs/solana-program-library/blob/master/token/js/src/state/index.ts
+ *
+ * data 布局备注:
+ * 1. 第一个字节为指令类型
+ * 2. 后续字节为指令参数
+ * 3. 对于 amount/decimals 等数值类型使用 LITTLE_ENDIAN
+ * 4. 对于 pubkey 类型使用 32 字节
+ * 5. 对于 string 类型先有 8 字节长度
+ */
 public enum SplTokenInstruction {
     InitializeMint(0),              // 初始化代币铸造
     InitializeAccount(1),           // 初始化代币账户
@@ -26,14 +41,7 @@ public enum SplTokenInstruction {
     GetAccountDataSize(21),        // 获取账户数据大小
     InitializeImmutableOwner(22),  // 初始化不可变所有者
     AmountToUiAmount(23),          // 金额转UI金额
-    UiAmountToAmount(24),          // UI金额转金额
-    InitializeMintCloseAuthority(25), // 初始化铸造关闭权限
-    TransferFeeExtension(26),      // 转账费用扩展
-    ConfidentialTransferExtension(27), // 机密转账扩展
-    DefaultAccountStateExtension(28), // 默认账户状态扩展
-    Reallocate(29),                // 重新分配
-    MemoTransferExtension(30),     // 备注转账扩展
-    CreateNativeMint(31);          // 创建原生代币铸造
+    UiAmountToAmount(24);          // UI金额转金额
 
     private final int value;
 

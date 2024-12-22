@@ -1,6 +1,32 @@
 package cn.xlystar.parse.solSwap.spl_token_2022;
 
-// 合约地址: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+/**
+ * Solana Token Program 2022 (TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb)
+ *
+ * Verified against:
+ * - Contract source: https://github.com/solana-labs/solana-program-library/blob/master/token/program-2022/src/instruction.rs
+ * - SDK: https://github.com/solana-labs/solana-program-library/tree/master/token/program-2022
+ * - Docs: https://spl.solana.com/token-2022
+ * - IDL: https://github.com/solana-labs/solana-program-library/blob/master/token/js/src/extensions/index.ts
+ *
+ * data 布局备注:
+ * 1. 第一个字节为指令类型
+ * 2. 后续字节为指令参数
+ * 3. 对于 amount/decimals 等数值类型使用 LITTLE_ENDIAN
+ * 4. 对于 pubkey 类型使用 32 字节
+ * 5. 对于 string 类型先有 4 字节长度
+ *
+ * Token-2022 是 Token Program 的升级版本，包含了更多功能：
+ * - 利息承载代币
+ * - 转账费用
+ * - 永久和临时代币授权
+ * - 可配置的小数位数
+ * - 元数据扩展
+ * - 不可转让代币
+ * - 默认账户状态
+ * - 可关闭的铸币
+ * - 非托管代币
+ */
 public enum SplToken2022Instruction {
     InitializeMint(0),
     InitializeAccount(1),
