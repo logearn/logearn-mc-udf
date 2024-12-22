@@ -14,8 +14,8 @@ public class SystemInstructionParserTest {
         // Assign 测试用例
 //        testAssign();
 
-//        // CreateAccountWithSeed 测试用例 跑不通
-        testCreateAccountWithSeed();
+//        // CreateAccountWithSeed
+//        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
 //        testAdvanceNonce();
@@ -23,26 +23,26 @@ public class SystemInstructionParserTest {
 //        // Allocate 测试用例
 //        testAllocate();
 //
-//        // TransferWithSeed 测试用例 跑不通
+//        // TransferWithSeed 测试用例
 //        testTransferWithSeed();
 //
 //        // InitializeNonce 测试用例
 //        testInitializeNonce();
 //
-//        // WithdrawNonce 测试用例跑不通
+//        // WithdrawNonce
 //        testWithdrawNonce();
 //
-//        // AuthorizeNonce 测试用例跑不通
+//        // AuthorizeNonce
 //        testAuthorizeNonce();
 //
-//        // AllocateWithSeed 测试用例跑不通
+//        // AllocateWithSeed
 //        testAllocateWithSeed();
 //
-//        // AssignWithSeed 测试用例跑不通
+//        // AssignWithSeed
 //        testAssignWithSeed();
 //
-//        // UpgradeNonceAccount 测试用例跑不通
-//        testUpgradeNonceAccount();
+//        // UpgradeNonceAccount
+        testUpgradeNonceAccount();
     }
 
     // CreateAccount 测试用例
