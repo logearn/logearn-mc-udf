@@ -11,7 +11,7 @@ import java.nio.ByteOrder;
 public class SystemInstructionParser {
     public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
         Map<String, Object> result = new HashMap<>();
-        
+
         if (data == null || data.length == 0) {
             throw new IllegalArgumentException("Empty instruction data");
         }
@@ -21,7 +21,10 @@ public class SystemInstructionParser {
             SystemInstruction instruction = SystemInstruction.fromValue(instructionType);
             result.put("type", instruction.name());
 
-            byte[] instructionData = Arrays.copyOfRange(data, 1, data.length);
+            byte[] instructionData = null;
+            if (data.length > 4) {
+                instructionData = Arrays.copyOfRange(data, 4, data.length);
+            }
             Map<String, Object> info = new HashMap<>();
 
             switch (instruction) {
@@ -63,17 +66,18 @@ public class SystemInstructionParser {
                     break;
                 case UpgradeNonceAccount: // 12
                     info = parseUpgradeNonceAccount(accounts);
-                    break;                default:
+                    break;
+                default:
                     info.put("message", "Unsupported instruction type: " + instruction.name());
             }
 
             result.put("info", info);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             result.put("error", "Failed to parse instruction: " + e.getMessage());
         }
-        
+
         return result;
     }
 
@@ -89,42 +93,51 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseCreateAccount(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("CreateAccount raw data (hex): " + bytesToHex(data));
-        
-        int position = data.length;
-        position -= 32; // owner
-        byte[] owner = Arrays.copyOfRange(data, position, position + 32);
-        
-        position -= 8; // space
-        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, 8);
-        spaceBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long space = spaceBuffer.getLong();
-        
-        position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
-        lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long lamports = lamportsBuffer.getLong();
+        // 从第3个字节开始读取
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
 
+        // 1. 读取 lamports (8字节)
+        long lamports = buffer.getLong();
+        System.out.println("Lamports: " + lamports);
+
+        // 2. 读取 space (8字节)
+        long space = buffer.getLong();
+        System.out.println("Space: " + space);
+
+        // 3. 读取 owner (32字节)
+        byte[] owner = new byte[32];
+        buffer.get(owner);
+        String ownerStr = Base58.encode(owner);
+        System.out.println("Owner: " + ownerStr);
+
+        // 设置返回信息
         info.put("source", accounts[0]);
         info.put("newAccount", accounts[1]);
         info.put("lamports", lamports);
         info.put("space", space);
-        info.put("owner", Base58.encode(owner));
-        
+        info.put("owner", ownerStr);
+
         return info;
+
     }
 
     // Assign 指令解析
     private static Map<String, Object> parseAssign(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("Assign raw data (hex): " + bytesToHex(data));
-        
-        int position = data.length;
-        position -= 32; // owner
-        byte[] newOwner = Arrays.copyOfRange(data, position, position + 32);
+
+        // 从第3个字节开始读取
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+        // 读取 owner (32字节)
+        byte[] newOwner = new byte[32];
+        buffer.get(newOwner);
 
         info.put("account", accounts[0]);
         info.put("owner", Base58.encode(newOwner));
-        
+
         return info;
     }
 
@@ -132,17 +145,15 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseTransfer(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("Transfer raw data (hex): " + bytesToHex(data));
-        
-        int position = data.length;
-        position -= 8; // lamports
-        ByteBuffer transferBuffer = ByteBuffer.wrap(data, position, 8);
+
+        ByteBuffer transferBuffer = ByteBuffer.wrap(data);
         transferBuffer.order(ByteOrder.LITTLE_ENDIAN);
         long amount = transferBuffer.getLong();
 
         info.put("source", accounts[0]);
         info.put("destination", accounts[1]);
         info.put("lamports", amount);
-        
+
         return info;
     }
 
@@ -150,42 +161,45 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseCreateAccountWithSeed(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("CreateAccountWithSeed raw data (hex): " + bytesToHex(data));
-        
-        int position = data.length;
-        position -= 32; // owner
-        byte[] programId = Arrays.copyOfRange(data, position, position + 32);
-        
-        position -= 8; // space
-        ByteBuffer spaceBuffer = ByteBuffer.wrap(data, position, 8);
-        spaceBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long space = spaceBuffer.getLong();
-        
-        position -= 8; // lamports
-        ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
-        lamportsBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long lamports = lamportsBuffer.getLong();
-        
-        position -= 4; // seed length
-        int seedLength = ByteBuffer.wrap(data, position, 4)
-                .order(ByteOrder.LITTLE_ENDIAN).getInt();
-        
-        position -= seedLength; // seed
-        byte[] seed = Arrays.copyOfRange(data, position, position + seedLength);
 
-        info.put("base", accounts[0]);
-        info.put("account", accounts[1]);
-        info.put("seed", new String(seed));
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+
+        // 1. 读取 baee (32字节)
+        byte[] baseBytes = new byte[32];
+        buffer.get(baseBytes);
+        String base = Base58.encode(baseBytes);
+
+        // 2. 读取 seed 长度和内容
+        int seedLength = Math.toIntExact(buffer.getLong());
+        byte[] seedBytes = new byte[seedLength];
+        buffer.get(seedBytes);
+        String seed = new String(seedBytes);
+
+        long lamports = buffer.getLong();
+
+        // 3. 读取 space (8字节)
+        long space = buffer.getLong();
+
+        // 4. 读取 owner (32字节)
+        byte[] ownerBytes = new byte[32];
+        buffer.get(ownerBytes);
+        String owner = Base58.encode(ownerBytes);
+
+        info.put("source", accounts[0]);
+        info.put("newAccount", accounts[1]);
+        info.put("base", base);
+        info.put("seed", seed);
         info.put("lamports", lamports);
         info.put("space", space);
-        info.put("owner", Base58.encode(programId));
-        
+        info.put("owner", owner);
+
         return info;
     }
 
     // AdvanceNonce 指令解析
     private static Map<String, Object> parseAdvanceNonce(String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         info.put("nonceAccount", accounts[0]);
         info.put("recentBlockhashesSysvar", accounts[1]);
         info.put("nonceAuthority", accounts[2]);
@@ -245,7 +259,7 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseWithdrawNonce(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("WithdrawNonce raw data (hex): " + bytesToHex(data));
-        
+
         int position = data.length;
         position -= 8; // lamports
         ByteBuffer lamportsBuffer = ByteBuffer.wrap(data, position, 8);
@@ -258,7 +272,7 @@ public class SystemInstructionParser {
         info.put("recentBlockhashes", accounts[3]);
         info.put("rentSysvar", accounts[4]);
         info.put("lamports", lamports);
-        
+
         return info;
     }
 
@@ -266,7 +280,7 @@ public class SystemInstructionParser {
     private static Map<String, Object> parseInitializeNonce(byte[] data, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         System.out.println("InitializeNonce raw data (hex): " + bytesToHex(data));
-        
+
         int position = data.length;
         position -= 32; // authority
         byte[] authority = Arrays.copyOfRange(data, position, position + 32);
@@ -275,7 +289,7 @@ public class SystemInstructionParser {
         info.put("recentBlockhashesSysvar", accounts[1]);
         info.put("rentSysvar", accounts[2]);
         info.put("nonceAuthority", Base58.encode(authority));
-        
+
         return info;
     }
 

@@ -15,7 +15,7 @@ public class SystemInstructionParserTest {
 //        testAssign();
 
 //        // CreateAccountWithSeed 测试用例 跑不通
-//        testCreateAccountWithSeed();
+        testCreateAccountWithSeed();
 
 //        // AdvanceNonce 测试用例
 //        testAdvanceNonce();
@@ -27,7 +27,7 @@ public class SystemInstructionParserTest {
 //        testTransferWithSeed();
 //
 //        // InitializeNonce 测试用例
-        testInitializeNonce();
+//        testInitializeNonce();
 //
 //        // WithdrawNonce 测试用例跑不通
 //        testWithdrawNonce();
@@ -145,8 +145,8 @@ public class SystemInstructionParserTest {
         // Case 1: tx_hash: 33YxcEUMKq4oS9EnsSTFW9FMp8zmEpdjXwUur3keJwAMtySY5GrvE6hM8TgDBm2tC2FHNC6ktnCY3qaMJvovv9Hj
         String[] accounts1 = new String[]{
                 "4Ysj3UTb51DXzJbTZ1fiUeiW3fJe54UNPzPj6EutPyq9",
+                "AyMxdnoKcfk1vTABTV3VQiAncrYGojATJ38VHciCPffq",
                 "AyMxdnoKcfk1vTABTV3VQiAncrYGojATJ38VHciCPffq"
-
         };
         String base58Data1 = "3ipZWfp3a73q9NetBMTv89y7k8CLcN6xtTtDHmVoiBYzLYSy2bJtV2aacYyYvqUciyC3XEDGhi5vHb3Qyvcrh3NMY1ovRD567smu99MyZ8rMiuHa2DvGMyQYHDdpr7fcy6rvRUkqZgsoJxbNHM31MFWhdDhmfJEG2YGW3j1CU";
         testInstruction("CreateAccountWithSeed Case 1", base58Data1, accounts1);
