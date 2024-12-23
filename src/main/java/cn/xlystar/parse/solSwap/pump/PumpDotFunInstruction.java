@@ -8,26 +8,26 @@ package cn.xlystar.parse.solSwap.pump;
  * - Website: https://pump.fun
  */
 public enum PumpDotFunInstruction {
-    CREATE(0),                    // 创建代币
-    INITIALIZE(1),                // 初始化
-    SET_PARAMS(2),               // 设置参数
-    BUY(3),                      // 购买代币
-    SELL(4),                     // 出售代币
-    WITHDRAW(5);                 // 提取资金
+    CREATE("181ec828051c0777"),                    // 创建代币
+    INITIALIZE("afaf6d1f0d989bed"),                // 初始化
+    SET_PARAMS("1beab2349302bb8d"),               // 设置参数
+    BUY("66063d1201daebea"),                      // 购买代币
+    SELL("33e685a4017f83ad"),                     // 出售代币
+    WITHDRAW("b712469c946da122");                 // 提取资金
 
-    private final int value;
+    private final String value;
 
-    PumpDotFunInstruction(int value) {
+    PumpDotFunInstruction(String value) {
         this.value = value;
     }
 
-    public int getValue() {
+    public String getValue() {
         return value;
     }
 
-    public static PumpDotFunInstruction fromValue(int value) {
+    public static PumpDotFunInstruction fromValue(String value) {
         for (PumpDotFunInstruction type : values()) {
-            if (type.value == value) {
+            if (type.value.equals(value)) {
                 return type;
             }
         }
