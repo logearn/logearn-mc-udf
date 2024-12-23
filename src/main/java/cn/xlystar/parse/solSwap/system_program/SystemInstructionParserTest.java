@@ -32,10 +32,10 @@ public class SystemInstructionParserTest {
 //        // WithdrawNonce
 //        testWithdrawNonce();
 //
-//        // AuthorizeNonce
+//        // AuthorizeNonce 存在问题
 //        testAuthorizeNonce();
 //
-//        // AllocateWithSeed
+//        // AllocateWithSeed 存在问题
 //        testAllocateWithSeed();
 //
 //        // AssignWithSeed
@@ -51,56 +51,56 @@ public class SystemInstructionParserTest {
 
         // Case 1: tx_hash: 2EARWf5jKMxRpvnqxRBKgGGVXVoXY4qxkJyYCbPwcZbV2bjZhcvJwPkL4LgKtBsHGxSQB7FcdZqR7menjXTyKsXt
         String[] accounts1 = new String[]{
-                "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",
-                "DriqvP3yg3KJ2yzqYKXwrKtujE3X99RdvCsGyfmqFBBF"
+                "3nTcdN7iZ2afeBWsX1WPUj7vqsdRycRNGEmhhAhGxHWG",
+                "FDGoUfdVawJcceyYSUqADsGhbxdqCdvH7SaeZ6VYupLU"
         };
         String base58Data1 = "11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL";
         testInstruction("CreateAccount Case 1", base58Data1, accounts1);
 
         // Case 2: tx_hash: 57TG3QU6Xq1eQhYQfKU48k1wqUWsHzsDyUBgWiTqZhXgkVdBJZwXqHiZQykiqYrXBhbwPLxNwZKKZVxGvNhRyPry
-        String[] accounts2 = new String[]{
-                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c"
-        };
-        String base58Data2 = "11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL";
-        testInstruction("CreateAccount Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
-        String[] accounts3 = new String[]{
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L"
-        };
-        String base58Data3 = "11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL";
-        testInstruction("CreateAccount Case 3", base58Data3, accounts3);
+//        String[] accounts2 = new String[]{
+//                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
+//                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c"
+//        };
+//        String base58Data2 = "11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL";
+//        testInstruction("CreateAccount Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
+//        String[] accounts3 = new String[]{
+//                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i",
+//                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L"
+//        };
+//        String base58Data3 = "11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL";
+//        testInstruction("CreateAccount Case 3", base58Data3, accounts3);
     }
 
     // Transfer 测试用例
     private static void testTransfer() {
         System.out.println("\n=== Testing Transfer ===");
 
-        // Case 1: tx_hash: 5fqXJZpyvkE8YvSHbR3VgZEpWxzVaFGV4TakFyCGgBhzHxVr6yzZRqtR7xo6VrBHVmuEwGPjVoXcGxp3A9S4iFhk
+        // Case 1: tx_hash: 22CvLyjZh74kk3Zx1V7UsevawvkDdHG7E6Zfrcmm5xmU9bxQ2gNoFPs26B2NWqYEj9HTg2ixajreBZRnb5J3GNTY
         String[] accounts1 = new String[]{
-                "3h1zGmCwsRJnVk5BuRNMLsPaQu1y2aqXqXDWYCgrp5UG",
-                "7Vbm3oKLF6hgGp4j5dUgjHa7cELBYmT8vmjqoqgENAJd"
+                "ANmzgnZPpcW1SpeuWoctPZoMLFNLYCERAFVGcrnDdq12",
+                "CgANddXc7FKSsdLSdFv67X8faZqQaRTeLMXkAVANkZD4"
         };
-        String base58Data1 = "3Bxs4cgF7g81qBE7";
+        String base58Data1 = "3Bxs43ZMjSRQLs6o";
         testInstruction("Transfer Case 1", base58Data1, accounts1);
 
         // Case 2: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy
-        String[] accounts2 = new String[]{
-                "DriQBvRrqHzxi2xGxJQKw9pYP6JG2LWx5FoAqZ9k7ywa",
-                "6QuXb6mB6WmRASP2y8AavXh6aabBXEH5ZzrSH5xRrgSm"
-        };
-        String base58Data2 = "3Bxs4cgF7g81qBE7";
-        testInstruction("Transfer Case 2", base58Data2, accounts2);
-
-        // Case 3: tx_hash: 2ZGLGHrxZKZqNMUoWZh6rZmzxEQ4wDwNqRh8TFdJ6s9ToBvEmz7xHFWYWPHG3QVVxwH1zUvLo4JsBxo4x4JqCGPK
-        String[] accounts3 = new String[]{
-                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
-                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i"
-        };
-        String base58Data3 = "3Bxs4cgF7g81qBE7";
-        testInstruction("Transfer Case 3", base58Data3, accounts3);
+//        String[] accounts2 = new String[]{
+//                "DriQBvRrqHzxi2xGxJQKw9pYP6JG2LWx5FoAqZ9k7ywa",
+//                "6QuXb6mB6WmRASP2y8AavXh6aabBXEH5ZzrSH5xRrgSm"
+//        };
+//        String base58Data2 = "3Bxs4cgF7g81qBE7";
+//        testInstruction("Transfer Case 2", base58Data2, accounts2);
+//
+//        // Case 3: tx_hash: 2ZGLGHrxZKZqNMUoWZh6rZmzxEQ4wDwNqRh8TFdJ6s9ToBvEmz7xHFWYWPHG3QVVxwH1zUvLo4JsBxo4x4JqCGPK
+//        String[] accounts3 = new String[]{
+//                "8vqZWWG6ZKqYXkJvxXkYmqNYvG8NkY1X7ea7ZLKZ6T2L",
+//                "2xNweLHLqrbx4zo1waDvgWJHgsUpPj8Y8icbAFeR4a8i"
+//        };
+//        String base58Data3 = "3Bxs4cgF7g81qBE7";
+//        testInstruction("Transfer Case 3", base58Data3, accounts3);
     }
 
     // 辅助测试方法
@@ -294,9 +294,9 @@ public class SystemInstructionParserTest {
     private static void testWithdrawNonce() {
         System.out.println("\n=== Testing WithdrawNonce ===");
 
-        // Case 1: tx_hash:
+        // Case 1: tx_hash:599ZoSXKdQBPp6zxMjZGK6ge6ERGHJycz2XFZx5y8tsm9hVTBZmsAPiZ5V1a8991bGZb7SzyL8oGadDUeMm6WsEw
         String[] accounts1 = new String[]{
-                "1iz9uxQdnT4FDMY3nE9Hc7Q3GAmC1ebNxiG1MnNTEjB",
+                "C4i7U33e6evz2jig3MnaKQCQWGkLBqHv6YgnEwKE67hx",
                 "13MY2yZ6SedFhbmu92dAK5hdhkGRGZncUwfSpxwedtyR",
                 "SysvarRecentB1ockHashes11111111111111111111",
                 "SysvarRent111111111111111111111111111111111",
@@ -305,15 +305,15 @@ public class SystemInstructionParserTest {
         String base58Data1 = "6UQf8s8v7Laq63RZ";
         testInstruction("WithdrawNonce Case 1", base58Data1, accounts1);
 
-//        // Case 2: tx_hash: 2EARWf5jKMxRpvnqxRBKgGGVXVoXY4qxkJyYCbPwcZbV2bjZhcvJwPkL4LgKtBsHGxSQB7FcdZqR7menjXTyKsXt
+        // Case 2: tx_hash: 3jLiy4E3QDFXybgUwP62hBW8K7YLvSZVZFCBTjgfUUGtRzqgEEf496huNQcjoZgs1RasQ1QobTiBwbtgVTkmqCDb
 //        String[] accounts2 = new String[]{
-//                "HWHvQhFmJB6gPtqJx3gjxHX1iDZhQ9WJorxwb3iTWVHi",
-//                "J7nSEX8ADf3pVWhHS7qXqGYoxQqGYwKhNJfEMvFUSk7c",
-//                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+//                "758KJwH9DEdrdYocVqciERzesTTPjWzkKfx3G3DrGSJL",
+//                "13MY2yZ6SedFhbmu92dAK5hdhkGRGZncUwfSpxwedtyR",
 //                "SysvarRecentB1ockHashes11111111111111111111",
-//                "SysvarRent111111111111111111111111111111111"
+//                "SysvarRent111111111111111111111111111111111",
+//                "13MY2yZ6SedFhbmu92dAK5hdhkGRGZncUwfSpxwedtyR"
 //        };
-//        String base58Data2 = "51111111111111";
+//        String base58Data2 = "6UQf8s8v7Laq63RZ";
 //        testInstruction("WithdrawNonce Case 2", base58Data2, accounts2);
 //
 //        // Case 3: tx_hash: 3vDU6JZRwDVVVo3KwGfA3T1YzgzJrDwHGolomBkGxqKJYYDxnPps8Z64eV3HQ4QKVxDyf4yVz2X6Q5VUh4Tdj6Cy

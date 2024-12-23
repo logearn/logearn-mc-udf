@@ -344,11 +344,11 @@ public class SystemInstructionParser {
         ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
         long lamports = buffer.getLong();
 
-        info.put("nonce", accounts[0]);
-        info.put("recipient", accounts[1]);
-        info.put("authority", accounts[2]);
-        info.put("recentBlockhashes", accounts[3]);
-        info.put("rentSysvar", accounts[4]);
+        info.put("nonceAccount", accounts[0]);
+        info.put("destination", accounts[1]);
+        info.put("recentBlockhashesSysvar", accounts[2]);
+        info.put("recentSysvar", accounts[3]);
+        info.put("nonceAuthority", accounts[4]);
         info.put("lamports", lamports);
 
         return info;
