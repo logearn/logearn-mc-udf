@@ -10,30 +10,30 @@ package cn.xlystar.parse.solSwap.raydium.cpmm;
  * - On-chain transactions analysis
  */
 public enum RaydiumCpmmInstruction {
-    CREATE_AMM_CONFIG(0),           // 创建AMM配置，包含交易费率和协议费率设置
-    UPDATE_AMM_CONFIG(1),           // 更新AMM配置参数
-    UPDATE_POOL_STATUS(2),          // 更新流动性池状态
-    COLLECT_PROTOCOL_FEE(3),        // 从流动性池中收取协议费用
-    COLLECT_FUND_FEE(4),           // 从流动性池中收取资金费用
-    INITIALIZE(5),                  // 使用初始流动性初始化流动性池
-    DEPOSIT(6),                     // 向流动性池添加流动性
-    WITHDRAW(7),                    // 从流动性池移除流动性
-    SWAP_BASE_IN(8),               // 基于输入金额的代币交换
-    SWAP_BASE_OUT(9);              // 基于输出金额的代币交换
+    CREATE_AMM_CONFIG("7524518647279989897"),           // 创建AMM配置，包含交易费率和协议费率设置
+    UPDATE_AMM_CONFIG("14444201354927684657"),           // 更新AMM配置参数
+    UPDATE_POOL_STATUS("2"),          // [todo] 没有case 更新流动性池状态
+    COLLECT_PROTOCOL_FEE("6448665121156532360"),        // 从流动性池中收取协议费用
+    COLLECT_FUND_FEE("9081159964177631911"),           // 从流动性池中收取资金费用
+    INITIALIZE("17121445590508351407"),                  // 使用初始流动性初始化流动性池
+    DEPOSIT("13182846803881894898"),                     // 向流动性池添加流动性
+    WITHDRAW("2495396153584390839"),                    // 从流动性池移除流动性
+    SWAP_BASE_IN("16011174931058048655"),               // 基于输入金额的代币交换
+    SWAP_BASE_OUT("12516711329758894391");              // 基于输出金额的代币交换
 
-    private final int value;
+    private final String value;
 
-    RaydiumCpmmInstruction(int value) {
+    RaydiumCpmmInstruction(String value) {
         this.value = value;
     }
 
-    public int getValue() {
+    public String getValue() {
         return value;
     }
 
-    public static RaydiumCpmmInstruction fromValue(int value) {
+    public static RaydiumCpmmInstruction fromValue(String value) {
         for (RaydiumCpmmInstruction type : values()) {
-            if (type.value == value) {
+            if (type.value.equals(value)) {
                 return type;
             }
         }

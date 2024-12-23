@@ -1,6 +1,7 @@
 package cn.xlystar.parse.solSwap.raydium.cpmm;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,11 +18,11 @@ public class RaydiumCpmmInstructionParser {
         }
 
         try {
-            int discriminator = data[0] & 0xFF;
+            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+            String discriminator = Long.toUnsignedString(buffer.getLong());
             RaydiumCpmmInstruction instructionType = RaydiumCpmmInstruction.fromValue(discriminator);
             result.put("type", instructionType.name());
 
-            ByteBuffer buffer = ByteBuffer.wrap(data, 1, data.length - 1);
             Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
             result.put("info", info);
 
@@ -88,77 +89,69 @@ public class RaydiumCpmmInstructionParser {
             return info;
         }
     }
+
     private static Map<String, Object> parseCreateAmmConfig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int index = buffer.getShort() & 0xFFFF;
-        long tradeFeeRate = buffer.getLong();
-        long protocolFeeRate = buffer.getLong();
-        long fundFeeRate = buffer.getLong();
-        long createPoolFee = buffer.getLong();
+        // 设置返回信息
+        info.put("index", Short.toUnsignedInt(buffer.getShort()));
+        info.put("tradeFeeRate", Long.toUnsignedString(buffer.getLong()));
+        info.put("protocolFeeRate", Long.toUnsignedString(buffer.getLong()));
+        info.put("fundFeeRate", Long.toUnsignedString(buffer.getLong()));
+        info.put("createPoolFee", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("index", index);
-        info.put("tradeFeeRate", tradeFeeRate);
-        info.put("protocolFeeRate", protocolFeeRate);
-        info.put("fundFeeRate", fundFeeRate);
-        info.put("createPoolFee", createPoolFee);
-        info.put("accounts", parseCreateAmmConfigAccounts(accounts));
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("ammConfig", accounts[1]); // AMM config account
+        info.put("systemProgram", accounts[2]); // System program account
 
         return info;
     }
 
     private static Map<String, Object> parseUpdateAmmConfig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int param = buffer.get() & 0xFF;
-        long value = buffer.getLong();
+        // 设置返回信息
+        info.put("param", Byte.toUnsignedInt(buffer.get()));
+        info.put("value", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("param", param);
-        info.put("value", value);
-        info.put("accounts", parseUpdateAmmConfigAccounts(accounts));
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("ammConfig", accounts[1]); // AMM config account
 
         return info;
     }
 
     private static Map<String, Object> parseUpdatePoolStatus(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int status = buffer.get() & 0xFF;
+        // 设置返回信息
+        info.put("status", Byte.toUnsignedInt(buffer.get()));
 
-        info.put("status", status);
-        info.put("accounts", parseUpdatePoolStatusAccounts(accounts));
-
+        // 解析账户信息
+        info.put("authority", accounts[0]); // Authority account
+        info.put("poolState", accounts[1]); // Pool state account
         return info;
     }
 
     private static Map<String, Object> parseCollectProtocolFee(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount0Requested = buffer.getLong();
-        long amount1Requested = buffer.getLong();
+        info.put("amount0Requested", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount1Requested", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amount0Requested", amount0Requested);
-        info.put("amount1Requested", amount1Requested);
-        info.put("accounts", parseCollectProtocolFeeAccounts(accounts));
-
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("poolState", accounts[2]); // Pool state account
+        info.put("ammConfig", accounts[3]); // AMM config account
+        info.put("token0Vault", accounts[4]); // Token 0 vault account
+        info.put("token1Vault", accounts[5]); // Token 1 vault account
+        info.put("vault0Mint", accounts[6]); // Vault 0 mint account
+        info.put("vault1Mint", accounts[7]); // Vault 1 mint account
+        info.put("recipientToken0Account", accounts[8]); // Recipient token 0 account
+        info.put("recipientToken1Account", accounts[9]); // Recipient token 1 account
+        info.put("tokenProgram", accounts[10]); // Token program
+        info.put("tokenProgram2022", accounts[11]); // Token program 2022
         return info;
     }
 
-    // 账户解析辅助方法
-    private static Map<String, String> parseCreateAmmConfigAccounts(String[] accounts) {
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 3) {
-            accountMap.put("admin", accounts[0]);        // 管理员账户
-            accountMap.put("ammConfig", accounts[1]);    // AMM配置账户
-            accountMap.put("systemProgram", accounts[2]); // 系统程序
-        }
-        return accountMap;
-    }
-
-    private static Map<String, String> parseUpdateAmmConfigAccounts(String[] accounts) {
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 2) {
-            accountMap.put("admin", accounts[0]);     // 管理员账户
-            accountMap.put("ammConfig", accounts[1]); // AMM配置账户
-        }
-        return accountMap;
-    }
 
     private static Map<String, String> parseUpdatePoolStatusAccounts(String[] accounts) {
         Map<String, String> accountMap = new HashMap<>();
@@ -186,78 +179,155 @@ public class RaydiumCpmmInstructionParser {
 
     private static Map<String, Object> parseCollectFundFee(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount0Requested = buffer.getLong();
-        long amount1Requested = buffer.getLong();
+        // 设置返回信息
+        info.put("amount0Requested", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount1Requested", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amount0Requested", amount0Requested);
-        info.put("amount1Requested", amount1Requested);
-        info.put("accounts", parseCollectFundFeeAccounts(accounts));
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("poolState", accounts[2]); // Pool state account
+        info.put("ammConfig", accounts[3]); // AMM config account
+        info.put("token0Vault", accounts[4]); // Token 0 vault account
+        info.put("token1Vault", accounts[5]); // Token 1 vault account
+        info.put("vault0Mint", accounts[6]); // Vault 0 mint account
+        info.put("vault1Mint", accounts[7]); // Vault 1 mint account
+        info.put("recipientToken0Account", accounts[8]); // Recipient token 0 account
+        info.put("recipientToken1Account", accounts[9]); // Recipient token 1 account
+        info.put("tokenProgram", accounts[10]); // Token program
+        info.put("tokenProgram2022", accounts[11]); // Token program 2022
 
         return info;
     }
 
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long initAmount0 = buffer.getLong();
-        long initAmount1 = buffer.getLong();
-        long openTime = buffer.getLong();
 
-        info.put("initAmount0", initAmount0);
-        info.put("initAmount1", initAmount1);
-        info.put("openTime", openTime);
-        info.put("accounts", parseInitializeAccounts(accounts));
+        // 设置返回信息
+        info.put("initAmount0", Long.toUnsignedString(buffer.getLong()));
+        info.put("initAmount1", Long.toUnsignedString(buffer.getLong()));
+        info.put("openTime", Long.toUnsignedString(buffer.getLong()));
 
+        // 解析账户信息
+        info.put("creator", accounts[0]); // Creator account
+        info.put("ammConfig", accounts[1]); // AMM config account
+        info.put("authority", accounts[2]); // Authority account
+        info.put("poolState", accounts[3]); // Pool state account
+        info.put("token0Mint", accounts[4]); // Token 0 mint account
+        info.put("token1Mint", accounts[5]); // Token 1 mint account
+        info.put("lpMint", accounts[6]); // LP mint account
+        info.put("creatorToken0", accounts[7]); // Creator token 0 account
+        info.put("creatorToken1", accounts[8]); // Creator token 1 account
+        info.put("creatorLpToken", accounts[9]); // Creator LP token account
+        info.put("token0Vault", accounts[10]); // Token 0 vault account
+        info.put("token1Vault", accounts[11]); // Token 1 vault account
+        info.put("createPoolFee", accounts[12]); // Create pool fee account
+        info.put("observationState", accounts[13]); // Observation state account
+        info.put("tokenProgram", accounts[14]); // Token program
+        info.put("token0Program", accounts[15]); // Token 0 program
+        info.put("token1Program", accounts[16]); // Token 1 program
+        info.put("associatedTokenProgram", accounts[17]); // Associated token program
+        info.put("systemProgram", accounts[18]); // System program
+        info.put("rent", accounts[19]); // Rent sysvar
         return info;
     }
 
     private static Map<String, Object> parseDeposit(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long lpTokenAmount = buffer.getLong();
-        long maximumToken0Amount = buffer.getLong();
-        long maximumToken1Amount = buffer.getLong();
 
-        info.put("lpTokenAmount", lpTokenAmount);
-        info.put("maximumToken0Amount", maximumToken0Amount);
-        info.put("maximumToken1Amount", maximumToken1Amount);
-        info.put("accounts", parseDepositAccounts(accounts));
+        // 设置返回信息
+        info.put("lpTokenAmount", Long.toUnsignedString(buffer.getLong()));
+        info.put("maximumToken0Amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("maximumToken1Amount", Long.toUnsignedString(buffer.getLong()));
 
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("poolState", accounts[2]); // Pool state account
+        info.put("ownerLpToken", accounts[3]); // Owner LP token account
+        info.put("token0Account", accounts[4]); // Token 0 account
+        info.put("token1Account", accounts[5]); // Token 1 account
+        info.put("token0Vault", accounts[6]); // Token 0 vault account
+        info.put("token1Vault", accounts[7]); // Token 1 vault account
+        info.put("tokenProgram", accounts[8]); // Token program
+        info.put("tokenProgram2022", accounts[9]); // Token program 2022
+        info.put("vault0Mint", accounts[10]); // Vault 0 mint account
+        info.put("vault1Mint", accounts[11]); // Vault 1 mint account
+        info.put("lpMint", accounts[12]); // LP mint account
         return info;
     }
 
     private static Map<String, Object> parseWithdraw(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long lpTokenAmount = buffer.getLong();
-        long minimumToken0Amount = buffer.getLong();
-        long minimumToken1Amount = buffer.getLong();
 
-        info.put("lpTokenAmount", lpTokenAmount);
-        info.put("minimumToken0Amount", minimumToken0Amount);
-        info.put("minimumToken1Amount", minimumToken1Amount);
-        info.put("accounts", parseWithdrawAccounts(accounts));
+        // 设置返回信息
+        info.put("lpTokenAmount", Long.toUnsignedString(buffer.getLong()));
+        info.put("minimumToken0Amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("minimumToken1Amount", Long.toUnsignedString(buffer.getLong()));
 
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("poolState", accounts[2]); // Pool state account
+        info.put("ownerLpToken", accounts[3]); // Owner LP token account
+        info.put("token0Account", accounts[4]); // Token 0 account
+        info.put("token1Account", accounts[5]); // Token 1 account
+        info.put("token0Vault", accounts[6]); // Token 0 vault account
+        info.put("token1Vault", accounts[7]); // Token 1 vault account
+        info.put("tokenProgram", accounts[8]); // Token program
+        info.put("tokenProgram2022", accounts[9]); // Token program 2022
+        info.put("vault0Mint", accounts[10]); // Vault 0 mint account
+        info.put("vault1Mint", accounts[11]); // Vault 1 mint account
+        info.put("lpMint", accounts[12]); // LP mint account
+        info.put("memoProgram", accounts[13]); // Memo program
         return info;
     }
 
     private static Map<String, Object> parseSwapBaseIn(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amountIn = buffer.getLong();
-        long minimumAmountOut = buffer.getLong();
+        // 设置返回信息
+        info.put("amountIn", Long.toUnsignedString(buffer.getLong()));
+        info.put("minimumAmountOut", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amountIn", amountIn);
-        info.put("minimumAmountOut", minimumAmountOut);
-        info.put("accounts", parseSwapAccounts(accounts));
+        // 解析账户信息
+        info.put("payer", accounts[0]); // Payer account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("ammConfig", accounts[2]); // AMM config account
+        info.put("poolState", accounts[3]); // Pool state account
+        info.put("inputTokenAccount", accounts[4]); // Input token account
+        info.put("outputTokenAccount", accounts[5]); // Output token account
+        info.put("inputVault", accounts[6]); // Input vault account
+        info.put("outputVault", accounts[7]); // Output vault account
+        info.put("inputTokenProgram", accounts[8]); // Input token program
+        info.put("outputTokenProgram", accounts[9]); // Output token program
+        info.put("inputTokenMint", accounts[10]); // Input token mint account
+        info.put("outputTokenMint", accounts[11]); // Output token mint account
+        info.put("observationState", accounts[12]); // Observation state account
 
         return info;
     }
 
     private static Map<String, Object> parseSwapBaseOut(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long maximumAmountIn = buffer.getLong();
-        long amountOut = buffer.getLong();
 
-        info.put("maximumAmountIn", maximumAmountIn);
-        info.put("amountOut", amountOut);
-        info.put("accounts", parseSwapAccounts(accounts));
+        // 设置返回信息
+        info.put("maxAmountIn", Long.toUnsignedString(buffer.getLong()));
+        info.put("amountOut", Long.toUnsignedString(buffer.getLong()));
+
+        // 解析账户信息
+        info.put("payer", accounts[0]); // Payer account
+        info.put("authority", accounts[1]); // Authority account
+        info.put("ammConfig", accounts[2]); // AMM config account
+        info.put("poolState", accounts[3]); // Pool state account
+        info.put("inputTokenAccount", accounts[4]); // Input token account
+        info.put("outputTokenAccount", accounts[5]); // Output token account
+        info.put("inputVault", accounts[6]); // Input vault account
+        info.put("outputVault", accounts[7]); // Output vault account
+        info.put("inputTokenProgram", accounts[8]); // Input token program
+        info.put("outputTokenProgram", accounts[9]); // Output token program
+        info.put("inputTokenMint", accounts[10]); // Input token mint account
+        info.put("outputTokenMint", accounts[11]); // Output token mint account
+        info.put("observationState", accounts[12]); // Observation state account
 
         return info;
     }
