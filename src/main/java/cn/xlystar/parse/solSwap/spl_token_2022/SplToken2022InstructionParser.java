@@ -318,7 +318,7 @@ public class SplToken2022InstructionParser {
         Map<String, Object> info = new HashMap<>();
 
         info.put("account", accounts[0]);
-        info.put("authority", accounts[1]);
+        info.put("owner", accounts[1]);
         info.put("action", isEnable ? "enable" : "disable");
 
         return info;

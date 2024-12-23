@@ -30,19 +30,19 @@ public class SystemInstructionParserTest {
 //        testInitializeNonce();
 //
 //        // WithdrawNonce
-//        testWithdrawNonce();
+        testWithdrawNonce();
 //
-//        // AuthorizeNonce 存在问题
+//        // AuthorizeNonce
 //        testAuthorizeNonce();
 //
-//        // AllocateWithSeed 存在问题
+//        // AllocateWithSeed
 //        testAllocateWithSeed();
 //
 //        // AssignWithSeed
 //        testAssignWithSeed();
 //
 //        // UpgradeNonceAccount
-        testUpgradeNonceAccount();
+//        testUpgradeNonceAccount();
     }
 
     // CreateAccount 测试用例
@@ -337,7 +337,7 @@ public class SystemInstructionParserTest {
                 "4iGULHsAFnn7wbpiLi5pZAhci7Rc9evfmk2biReaHwtk",
                 "48wSxFkr8HJyQboRQBZUFgU7ij2H6DUM9QbvpWwD7uwQ"
         };
-        String base58Data1 = "3Bxs4NLx8ARRs7AF";
+        String base58Data1 = "45oj4G16aDtSpUK9Db3KRTH1FSrmAcXY65FyjcFAWaD88GepP";
         testInstruction("AuthorizeNonce Case 1", base58Data1, accounts1);
 
 //        // Case 2: tx_hash: 3LFikuXyYbwoWywKqPw3AzQKLAAJQhKgqoqhUVZpT4qNyqXrqQpVjpN8SUx5BSW8H3MuFYkyJbp5SDxdcvNuxozs
@@ -366,7 +366,7 @@ public class SystemInstructionParserTest {
                 "rqjuEoKx3WteksddYnfshDXBHT1qHHEPzLdp69M2WJX",
                 "ExmipM2EAJ9DeShWcGStTrWkgNH69RvMB5MooUTbCts9"
         };
-        String base58Data1 = "3Bxs4NQVoYGVy9hq";
+        String base58Data1 = "7E6e8hLRfHc9nUvGD7MFYE4jGTbcer1kgZu91MU6RwXDV8QqX4tBzqqh7rt3oThJvD8b1mnZmQze97wdWaVvxoBC23axHFkCdHYC7EynT34jispvhzZGnr7x34Uw";
         testInstruction("AllocateWithSeed Case 1", base58Data1, accounts1);
 
 //        // Case 2: tx_hash: 2xFB11vhYC6mwK8kPn4bwV66ZkRNPsNJyGZMPEYwuBrNZmqVBh1o5KzN8MC3aWRnUGwFUyYGvGmwxz7xUJvpa7Gy

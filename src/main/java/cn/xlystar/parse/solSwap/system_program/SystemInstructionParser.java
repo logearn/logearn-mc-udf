@@ -115,7 +115,8 @@ public class SystemInstructionParser {
         long lamports = buffer.getLong();
 
         // 2. 读取 space (8字节)
-        long space = buffer.getLong();
+//        long space = buffer.getLong();
+        String space =Long.toUnsignedString(buffer.getLong());
 
         // 3. 读取 owner (32字节)
         byte[] owner = new byte[32];
@@ -224,7 +225,8 @@ public class SystemInstructionParser {
         long lamports = buffer.getLong();
 
         // 3. 读取 space (8字节)
-        long space = buffer.getLong();
+//        long space = buffer.getLong();
+        String space =Long.toUnsignedString(buffer.getLong()) ;
 
         // 4. 读取 owner (32字节)
         byte[] ownerBytes = new byte[32];
@@ -435,7 +437,7 @@ public class SystemInstructionParser {
         String seed = new String(seedBytes);
 
         // 3. 读取 space (8字节)
-        long space = buffer.getLong();
+        String space =Long.toUnsignedString(buffer.getLong()) ;
 
         // 4. 读取 owner (32字节)
         byte[] ownerBytes = new byte[32];
