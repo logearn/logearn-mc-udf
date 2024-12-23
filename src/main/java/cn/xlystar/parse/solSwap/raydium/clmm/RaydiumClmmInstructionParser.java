@@ -1,9 +1,14 @@
 package cn.xlystar.parse.solSwap.raydium.clmm;
 
 import org.bitcoinj.core.Base58;
+import org.bouncycastle.util.encoders.Hex;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RaydiumClmmInstructionParser {
@@ -19,11 +24,13 @@ public class RaydiumClmmInstructionParser {
         }
 
         try {
-            int discriminator = data[0] & 0xFF;
+            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+            byte[] discriminatorBytes = new byte[8];
+            buffer.get(discriminatorBytes);
+            String discriminator = Hex.toHexString(discriminatorBytes);
             RaydiumClmmInstruction instructionType = RaydiumClmmInstruction.fromValue(discriminator);
             result.put("type", instructionType.name());
 
-            ByteBuffer buffer = ByteBuffer.wrap(data, 1, data.length - 1);
             Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
             result.put("info", info);
 
@@ -164,66 +171,120 @@ public class RaydiumClmmInstructionParser {
     }
     private static Map<String, Object> parseCreateAmmConfig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int index = buffer.getShort() & 0xFFFF;
-        int tickSpacing = buffer.getShort() & 0xFFFF;
-        int tradeFeeRate = buffer.getInt();
-        int protocolFeeRate = buffer.getInt();
-        int fundFeeRate = buffer.getInt();
+        // 存储解析的字段
+        info.put("index", Short.toUnsignedInt(buffer.getShort()));
+        info.put("tick_spacing", Short.toUnsignedInt(buffer.getShort()));
+        info.put("trade_fee_rate", Integer.toUnsignedString(buffer.getInt()));
+        info.put("protocol_fee_rate", Integer.toUnsignedString(buffer.getInt()));
+        info.put("fund_fee_rate", Integer.toUnsignedString(buffer.getInt()));
 
-        info.put("index", index);
-        info.put("tickSpacing", tickSpacing);
-        info.put("tradeFeeRate", tradeFeeRate);
-        info.put("protocolFeeRate", protocolFeeRate);
-        info.put("fundFeeRate", fundFeeRate);
-        info.put("accounts", parseCreateAmmConfigAccounts(accounts));
+        // 账户信息
+        info.put("owner", accounts[0]); // 协议拥有者
+        info.put("amm_config", accounts[1]); // AMM 配置账户
+        info.put("system_program", accounts[2]); // 系统程序账户
 
+        return info;
+    }
+
+    private static Map<String, Object> parseUpdateAmmConfig(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        // 设置返回信息
+        info.put("param", Byte.toUnsignedInt(buffer.get()));
+        info.put("value", Integer.toUnsignedString(buffer.getInt()));
+
+        // 解析账户信息
+        info.put("owner", accounts[0]); // Owner account
+        info.put("amm_config", accounts[1]); // AMM config account
+
+        // 处理剩余账户（如果有）
+        if (accounts.length > 2) {
+            info.put("remaining_account", accounts[2]); // 剩余账户
+        }
         return info;
     }
 
     private static Map<String, Object> parseCreatePool(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long sqrtPriceX64High = buffer.getLong();
-        long sqrtPriceX64Low = buffer.getLong();
-        long openTime = buffer.getLong();
 
-        info.put("sqrtPriceX64", (sqrtPriceX64High << 64) | sqrtPriceX64Low);
-        info.put("openTime", openTime);
-        info.put("accounts", parseCreatePoolAccounts(accounts));
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger sqrtPriceLimitX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("sqrt_price_x64", sqrtPriceLimitX64);
+        info.put("open_time", "0");
+        if (buffer.limit() - buffer.position() >= 8) {
+            info.put("open_time", Long.toUnsignedString(buffer.getLong()));
+        }
 
+        // 账户信息
+        info.put("pool_creator", accounts[0]); // 创建池的账户
+        info.put("amm_config", accounts[1]); // AMM 配置账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("token_mint_0", accounts[3]); // Token 0 mint 账户
+        info.put("token_mint_1", accounts[4]); // Token 1 mint 账户
+        info.put("token_vault_0", accounts[5]); // Token 0 vault 账户
+        info.put("token_vault_1", accounts[6]); // Token 1 vault 账户
+        info.put("observation_state", accounts[7]); // 观察状态账户
+        info.put("tick_array_bitmap", accounts[8]); // Tick 数组位图账户
+        info.put("token_program_0", accounts[9]); // Token 程序 0
+        info.put("token_program_1", accounts[10]); // Token 程序 1
+        info.put("system_program", accounts[11]); // 系统程序账户
+        info.put("rent", accounts[12]); // 租金账户
         return info;
     }
 
     private static Map<String, Object> parseSwap(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount = buffer.getLong();
-        long otherAmountThreshold = buffer.getLong();
-        long sqrtPriceLimitX64High = buffer.getLong();
-        long sqrtPriceLimitX64Low = buffer.getLong();
-        boolean isBaseInput = buffer.get() != 0;
 
-        info.put("amount", amount);
-        info.put("otherAmountThreshold", otherAmountThreshold);
-        info.put("sqrtPriceLimitX64", (sqrtPriceLimitX64High << 64) | sqrtPriceLimitX64Low);
-        info.put("isBaseInput", isBaseInput);
-        info.put("accounts", parseSwapAccounts(accounts));
+        // 存储解析的字段
+        info.put("amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("other_amount_threshold", Long.toUnsignedString(buffer.getLong()));
+
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger sqrtPriceLimitX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("sqrt_price_limit_x64", sqrtPriceLimitX64);
+        info.put("is_base_input", Long.toUnsignedString(buffer.get()));
+
+        // 账户信息
+        info.put("payer", accounts[0]); // 用户执行交换的账户
+        info.put("amm_config", accounts[1]); // AMM 配置账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("input_token_account", accounts[3]); // 输入代币账户
+        info.put("output_token_account", accounts[4]); // 输出代币账户
+        info.put("input_vault", accounts[5]); // 输入金库账户
+        info.put("output_vault", accounts[6]); // 输出金库账户
+        info.put("observation_state", accounts[7]); // 观察状态账户
+        info.put("token_program", accounts[8]); // 代币程序账户
+        info.put("tick_array", accounts[9]); // Tick 数组账户
 
         return info;
     }
 
     private static Map<String, Object> parseSwapV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount = buffer.getLong();
-        long otherAmountThreshold = buffer.getLong();
-        long sqrtPriceLimitX64High = buffer.getLong();
-        long sqrtPriceLimitX64Low = buffer.getLong();
-        boolean isBaseInput = buffer.get() != 0;
+        // 存储解析的字段
+        info.put("amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("other_amount_threshold", Long.toUnsignedString(buffer.getLong()));
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger sqrtPriceLimitX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("sqrt_price_limit_x64", sqrtPriceLimitX64);
+        info.put("is_base_input", Long.toUnsignedString(buffer.get()));
 
-        info.put("amount", amount);
-        info.put("otherAmountThreshold", otherAmountThreshold);
-        info.put("sqrtPriceLimitX64", (sqrtPriceLimitX64High << 64) | sqrtPriceLimitX64Low);
-        info.put("isBaseInput", isBaseInput);
-        info.put("accounts", parseSwapV2Accounts(accounts));
-
+        // 账户信息
+        info.put("payer", accounts[0]); // 用户执行交换的账户
+        info.put("amm_config", accounts[1]); // AMM 配置账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("input_token_account", accounts[3]); // 输入代币账户
+        info.put("output_token_account", accounts[4]); // 输出代币账户
+        info.put("input_vault", accounts[5]); // 输入金库账户
+        info.put("output_vault", accounts[6]); // 输出金库账户
+        info.put("observation_state", accounts[7]); // 观察状态账户
+        info.put("token_program", accounts[8]); // 代币程序账户
+        info.put("token_program_2022", accounts[9]); // 2022 代币程序账户
+        info.put("memo_program", accounts[10]); // Memo 程序账户
+        info.put("input_vault_mint", accounts[11]); // 输入金库的 mint 账户
+        info.put("output_vault_mint", accounts[12]); // 输出金库的 mint 账户
         return info;
     }
 
@@ -291,60 +352,51 @@ public class RaydiumClmmInstructionParser {
         }
         return accountMap;
     }
-    private static Map<String, Object> parseUpdateAmmConfig(ByteBuffer buffer, String[] accounts) {
-        Map<String, Object> info = new HashMap<>();
-        int param = buffer.get() & 0xFF;
-        int value = buffer.getInt();
 
-        info.put("param", param);
-        info.put("value", value);
-        info.put("accounts", parseUpdateAmmConfigAccounts(accounts));
-
-        return info;
-    }
 
     private static Map<String, Object> parseUpdatePoolStatus(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int status = buffer.get() & 0xFF;
+        info.put("status", Byte.toUnsignedInt(buffer.get()));
 
-        info.put("status", status);
-        info.put("accounts", parseUpdatePoolStatusAccounts(accounts));
-
+        // 账户信息
+        info.put("authority", accounts[0]); // 权限账户
+        info.put("pool_state", accounts[1]); // 池状态账户
         return info;
     }
 
     private static Map<String, Object> parseCreateOperationAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        info.put("accounts", parseCreateOperationAccountAccounts(accounts));
+
+        // 存储账户信息
+        info.put("owner", accounts[0]); // 操作账户拥有者
+        info.put("operation_state", accounts[1]); // 操作状态账户
+        info.put("system_program", accounts[2]); // 系统程序账户
         return info;
     }
 
     private static Map<String, Object> parseUpdateOperationAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int param = buffer.get() & 0xFF;
-        int keysLength = buffer.getInt();
-        String[] keys = new String[keysLength];
-        for (int i = 0; i < keysLength; i++) {
-            byte[] key = new byte[32];
-            buffer.get(key);
-            keys[i] = Base58.encode(key);
+        // 解析输入参数
+        int param = Byte.toUnsignedInt(buffer.get()); // 读取参数
+        long keysCount = Integer.toUnsignedLong(buffer.getInt()); // 读取 keys 的数量
+        List<String> keys = new ArrayList<>();
+
+        // 读取 keys
+        for (int i = 0; i < keysCount; i++) {
+            byte[] keyBytes = new byte[32]; // 假设 Pubkey 是 32 字节
+            buffer.get(keyBytes);
+            keys.add(Base58.encode(keyBytes)); // 假设有一个 Pubkey 类来处理字节数组
         }
 
+        // 存储解析的字段
         info.put("param", param);
         info.put("keys", keys);
-        info.put("accounts", parseUpdateOperationAccountAccounts(accounts));
 
+        // 账户信息
+        info.put("owner", accounts[0]); // 操作账户拥有者
+        info.put("operation_state", accounts[1]); // 操作状态账户
+        info.put("system_program", accounts[2]); // 系统程序账户
         return info;
-    }
-    private static Map<String, String> parseCreateOperationAccountAccounts(String[] accounts) {
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 4) {
-            accountMap.put("admin", accounts[0]);
-            accountMap.put("operationState", accounts[1]);
-            accountMap.put("systemProgram", accounts[2]);
-            accountMap.put("rent", accounts[3]);
-        }
-        return accountMap;
     }
 
     private static Map<String, String> parseUpdateOperationAccountAccounts(String[] accounts) {
@@ -358,55 +410,104 @@ public class RaydiumClmmInstructionParser {
 
     private static Map<String, Object> parseInitializeReward(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int rewardIndex = buffer.get() & 0xFF;
-        long openTime = buffer.getLong();
-        long endTime = buffer.getLong();
-        long emissionsPerSecondX64High = buffer.getLong();
-        long emissionsPerSecondX64Low = buffer.getLong();
+        // 存储解析的字段
+        info.put("open_time", Long.toUnsignedString(buffer.getLong()));
+        info.put("end_time", Long.toUnsignedString(buffer.getLong()));
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger emissionsPerSecondX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("emissions_per_second_x64", emissionsPerSecondX64);
 
-        info.put("rewardIndex", rewardIndex);
-        info.put("openTime", openTime);
-        info.put("endTime", endTime);
-        info.put("emissionsPerSecondX64", (emissionsPerSecondX64High << 64) | emissionsPerSecondX64Low);
-        info.put("accounts", parseInitializeRewardAccounts(accounts));
-
+        // 账户信息
+        info.put("reward_funder", accounts[0]); // 奖励资金提供者
+        info.put("funder_token_account", accounts[1]); // 资金提供者的奖励代币账户
+        info.put("amm_config", accounts[2]); // AMM 配置账户
+        info.put("pool_state", accounts[3]); // 池状态账户
+        info.put("operation_state", accounts[4]); // 操作状态账户
+        info.put("reward_token_mint", accounts[5]); // 奖励代币 mint
+        info.put("reward_token_vault", accounts[6]); // 奖励代币金库
+        info.put("reward_token_program", accounts[7]); // 奖励代币程序账户
+        info.put("system_program", accounts[8]); // 系统程序账户
+        info.put("rent", accounts[9]); // 租金账户
         return info;
     }
 
     private static Map<String, Object> parseOpenPosition(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int tickLowerIndex = buffer.getInt();
-        int tickUpperIndex = buffer.getInt();
-        int tickArrayLowerStartIndex = buffer.getInt();
-        int tickArrayUpperStartIndex = buffer.getInt();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Max = buffer.getLong();
-        long amount1Max = buffer.getLong();
 
-        info.put("tickLowerIndex", tickLowerIndex);
-        info.put("tickUpperIndex", tickUpperIndex);
-        info.put("tickArrayLowerStartIndex", tickArrayLowerStartIndex);
-        info.put("tickArrayUpperStartIndex", tickArrayUpperStartIndex);
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Max", amount0Max);
-        info.put("amount1Max", amount1Max);
-        info.put("accounts", parseOpenPositionAccounts(accounts));
+        info.put("tick_lower_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_upper_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_lower_start_index", Integer.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_upper_start_index", Integer.toUnsignedString(buffer.getInt()));
+
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
+
+//        info.put("with_metadata", Byte.toUnsignedInt(buffer.get()));
+//        if (buffer.limit() - buffer.position() < 2) {
+//            info.put("base_flag", 0);
+//        } else {
+//            buffer.get();
+//            info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
+//        }
+
+        // 账户信息
+        info.put("payer", accounts[0]); // 支付者
+        info.put("position_nft_owner", accounts[1]); // 位置 NFT 拥有者
+        info.put("position_nft_mint", accounts[2]); // 位置 NFT mint 账户
+        info.put("position_nft_account", accounts[3]); // 位置 NFT 账户
+        info.put("metadata_account", accounts[4]); // 元数据账户
+        info.put("pool_state", accounts[5]); // 池状态账户
+        info.put("protocol_position", accounts[6]); // 协议位置账户
+        info.put("tick_array_lower", accounts[7]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[8]); // 上限 tick 数组账户
+        info.put("personal_position", accounts[9]); // 个人位置状态账户
+        info.put("token_account_0", accounts[10]); // 代币0账户
+        info.put("token_account_1", accounts[11]); // 代币1账户
+        info.put("token_vault_0", accounts[12]); // 代币0金库账户
+        info.put("token_vault_1", accounts[13]); // 代币1金库账户
+        info.put("rent", accounts[14]); // 租金账户
+        info.put("system_program", accounts[15]); // 系统程序账户
+        info.put("token_program", accounts[16]); // 代币程序账户
+        info.put("associated_token_program", accounts[17]); // 关联代币程序账户
+        info.put("metadata_program", accounts[18]); // 元数据程序账户
 
         return info;
     }
 
     private static Map<String, Object> parseIncreaseLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Max = buffer.getLong();
-        long amount1Max = buffer.getLong();
+        // 存储解析的字段
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
+        if (buffer.limit() - buffer.position() < 2) {
+            info.put("base_flag", 0);
+        } else {
+            buffer.get();
+            info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
+        }
 
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Max", amount0Max);
-        info.put("amount1Max", amount1Max);
-        info.put("accounts", parseIncreaseLiquidityAccounts(accounts));
+        // 账户信息
+        info.put("nft_owner", accounts[0]); // NFT 拥有者
+        info.put("nft_account", accounts[1]); // NFT 账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("protocol_position", accounts[3]); // 协议位置账户
+        info.put("personal_position", accounts[4]); // 个人位置状态账户
+        info.put("tick_array_lower", accounts[5]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[6]); // 上限 tick 数组账户
+        info.put("token_account_0", accounts[7]); // 代币0账户
+        info.put("token_account_1", accounts[8]); // 代币1账户
+        info.put("token_vault_0", accounts[9]); // 代币0金库账户
+        info.put("token_vault_1", accounts[10]); // 代币1金库账户
+        info.put("token_program", accounts[11]); // 代币程序账户
 
         return info;
     }
@@ -486,28 +587,51 @@ public class RaydiumClmmInstructionParser {
 
     private static Map<String, Object> parseDecreaseLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Min = buffer.getLong();
-        long amount1Min = buffer.getLong();
+        // 存储解析的字段
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_min", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_min", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Min", amount0Min);
-        info.put("amount1Min", amount1Min);
-        info.put("accounts", parseDecreaseLiquidityAccounts(accounts));
+        // 账户信息
+        info.put("nft_owner", accounts[0]); // NFT 拥有者
+        info.put("nft_account", accounts[1]); // NFT 账户
+        info.put("personal_position", accounts[2]); // 个人位置状态账户
+        info.put("pool_state", accounts[3]); // 池状态账户
+        info.put("protocol_position", accounts[4]); // 协议位置账户
+        info.put("token_vault_0", accounts[5]); // 代币0金库账户
+        info.put("token_vault_1", accounts[6]); // 代币1金库账户
+        info.put("tick_array_lower", accounts[7]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[8]); // 上限 tick 数组账户
+        info.put("recipient_token_account_0", accounts[9]); // 接收代币0的账户
+        info.put("recipient_token_account_1", accounts[10]); // 接收代币1的账户
+        info.put("token_program", accounts[11]); // 代币程序账户
+        info.put("vault_0_mint", accounts[12]); // 代币0金库mint账户
+        info.put("vault_1_mint", accounts[13]); // 代币1金库mint账户
 
         return info;
     }
 
     private static Map<String, Object> parseSwapRouterBaseIn(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amountIn = buffer.getLong();
-        long amountOutMinimum = buffer.getLong();
+        // 存储解析的字段
+        info.put("amount_in", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_out_minimum", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amountIn", amountIn);
-        info.put("amountOutMinimum", amountOutMinimum);
-        info.put("accounts", parseSwapRouterBaseInAccounts(accounts));
+        // 账户信息
+        info.put("payer", accounts[0]); // 用户
+        info.put("input_token_account", accounts[1]); // 输入代币账户
+        info.put("input_token_mint", accounts[2]); // 输入代币的 mint
+        info.put("token_program", accounts[3]); // SPL 代币程序
+        info.put("token_program_2022", accounts[4]); // SPL 2022 代币程序
+        info.put("memo_program", accounts[5]); // memo 程序账户
 
+        // 其他账户信息
+        for (int i = 6; i < accounts.length; i++) {
+            info.put("remaining_account_" + (i - 6), accounts[i]); // 剩余账户
+        }
         return info;
     }
 
@@ -535,29 +659,45 @@ public class RaydiumClmmInstructionParser {
 
     private static Map<String, Object> parseSetRewardParams(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int rewardIndex = buffer.get() & 0xFF;
-        long emissionsPerSecondX64High = buffer.getLong();
-        long emissionsPerSecondX64Low = buffer.getLong();
-        long openTime = buffer.getLong();
-        long endTime = buffer.getLong();
 
-        info.put("rewardIndex", rewardIndex);
-        info.put("emissionsPerSecondX64", (emissionsPerSecondX64High << 64) | emissionsPerSecondX64Low);
-        info.put("openTime", openTime);
-        info.put("endTime", endTime);
-        info.put("accounts", parseSetRewardParamsAccounts(accounts));
+        // 存储解析的字段
+        info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger emissionsPerSecondX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("emissions_per_second_x64", emissionsPerSecondX64);
+        info.put("open_time", Long.toUnsignedString(buffer.getLong()));
+        info.put("end_time", Long.toUnsignedString(buffer.getLong()));
+
+        // 账户信息
+        info.put("authority", accounts[0]); // 权限账户
+        info.put("amm_config", accounts[1]); // AMM 配置账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("operation_state", accounts[3]); // 操作状态账户
+        info.put("token_program", accounts[4]); // 代币程序账户
+        info.put("token_program_2022", accounts[5]); // 2022 代币程序账户accounts", parseSetRewardParamsAccounts(accounts));
 
         return info;
     }
 
     private static Map<String, Object> parseCollectProtocolFee(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount0Requested = buffer.getLong();
-        long amount1Requested = buffer.getLong();
+        // 存储解析的字段
+        info.put("amount_0_requested", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_requested", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amount0Requested", amount0Requested);
-        info.put("amount1Requested", amount1Requested);
-        info.put("accounts", parseCollectProtocolFeeAccounts(accounts));
+        // 账户信息
+        info.put("owner", accounts[0]); // 权限账户
+        info.put("pool_state", accounts[1]); // 池状态账户
+        info.put("amm_config", accounts[2]); // AMM 配置账户
+        info.put("token_vault_0", accounts[3]); // token_0 金库账户
+        info.put("token_vault_1", accounts[4]); // token_1 金库账户
+        info.put("vault_0_mint", accounts[5]); // token_0 mint 账户
+        info.put("vault_1_mint", accounts[6]); // token_1 mint 账户
+        info.put("recipient_token_account_0", accounts[7]); // 接收 token_0 的账户
+        info.put("recipient_token_account_1", accounts[8]); // 接收 token_1 的账户
+        info.put("token_program", accounts[9]); // SPL 代币程序账户
+        info.put("token_program_2022", accounts[10]); // SPL 2022 代币程序账户s(accounts));
 
         return info;
     }
@@ -658,114 +798,228 @@ public class RaydiumClmmInstructionParser {
 
     private static Map<String, Object> parseDecreaseLiquidityV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Min = buffer.getLong();
-        long amount1Min = buffer.getLong();
+        // 存储解析的字段
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_min", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_min", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Min", amount0Min);
-        info.put("amount1Min", amount1Min);
-        info.put("accounts", parseDecreaseLiquidityV2Accounts(accounts));
+        // 账户信息
+        info.put("nft_owner", accounts[0]); // NFT 拥有者
+        info.put("nft_account", accounts[1]); // NFT 账户
+        info.put("personal_position", accounts[2]); // 个人位置状态账户
+        info.put("pool_state", accounts[3]); // 池状态账户
+        info.put("protocol_position", accounts[4]); // 协议位置账户
+        info.put("token_vault_0", accounts[5]); // 代币0金库账户
+        info.put("token_vault_1", accounts[6]); // 代币1金库账户
+        info.put("tick_array_lower", accounts[7]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[8]); // 上限 tick 数组账户
+        info.put("recipient_token_account_0", accounts[9]); // 接收代币0的账户
+        info.put("recipient_token_account_1", accounts[10]); // 接收代币1的账户
+        info.put("token_program", accounts[11]); // 代币程序账户
+        info.put("token_program_2022", accounts[12]); // 代币程序2022账户
+        info.put("memo_program", accounts[13]); // memo 程序账户
+        info.put("vault_0_mint", accounts[14]); // 代币0金库mint账户
+        info.put("vault_1_mint", accounts[15]); // 代币1金库mint账户
 
         return info;
     }
 
     private static Map<String, Object> parseIncreaseLiquidityV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Max = buffer.getLong();
-        long amount1Max = buffer.getLong();
-        boolean hasBaseFlag = buffer.get() != 0;
-        boolean baseFlag = hasBaseFlag ? buffer.get() != 0 : false;
-
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Max", amount0Max);
-        info.put("amount1Max", amount1Max);
-        if (hasBaseFlag) {
-            info.put("baseFlag", baseFlag);
+        // 存储解析的字段
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
+        if (buffer.limit() - buffer.position() < 2) {
+            info.put("base_flag", 0);
+        } else {
+            buffer.get();
+            info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
-        info.put("accounts", parseIncreaseLiquidityV2Accounts(accounts));
 
+        // 账户信息
+        info.put("nft_owner", accounts[0]); // NFT 拥有者
+        info.put("nft_account", accounts[1]); // NFT 账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("protocol_position", accounts[3]); // 协议位置账户
+        info.put("personal_position", accounts[4]); // 个人位置状态账户
+        info.put("tick_array_lower", accounts[5]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[6]); // 上限 tick 数组账户
+        info.put("token_account_0", accounts[7]); // 代币0账户
+        info.put("token_account_1", accounts[8]); // 代币1账户
+        info.put("token_vault_0", accounts[9]); // 代币0金库账户
+        info.put("token_vault_1", accounts[10]); // 代币1金库账户
+        info.put("token_program", accounts[11]); // 代币程序账户
+        info.put("token_program_2022", accounts[12]); // 代币程序2022账户
+        info.put("vault_0_mint", accounts[13]); // 代币0金库mint账户
+        info.put("vault_1_mint", accounts[14]); // 代币1金库mint账户
         return info;
     }
 
     private static Map<String, Object> parseOpenPositionV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int tickLowerIndex = buffer.getInt();
-        int tickUpperIndex = buffer.getInt();
-        int tickArrayLowerStartIndex = buffer.getInt();
-        int tickArrayUpperStartIndex = buffer.getInt();
-        long liquidityHigh = buffer.getLong();
-        long liquidityLow = buffer.getLong();
-        long amount0Max = buffer.getLong();
-        long amount1Max = buffer.getLong();
-        boolean withMetadata = buffer.get() != 0;
-        boolean hasBaseFlag = buffer.get() != 0;
-        boolean baseFlag = hasBaseFlag ? buffer.get() != 0 : false;
+        info.put("tick_lower_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_upper_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_lower_start_index", Integer.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_upper_start_index", Integer.toUnsignedString(buffer.getInt()));
 
-        info.put("tickLowerIndex", tickLowerIndex);
-        info.put("tickUpperIndex", tickUpperIndex);
-        info.put("tickArrayLowerStartIndex", tickArrayLowerStartIndex);
-        info.put("tickArrayUpperStartIndex", tickArrayUpperStartIndex);
-        info.put("liquidity", (liquidityHigh << 64) | liquidityLow);
-        info.put("amount0Max", amount0Max);
-        info.put("amount1Max", amount1Max);
-        info.put("withMetadata", withMetadata);
-        if (hasBaseFlag) {
-            info.put("baseFlag", baseFlag);
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
+
+        info.put("with_metadata", Byte.toUnsignedInt(buffer.get()));
+        if (buffer.limit() - buffer.position() < 2) {
+            info.put("base_flag", 0);
+        } else {
+            buffer.get();
+            info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
-        info.put("accounts", parseOpenPositionV2Accounts(accounts));
 
+        info.put("payer", accounts[0]); // 支付者
+        info.put("position_nft_owner", accounts[1]); // 位置 NFT 拥有者
+        info.put("position_nft_mint", accounts[2]); // 位置 NFT mint 账户
+        info.put("position_nft_account", accounts[3]); // 位置 NFT 账户
+        info.put("metadata_account", accounts[4]); // 元数据账户
+        info.put("pool_state", accounts[5]); // 池状态账户
+        info.put("protocol_position", accounts[6]); // 协议位置账户
+        info.put("tick_array_lower", accounts[7]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[8]); // 上限 tick 数组账户
+        info.put("personal_position", accounts[9]); // 个人位置状态账户
+        info.put("token_account_0", accounts[10]); // 代币0账户
+        info.put("token_account_1", accounts[11]); // 代币1账户
+        info.put("token_vault_0", accounts[12]); // 代币0金库账户
+        info.put("token_vault_1", accounts[13]); // 代币1金库账户
+        info.put("rent", accounts[14]); // 租金账户
+        info.put("system_program", accounts[15]); // 系统程序账户
+        info.put("token_program", accounts[16]); // 代币程序账户
+        info.put("associated_token_program", accounts[17]); // 关联代币程序账户
+        info.put("metadata_program", accounts[18]); // 元数据程序账户
+        info.put("token_program_2022", accounts[19]); // 代币程序2022账户
+        info.put("vault_0_mint", accounts[20]); // 代币0金库mint账户
+        info.put("vault_1_mint", accounts[21]); // 代币1金库mint账户
         return info;
     }
 
     private static Map<String, Object> parseOpenPositionWithToken22Nft(ByteBuffer buffer, String[] accounts) {
-        // 与 OpenPositionV2 相同的参数结构
-        return parseOpenPositionV2(buffer, accounts);
+        Map<String, Object> info = new HashMap<>();
+        info.put("tick_lower_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_upper_index", Long.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_lower_start_index", Integer.toUnsignedString(buffer.getInt()));
+        info.put("tick_array_upper_start_index", Integer.toUnsignedString(buffer.getInt()));
+
+        String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
+        String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
+        BigInteger liquidity = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));
+        info.put("liquidity", liquidity.toString());
+        info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
+
+        info.put("with_metadata", Byte.toUnsignedInt(buffer.get()));
+        if (buffer.limit() - buffer.position() < 2) {
+            info.put("base_flag", 0);
+        } else {
+            buffer.get();
+            info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
+        }
+
+        // 账户信息
+        info.put("payer", accounts[0]); // 支付者
+        info.put("position_nft_owner", accounts[1]); // 位置 NFT 拥有者
+        info.put("position_nft_mint", accounts[2]); // 位置 NFT mint
+        info.put("position_nft_account", accounts[3]); // 位置 NFT 账户
+        info.put("pool_state", accounts[4]); // 池状态账户
+        info.put("protocol_position", accounts[5]); // 协议位置账户
+        info.put("tick_array_lower", accounts[6]); // 下限 tick 数组账户
+        info.put("tick_array_upper", accounts[7]); // 上限 tick 数组账户
+        info.put("personal_position", accounts[8]); // 个人位置账户
+        info.put("token_account_0", accounts[9]); // token_0 账户
+        info.put("token_account_1", accounts[10]); // token_1 账户
+        info.put("token_vault_0", accounts[11]); // token_0 金库账户
+        info.put("token_vault_1", accounts[12]); // token_1 金库账户
+        info.put("rent", accounts[13]); // 租金账户
+        info.put("system_program", accounts[14]); // 系统程序账户
+        info.put("token_program", accounts[15]); // 代币程序账户
+        info.put("associated_token_program", accounts[16]); // 关联代币程序账户
+        info.put("token_program_2022", accounts[17]); // 2022 代币程序账户
+        info.put("vault_0_mint", accounts[18]); // token vault 0 mint
+        info.put("vault_1_mint", accounts[19]); // token vault 1 mint
+        return info;
     }
 
     private static Map<String, Object> parseClosePosition(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        info.put("accounts", parseClosePositionAccounts(accounts));
+
+        // 账户信息
+        info.put("nft_owner", accounts[0]); // NFT 拥有者
+        info.put("position_nft_mint", accounts[1]); // 位置 NFT mint 账户
+        info.put("position_nft_account", accounts[2]); // 位置 NFT 账户
+        info.put("personal_position", accounts[3]); // 个人位置状态账户
+        info.put("system_program", accounts[4]); // 系统程序账户
+        info.put("token_program", accounts[5]); // 代币程序账户
         return info;
     }
 
     private static Map<String, Object> parseCollectFundFee(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        long amount0Requested = buffer.getLong();
-        long amount1Requested = buffer.getLong();
+        info.put("amount_0_requested", Long.toUnsignedString(buffer.getLong()));
+        info.put("amount_1_requested", Long.toUnsignedString(buffer.getLong()));
 
-        info.put("amount0Requested", amount0Requested);
-        info.put("amount1Requested", amount1Requested);
-        info.put("accounts", parseCollectFundFeeAccounts(accounts));
+        // 账户信息
+        info.put("owner", accounts[0]); // 权限账户
+        info.put("pool_state", accounts[1]); // 池状态账户
+        info.put("amm_config", accounts[2]); // AMM 配置账户
+        info.put("token_vault_0", accounts[3]); // token_0 金库账户
+        info.put("token_vault_1", accounts[4]); // token_1 金库账户
+        info.put("vault_0_mint", accounts[5]); // token_0 mint 账户
+        info.put("vault_1_mint", accounts[6]); // token_1 mint 账户
+        info.put("recipient_token_account_0", accounts[7]); // 接收 token_0 的账户
+        info.put("recipient_token_account_1", accounts[8]); // 接收 token_1 的账户
+        info.put("token_program", accounts[9]); // SPL 代币程序账户
+        info.put("token_program_2022", accounts[10]); // SPL 2022 代币程序账户s(accounts));
 
         return info;
     }
 
     private static Map<String, Object> parseUpdateRewardInfos(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        info.put("accounts", parseUpdateRewardInfosAccounts(accounts));
+        info.put("pool_state", accounts[0]); // 流动性池状态账户
         return info;
     }
 
     private static Map<String, Object> parseTransferRewardOwner(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        byte[] newOwner = new byte[32];
-        buffer.get(newOwner);
+        byte[] newOwnerBytes = new byte[32]; // 假设 Pubkey 是 32 字节
+        buffer.get(newOwnerBytes); // 读取新的所有者地址
 
-        info.put("newOwner", Base58.encode(newOwner));
-        info.put("accounts", parseTransferRewardOwnerAccounts(accounts));
+        // 存储解析的字段
+        info.put("new_owner", Base58.encode(newOwnerBytes));
+
+        // 账户信息
+        info.put("authority", accounts[0]); // 权限账户
+        info.put("pool_state", accounts[1]); // 池状态账户
         return info;
     }
 
     private static Map<String, Object> parseCollectRemainingRewards(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        int rewardIndex = buffer.get() & 0xFF;
+        // 存储解析的字段
+        info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
 
-        info.put("rewardIndex", rewardIndex);
-        info.put("accounts", parseCollectRemainingRewardsAccounts(accounts));
+        // 账户信息
+        info.put("reward_funder", accounts[0]); // 奖励资金提供者
+        info.put("funder_token_account", accounts[1]); // 资金提供者的奖励代币账户
+        info.put("pool_state", accounts[2]); // 池状态账户
+        info.put("reward_token_vault", accounts[3]); // 奖励代币金库
+        info.put("reward_vault_mint", accounts[4]); // 奖励代币金库的 mint
         return info;
     }
 

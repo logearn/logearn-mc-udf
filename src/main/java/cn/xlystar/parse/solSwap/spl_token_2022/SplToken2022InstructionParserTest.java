@@ -1,6 +1,5 @@
 package cn.xlystar.parse.solSwap.spl_token_2022;
 
-import jdk.internal.org.objectweb.asm.commons.StaticInitMerger;
 import org.bitcoinj.core.Base58;
 import java.util.Map;
 
