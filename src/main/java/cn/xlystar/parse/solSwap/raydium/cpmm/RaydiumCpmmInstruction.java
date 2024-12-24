@@ -11,7 +11,7 @@ package cn.xlystar.parse.solSwap.raydium.cpmm;
  */
 public enum RaydiumCpmmInstruction {
     CREATE_AMM_CONFIG("7524518647279989897"),           // 创建AMM配置，包含交易费率和协议费率设置
-    UPDATE_AMM_CONFIG("14444201354927684657"),           // 更新AMM配置参数
+    UPDATE_AMM_CONFIG("14444201354927684657"),          // 更新AMM配置参数
     UPDATE_POOL_STATUS("2"),          // [todo] 没有case 更新流动性池状态
     COLLECT_PROTOCOL_FEE("6448665121156532360"),        // 从流动性池中收取协议费用
     COLLECT_FUND_FEE("9081159964177631911"),           // 从流动性池中收取资金费用
