@@ -19,8 +19,8 @@ public class SolParse extends UDF {
     public SolParse() {
     }
 
-    public Map<String, Object> evaluate(String programId, String[] accounts, String data) throws IOException {
-        return SolInstructionProcessor.processInstruction(programId, accounts, data);
+    public Map<String, Object> evaluate(String programId, List<String> accounts, String data) throws IOException {
+        return SolInstructionProcessor.processInstruction(programId, accounts.toArray(new String[0]), data);
     }
 
     public static void main(String[] args) throws Exception {

@@ -129,7 +129,7 @@ public class SplTokenInstructionParserTest {
     private static void testInstruction(String testName, String base58Data, String[] accounts) {
         System.out.println("\nTesting " + testName);
         byte[] data = Base58.decode(base58Data);
-        Map<String, Object> result = SplTokenInstructionParser.parseInstruction(data, accounts);
+        Map<String, Object> result = new SplTokenInstructionParser().parseInstruction(data, accounts);
         System.out.println("Result: " + result);
     }
 

@@ -70,7 +70,7 @@ public class SplAssociatedTokenInstructionParserTest {
             }
 
             byte[] data = base58Data.isEmpty() ? new byte[0] : Base58.decode(base58Data);
-            Map<String, Object> result = SplAssociatedTokenInstructionParser.parseInstruction(data, accounts);
+            Map<String, Object> result = new SplAssociatedTokenInstructionParser().parseInstruction(data, accounts);
             System.out.println("Parse result: " + result);
 
         } catch (Exception e) {

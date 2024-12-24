@@ -21,7 +21,7 @@ public class PumpDotFunInstructionParserTest {
         System.out.println("\n=== Testing " + testCase + " ===");
         byte[] decode = Hex.decodeHex(base58Data.toCharArray());
 //        byte[] decode = Base58.decode("15P");
-        Map<String, Object> result = PumpDotFunInstructionParser.parseInstruction(decode, accounts);
+        Map<String, Object> result = new PumpDotFunInstructionParser().parseInstruction(decode, accounts);
         System.out.println("Result: " + result);
         } catch (Exception e) {
             e.printStackTrace();
