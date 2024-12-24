@@ -1,237 +1,175 @@
 package cn.xlystar.parse.solSwap.whirlpool;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WhirlpoolInstructionParser {
+public class WhirlpoolInstructionParser extends InstructionParser {
 
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        byte[] discriminatorBytes = new byte[8];
+        buffer.get(discriminatorBytes);
+        return Hex.toHexString(discriminatorBytes);
+    }
 
-        if (data == null || data.length == 0) {
-            result.put("error", "Invalid instruction data");
-            return result;
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (WhirlpoolInstruction.fromValue(methodId)) {
+            case INITIALIZE_CONFIG: // 0
+                info = parseInitializeConfig(buffer, accounts);
+                break;
+            case INITIALIZE_POOL: // 1
+                info = parseInitializePool(buffer, accounts);
+                break;
+            case INITIALIZE_TICK_ARRAY: // 2
+                info = parseInitializeTickArray(buffer, accounts);
+                break;
+            case INITIALIZE_FEE_TIER: // 3
+                info = parseInitializeFeeTier(buffer, accounts);
+                break;
+            case INITIALIZE_REWARD: // 4
+                info = parseInitializeReward(buffer, accounts);
+                break;
+            case SET_REWARD_EMISSIONS: // 5
+                info = parseSetRewardEmissions(buffer, accounts);
+                break;
+            case OPEN_POSITION: // 6
+                info = parseOpenPosition(buffer, accounts);
+                break;
+            case OPEN_POSITION_WITH_METADATA: // 7
+                info = parseOpenPositionWithMetadata(buffer, accounts);
+                break;
+            case INCREASE_LIQUIDITY: // 8
+                info = parseIncreaseLiquidity(buffer, accounts);
+                break;
+            case DECREASE_LIQUIDITY: // 9
+                info = parseDecreaseLiquidity(buffer, accounts);
+                break;
+            case UPDATE_FEES_AND_REWARDS: // 10
+                info = parseUpdateFeesAndRewards(buffer, accounts);
+                break;
+            case COLLECT_FEES: // 11
+                info = parseCollectFees(buffer, accounts);
+                break;
+            case COLLECT_REWARD: // 12
+                info = parseCollectReward(buffer, accounts);
+                break;
+            case COLLECT_PROTOCOL_FEES: // 13
+                info = parseCollectProtocolFees(buffer, accounts);
+                break;
+            case SWAP: // 14
+                info = parseSwap(buffer, accounts);
+                break;
+            case CLOSE_POSITION: // 15
+                info = parseClosePosition(buffer, accounts);
+                break;
+            case SET_DEFAULT_FEE_RATE: // 16
+                info = parseSetDefaultFeeRate(buffer, accounts);
+                break;
+            case SET_DEFAULT_PROTOCOL_FEE_RATE: // 17
+                info = parseSetDefaultProtocolFeeRate(buffer, accounts);
+                break;
+            case SET_FEE_RATE: // 18
+                info = parseSetFeeRate(buffer, accounts);
+                break;
+            case SET_PROTOCOL_FEE_RATE: // 19
+                info = parseSetProtocolFeeRate(buffer, accounts);
+                break;
+            case SET_FEE_AUTHORITY: // 20
+                info = parseSetFeeAuthority(buffer, accounts);
+                break;
+            case SET_COLLECT_PROTOCOL_FEES_AUTHORITY: // 21
+                info = parseSetCollectProtocolFeesAuthority(buffer, accounts);
+                break;
+            case SET_REWARD_AUTHORITY: // 22
+                info = parseSetRewardAuthority(buffer, accounts);
+                break;
+            case SET_REWARD_AUTHORITY_BY_SUPER_AUTHORITY: // 23
+                info = parseSetRewardAuthorityBySuperAuthority(buffer, accounts);
+                break;
+            case SET_REWARD_EMISSIONS_SUPER_AUTHORITY: // 24
+                info = parseSetRewardEmissionsSuperAuthority(buffer, accounts);
+                break;
+            case TWO_HOP_SWAP: // 25
+                info = parseTwoHopSwap(buffer, accounts);
+                break;
+            case INITIALIZE_POSITION_BUNDLE: // 26
+                info = parseInitializePositionBundle(buffer, accounts);
+                break;
+            case INITIALIZE_POSITION_BUNDLE_WITH_METADATA: // 27
+                info = parseInitializePositionBundleWithMetadata(buffer, accounts);
+                break;
+            case DELETE_POSITION_BUNDLE: // 28
+                info = parseDeletePositionBundle(buffer, accounts);
+                break;
+            case OPEN_BUNDLED_POSITION: // 29
+                info = parseOpenBundledPosition(buffer, accounts);
+                break;
+            case CLOSE_BUNDLED_POSITION: // 30
+                info = parseCloseBundledPosition(buffer, accounts);
+                break;
+            case OPEN_POSITION_WITH_TOKEN_EXTENSIONS: // 31
+                info = parseOpenPositionWithTokenExtensions(buffer, accounts);
+                break;
+            case CLOSE_POSITION_WITH_TOKEN_EXTENSIONS: // 32
+                info = parseClosePositionWithTokenExtensions(buffer, accounts);
+                break;
+            case COLLECT_FEES_V2: // 33
+                info = parseCollectFeesV2(buffer, accounts);
+                break;
+            case COLLECT_PROTOCOL_FEES_V2: // 34
+                info = parseCollectProtocolFeesV2(buffer, accounts);
+                break;
+            case COLLECT_REWARD_V2: // 35
+                info = parseCollectRewardV2(buffer, accounts);
+                break;
+            case DECREASE_LIQUIDITY_V2: // 36
+                info = parseDecreaseLiquidityV2(buffer, accounts);
+                break;
+            case INCREASE_LIQUIDITY_V2: // 37
+                info = parseIncreaseLiquidityV2(buffer, accounts);
+                break;
+            case INITIALIZE_POOL_V2: // 38
+                info = parseInitializePoolV2(buffer, accounts);
+                break;
+            case INITIALIZE_REWARD_V2: // 39
+                info = parseInitializeRewardV2(buffer, accounts);
+                break;
+            case SET_REWARD_EMISSIONS_V2: // 40
+                info = parseSetRewardEmissionsV2(buffer, accounts);
+                break;
+            case SWAP_V2: // 41
+                info = parseSwapV2(buffer, accounts);
+                break;
+            case TWO_HOP_SWAP_V2: // 42
+                info = parseTwoHopSwapV2(buffer, accounts);
+                break;
+            case INITIALIZE_CONFIG_EXTENSION: // 43
+                info = parseInitializeConfigExtension(buffer, accounts);
+                break;
+            case SET_CONFIG_EXTENSION_AUTHORITY: // 44
+                info = parseSetConfigExtensionAuthority(buffer, accounts);
+                break;
+            case SET_TOKEN_BADGE_AUTHORITY: // 45
+                info = parseSetTokenBadgeAuthority(buffer, accounts);
+                break;
+            case INITIALIZE_TOKEN_BADGE: // 46
+                info = parseInitializeTokenBadge(buffer, accounts);
+                break;
+            case DELETE_TOKEN_BADGE: // 47
+                info = parseDeleteTokenBadge(buffer, accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
-
-        try {
-            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-            byte[] discriminatorBytes = new byte[8];
-            buffer.get(discriminatorBytes);
-            String discriminator = Hex.toHexString(discriminatorBytes);
-            WhirlpoolInstruction instructionType = WhirlpoolInstruction.fromValue(discriminator);
-            result.put("type", instructionType.name());
-
-            Map<String, Object> info;
-            switch (instructionType) {
-                case INITIALIZE_CONFIG: // 0
-                    info = parseInitializeConfig(buffer, accounts);
-                    result.put("type", "initializeConfig");
-                    break;
-                case INITIALIZE_POOL: // 1
-                    info = parseInitializePool(buffer, accounts);
-                    result.put("type", "initializePool");
-                    break;
-                case INITIALIZE_TICK_ARRAY: // 2
-                    info = parseInitializeTickArray(buffer, accounts);
-                    result.put("type", "initializeTickArray");
-                    break;
-                case INITIALIZE_FEE_TIER: // 3
-                    info = parseInitializeFeeTier(buffer, accounts);
-                    result.put("type", "initializeFeeTier");
-                    break;
-                case INITIALIZE_REWARD: // 4
-                    info = parseInitializeReward(buffer, accounts);
-                    result.put("type", "initializeReward");
-                    break;
-                case SET_REWARD_EMISSIONS: // 5
-                    info = parseSetRewardEmissions(buffer, accounts);
-                    result.put("type", "setRewardEmissions");
-                    break;
-                case OPEN_POSITION: // 6
-                    info = parseOpenPosition(buffer, accounts);
-                    result.put("type", "openPosition");
-                    break;
-                case OPEN_POSITION_WITH_METADATA: // 7
-                    info = parseOpenPositionWithMetadata(buffer, accounts);
-                    result.put("type", "openPositionWithMetadata");
-                    break;
-                case INCREASE_LIQUIDITY: // 8
-                    info = parseIncreaseLiquidity(buffer, accounts);
-                    result.put("type", "increaseLiquidity");
-                    break;
-                case DECREASE_LIQUIDITY: // 9
-                    info = parseDecreaseLiquidity(buffer, accounts);
-                    result.put("type", "decreaseLiquidity");
-                    break;
-                case UPDATE_FEES_AND_REWARDS: // 10
-                    info = parseUpdateFeesAndRewards(buffer, accounts);
-                    result.put("type", "updateFeesAndRewards");
-                    break;
-                case COLLECT_FEES: // 11
-                    info = parseCollectFees(buffer, accounts);
-                    result.put("type", "collectFees");
-                    break;
-                case COLLECT_REWARD: // 12
-                    info = parseCollectReward(buffer, accounts);
-                    result.put("type", "collectReward");
-                    break;
-                case COLLECT_PROTOCOL_FEES: // 13
-                    info = parseCollectProtocolFees(buffer, accounts);
-                    result.put("type", "collectProtocolFees");
-                    break;
-                case SWAP: // 14
-                    info = parseSwap(buffer, accounts);
-                    result.put("type", "swap");
-                    break;
-                case CLOSE_POSITION: // 15
-                    info = parseClosePosition(buffer, accounts);
-                    result.put("type", "closePosition");
-                    break;
-                case SET_DEFAULT_FEE_RATE: // 16
-                    info = parseSetDefaultFeeRate(buffer, accounts);
-                    result.put("type", "setDefaultFeeRate");
-                    break;
-                case SET_DEFAULT_PROTOCOL_FEE_RATE: // 17
-                    info = parseSetDefaultProtocolFeeRate(buffer, accounts);
-                    result.put("type", "setDefaultProtocolFeeRate");
-                    break;
-                case SET_FEE_RATE: // 18
-                    info = parseSetFeeRate(buffer, accounts);
-                    result.put("type", "setFeeRate");
-                    break;
-                case SET_PROTOCOL_FEE_RATE: // 19
-                    info = parseSetProtocolFeeRate(buffer, accounts);
-                    result.put("type", "setProtocolFeeRate");
-                    break;
-                case SET_FEE_AUTHORITY: // 20
-                    info = parseSetFeeAuthority(buffer, accounts);
-                    result.put("type", "setFeeAuthority");
-                    break;
-                case SET_COLLECT_PROTOCOL_FEES_AUTHORITY: // 21
-                    info = parseSetCollectProtocolFeesAuthority(buffer, accounts);
-                    result.put("type", "setCollectProtocolFeesAuthority");
-                    break;
-                case SET_REWARD_AUTHORITY: // 22
-                    info = parseSetRewardAuthority(buffer, accounts);
-                    result.put("type", "setRewardAuthority");
-                    break;
-                case SET_REWARD_AUTHORITY_BY_SUPER_AUTHORITY: // 23
-                    info = parseSetRewardAuthorityBySuperAuthority(buffer, accounts);
-                    result.put("type", "setRewardAuthorityBySuperAuthority");
-                    break;
-                case SET_REWARD_EMISSIONS_SUPER_AUTHORITY: // 24
-                    info = parseSetRewardEmissionsSuperAuthority(buffer, accounts);
-                    result.put("type", "setRewardEmissionsSuperAuthority");
-                    break;
-                case TWO_HOP_SWAP: // 25
-                    info = parseTwoHopSwap(buffer, accounts);
-                    result.put("type", "twoHopSwap");
-                    break;
-                case INITIALIZE_POSITION_BUNDLE: // 26
-                    info = parseInitializePositionBundle(buffer, accounts);
-                    result.put("type", "initializePositionBundle");
-                    break;
-                case INITIALIZE_POSITION_BUNDLE_WITH_METADATA: // 27
-                    info = parseInitializePositionBundleWithMetadata(buffer, accounts);
-                    result.put("type", "initializePositionBundleWithMetadata");
-                    break;
-                case DELETE_POSITION_BUNDLE: // 28
-                    info = parseDeletePositionBundle(buffer, accounts);
-                    result.put("type", "deletePositionBundle");
-                    break;
-                case OPEN_BUNDLED_POSITION: // 29
-                    info = parseOpenBundledPosition(buffer, accounts);
-                    result.put("type", "openBundledPosition");
-                    break;
-                case CLOSE_BUNDLED_POSITION: // 30
-                    info = parseCloseBundledPosition(buffer, accounts);
-                    result.put("type", "closeBundledPosition");
-                    break;
-                case OPEN_POSITION_WITH_TOKEN_EXTENSIONS: // 31
-                    info = parseOpenPositionWithTokenExtensions(buffer, accounts);
-                    result.put("type", "openPositionWithTokenExtensions");
-                    break;
-                case CLOSE_POSITION_WITH_TOKEN_EXTENSIONS: // 32
-                    info = parseClosePositionWithTokenExtensions(buffer, accounts);
-                    result.put("type", "closePositionWithTokenExtensions");
-                    break;
-                case COLLECT_FEES_V2: // 33
-                    info = parseCollectFeesV2(buffer, accounts);
-                    result.put("type", "collectFeesV2");
-                    break;
-                case COLLECT_PROTOCOL_FEES_V2: // 34
-                    info = parseCollectProtocolFeesV2(buffer, accounts);
-                    result.put("type", "collectProtocolFeesV2");
-                    break;
-                case COLLECT_REWARD_V2: // 35
-                    info = parseCollectRewardV2(buffer, accounts);
-                    result.put("type", "collectRewardV2");
-                    break;
-                case DECREASE_LIQUIDITY_V2: // 36
-                    info = parseDecreaseLiquidityV2(buffer, accounts);
-                    result.put("type", "decreaseLiquidityV2");
-                    break;
-                case INCREASE_LIQUIDITY_V2: // 37
-                    info = parseIncreaseLiquidityV2(buffer, accounts);
-                    result.put("type", "increaseLiquidityV2");
-                    break;
-                case INITIALIZE_POOL_V2: // 38
-                    info = parseInitializePoolV2(buffer, accounts);
-                    result.put("type", "initializePoolV2");
-                    break;
-                case INITIALIZE_REWARD_V2: // 39
-                    info = parseInitializeRewardV2(buffer, accounts);
-                    result.put("type", "initializeRewardV2");
-                    break;
-                case SET_REWARD_EMISSIONS_V2: // 40
-                    info = parseSetRewardEmissionsV2(buffer, accounts);
-                    result.put("type", "setRewardEmissionsV2");
-                    break;
-                case SWAP_V2: // 41
-                    info = parseSwapV2(buffer, accounts);
-                    result.put("type", "swapV2");
-                    break;
-                case TWO_HOP_SWAP_V2: // 42
-                    info = parseTwoHopSwapV2(buffer, accounts);
-                    result.put("type", "twoHopSwapV2");
-                    break;
-                case INITIALIZE_CONFIG_EXTENSION: // 43
-                    info = parseInitializeConfigExtension(buffer, accounts);
-                    result.put("type", "initializeConfigExtension");
-                    break;
-                case SET_CONFIG_EXTENSION_AUTHORITY: // 44
-                    info = parseSetConfigExtensionAuthority(buffer, accounts);
-                    result.put("type", "setConfigExtensionAuthority");
-                    break;
-                case SET_TOKEN_BADGE_AUTHORITY: // 45
-                    info = parseSetTokenBadgeAuthority(buffer, accounts);
-                    result.put("type", "setTokenBadgeAuthority");
-                    break;
-                case INITIALIZE_TOKEN_BADGE: // 46
-                    info = parseInitializeTokenBadge(buffer, accounts);
-                    result.put("type", "initializeTokenBadge");
-                    break;
-                case DELETE_TOKEN_BADGE: // 47
-                    info = parseDeleteTokenBadge(buffer, accounts);
-                    result.put("type", "deleteTokenBadge");
-                    break;
-                default:
-                    result.put("error", "Unsupported instruction: " + instructionType);
-                    return result;
-            }
-            result.put("info", info);
-
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+        return info;
     }
 
     private static Map<String, Object> parseSwap(ByteBuffer buffer, String[] accounts) {
@@ -462,7 +400,7 @@ public class WhirlpoolInstructionParser {
     private static Map<String, Object> parseSetRewardEmissions(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-           // 存储解析的字段
+        // 存储解析的字段
         info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
         String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
         String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
@@ -1010,7 +948,7 @@ public class WhirlpoolInstructionParser {
         Map<String, Object> info = new HashMap<>();
 
         // 解析参数
-          info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
+        info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
         String low = Long.toUnsignedString(buffer.getLong());  // 读取低位
         String high = Long.toUnsignedString(buffer.getLong()); // 读取高位
         BigInteger emissionsPerSecondX64 = new BigInteger(high).shiftLeft(64).or(new BigInteger(low));

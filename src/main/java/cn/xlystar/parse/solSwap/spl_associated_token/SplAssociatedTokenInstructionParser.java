@@ -1,46 +1,34 @@
 package cn.xlystar.parse.solSwap.spl_associated_token;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
+
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SplAssociatedTokenInstructionParser {
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-        
-        if (data == null || data.length == 0) {
-            // Associated Token 程序的 Create 指令没有数据
-            result.put("type", "Create");
-            result.put("info", parseCreate(accounts));
-            return result;
-        }
+public class SplAssociatedTokenInstructionParser extends InstructionParser {
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        return buffer.get() + "";
+    }
 
-        try {
-            int instructionType = data[0] & 0xFF;
-            SplAssociatedTokenInstruction instruction = SplAssociatedTokenInstruction.fromValue(instructionType);
-            result.put("type", instruction.name());
-
-            Map<String, Object> info = new HashMap<>();
-            switch (instruction) {
-                case Create:
-                    info = parseCreate(accounts);
-                    break;
-                case CreateIdempotent:
-                    info = parseCreateIdempotent(accounts);
-                    break;
-                case RecoverNested:
-                    info = parseRecoverNested(accounts);
-                    break;
-                default:
-                    info.put("error", "Unsupported instruction type: " + instruction.name());
-            }
-            
-            result.put("info", info);
-            
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (SplAssociatedTokenInstruction.fromValue(Integer.parseInt(methodId))) {
+            case Create:
+                info = parseCreate(accounts);
+                break;
+            case CreateIdempotent:
+                info = parseCreateIdempotent(accounts);
+                break;
+            case RecoverNested:
+                info = parseRecoverNested(accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
-        
-        return result;
+        return info;
     }
 
     /// Creates an associated token account for the given wallet address and
@@ -55,7 +43,7 @@ public class SplAssociatedTokenInstructionParser {
 //    Create,
     private static Map<String, Object> parseCreate(String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         info.put("source", accounts[0]);           // 支付账户
         info.put("account", accounts[1]);   // 要创建的关联代币账户
         info.put("wallet", accounts[2]);                   // 钱包地址
@@ -65,7 +53,7 @@ public class SplAssociatedTokenInstructionParser {
         if (accounts.length > 6) {
             info.put("rentSysvar", accounts[6]);          // Rent Sysvar (可选)
         }
-        
+
         return info;
     }
 
@@ -81,8 +69,19 @@ public class SplAssociatedTokenInstructionParser {
     ///   5. `[]` SPL Token program
 //    CreateIdempotent,
     private static Map<String, Object> parseCreateIdempotent(String[] accounts) {
-        // CreateIdempotent 与 Create 的账户结构相同
-        return parseCreate(accounts);
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("source", accounts[0]);           // 支付账户
+        info.put("account", accounts[1]);   // 要创建的关联代币账户
+        info.put("wallet", accounts[2]);                   // 钱包地址
+        info.put("mint", accounts[3]);                     // 代币铸造地址
+        info.put("systemProgram", accounts[4]);            // System Program
+        info.put("tokenProgram", accounts[5]);            // Token Program
+        if (accounts.length > 6) {
+            info.put("rentSysvar", accounts[6]);          // Rent Sysvar (可选)
+        }
+
+        return info;
     }
 
     /// Transfers from and closes a nested associated token account: an
@@ -107,7 +106,7 @@ public class SplAssociatedTokenInstructionParser {
 //    RecoverNested,
     private static Map<String, Object> parseRecoverNested(String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         info.put("nestedSource", accounts[0]);
         info.put("nestedMint", accounts[1]);
         info.put("destination", accounts[2]);
@@ -115,7 +114,7 @@ public class SplAssociatedTokenInstructionParser {
         info.put("ownerMint", accounts[4]);
         info.put("wallet", accounts[5]);
         info.put("tokenProgram", accounts[6]);
-        
+
         return info;
     }
 } 

@@ -1,92 +1,64 @@
 package cn.xlystar.parse.solSwap.system_program;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
-
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
-public class SystemInstructionParser {
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
+public class SystemInstructionParser extends InstructionParser {
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
 
-        if (data == null || data.length == 0) {
-            throw new IllegalArgumentException("Empty instruction data");
-        }
-
-        try {
-            int instructionType = data[0] & 0xFF;
-            SystemInstruction instruction = SystemInstruction.fromValue(instructionType);
-            result.put("type", instruction.name());
-
-            byte[] instructionData = null;
-            if (data.length > 4) {
-                instructionData = Arrays.copyOfRange(data, 4, data.length);
-            }
-            Map<String, Object> info = new HashMap<>();
-
-            switch (instruction) {
-                case CreateAccount: // 0
-                    info = parseCreateAccount(instructionData, accounts);
-                    break;
-                case Assign: // 1
-                    info = parseAssign(instructionData, accounts);
-                    break;
-                case Transfer: // 2
-                    info = parseTransfer(instructionData, accounts);
-                    break;
-                case CreateAccountWithSeed: // 3
-                    info = parseCreateAccountWithSeed(instructionData, accounts);
-                    break;
-                case AdvanceNonceAccount: // 4
-                    info = parseAdvanceNonceAccount(accounts);
-                    break;
-                case WithdrawNonceAccount: // 5
-                    info = parseWithdrawNonceAccount(instructionData, accounts);
-                    break;
-                case InitializeNonceAccount: // 6
-                    info = parseInitializeNonceAccount(instructionData, accounts);
-                    break;
-                case AuthorizeNonceAccount: //7
-                    info = parseAuthorizeNonceAccount(instructionData, accounts);
-                    break;
-                case Allocate: // 8
-                    info = parseAllocate(instructionData, accounts);
-                    break;
-                case AllocateWithSeed: // 9
-                    info = parseAllocateWithSeed(instructionData, accounts);
-                    break;
-                case AssignWithSeed: // 10
-                    info = parseAssignWithSeed(instructionData, accounts);
-                    break;
-                case TransferWithSeed: // 11
-                    info = parseTransferWithSeed(instructionData, accounts);
-                    break;
-                case UpgradeNonceAccount: // 12
-                    info = parseUpgradeNonceAccount(accounts);
-                    break;
-                default:
-                    info.put("message", "Unsupported instruction type: " + instruction.name());
-            }
-
-            result.put("info", info);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+        return buffer.getInt() + "";
     }
 
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (SystemInstruction.fromValue(Integer.parseInt(methodId))) {
+            case CreateAccount: // 0
+                info = parseCreateAccount(buffer, accounts);
+                break;
+            case Assign: // 1
+                info = parseAssign(buffer, accounts);
+                break;
+            case Transfer: // 2
+                info = parseTransfer(buffer, accounts);
+                break;
+            case CreateAccountWithSeed: // 3
+                info = parseCreateAccountWithSeed(buffer, accounts);
+                break;
+            case AdvanceNonceAccount: // 4
+                info = parseAdvanceNonceAccount(accounts);
+                break;
+            case WithdrawNonceAccount: // 5
+                info = parseWithdrawNonceAccount(buffer, accounts);
+                break;
+            case InitializeNonceAccount: // 6
+                info = parseInitializeNonceAccount(buffer, accounts);
+                break;
+            case AuthorizeNonceAccount: //7
+                info = parseAuthorizeNonceAccount(buffer, accounts);
+                break;
+            case Allocate: // 8
+                info = parseAllocate(buffer, accounts);
+                break;
+            case AllocateWithSeed: // 9
+                info = parseAllocateWithSeed(buffer, accounts);
+                break;
+            case AssignWithSeed: // 10
+                info = parseAssignWithSeed(buffer, accounts);
+                break;
+            case TransferWithSeed: // 11
+                info = parseTransferWithSeed(buffer, accounts);
+                break;
+            case UpgradeNonceAccount: // 12
+                info = parseUpgradeNonceAccount(accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
-        return sb.toString();
+        return info;
     }
 
     // CreateAccount 指令解析
@@ -105,18 +77,15 @@ public class SystemInstructionParser {
 //                /// Address of program that will own the new account
 //                owner: Pubkey,
 //    },
-    private static Map<String, Object> parseCreateAccount(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseCreateAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        // 从第3个字节开始读取
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         // 1. 读取 lamports (8字节)
-        long lamports = buffer.getLong();
+        String lamports = Long.toUnsignedString(buffer.getLong());
 
         // 2. 读取 space (8字节)
 //        long space = buffer.getLong();
-        String space =Long.toUnsignedString(buffer.getLong());
+        String space = Long.toUnsignedString(buffer.getLong());
 
         // 3. 读取 owner (32字节)
         byte[] owner = new byte[32];
@@ -143,12 +112,8 @@ public class SystemInstructionParser {
 //        /// Owner program account
 //        owner: Pubkey,
 //    },
-    private static Map<String, Object> parseAssign(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAssign(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-
-        // 从第3个字节开始读取
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         // 读取 owner (32字节)
         byte[] newOwner = new byte[32];
@@ -167,16 +132,14 @@ public class SystemInstructionParser {
     ///   0. `[WRITE, SIGNER]` Funding account
     ///   1. `[WRITE]` Recipient account
 //    Transfer { lamports: u64 },
-    private static Map<String, Object> parseTransfer(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseTransfer(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        ByteBuffer transferBuffer = ByteBuffer.wrap(data);
-        transferBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long amount = transferBuffer.getLong();
+        String lamports = Long.toUnsignedString(buffer.getLong());
 
         info.put("source", accounts[0]);
         info.put("destination", accounts[1]);
-        info.put("lamports", amount);
+        info.put("lamports", lamports);
 
         return info;
     }
@@ -206,10 +169,8 @@ public class SystemInstructionParser {
     //                /// Owner program account address
     //                owner: Pubkey,
     //    }
-    private static Map<String, Object> parseCreateAccountWithSeed(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseCreateAccountWithSeed(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
 
         // 1. 读取 baee (32字节)
         byte[] baseBytes = new byte[32];
@@ -222,11 +183,11 @@ public class SystemInstructionParser {
         buffer.get(seedBytes);
         String seed = new String(seedBytes);
 
-        long lamports = buffer.getLong();
+        String lamports = Long.toUnsignedString(buffer.getLong());
 
         // 3. 读取 space (8字节)
 //        long space = buffer.getLong();
-        String space =Long.toUnsignedString(buffer.getLong()) ;
+        String space = Long.toUnsignedString(buffer.getLong());
 
         // 4. 读取 owner (32字节)
         byte[] ownerBytes = new byte[32];
@@ -270,14 +231,13 @@ public class SystemInstructionParser {
 //        space: u64,
 //    },
 
-    private static Map<String, Object> parseAllocate(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAllocate(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        long space =  ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN).getLong();
+        String space = Long.toUnsignedString(buffer.getLong());
 
         info.put("account", accounts[0]);
         info.put("space", space);
-
         return info;
     }
 
@@ -297,15 +257,11 @@ public class SystemInstructionParser {
 //                /// Owner to use to derive the funding account address
 //                from_owner: Pubkey,
 //    },
-    private static Map<String, Object> parseTransferWithSeed(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseTransferWithSeed(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        // 从第3个字节开始读取
-        ByteBuffer buffer = ByteBuffer.wrap(data, 0, data.length);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-
         // 1. 读取 lamports (8字节)
-        long lamports = buffer.getLong();
+        String lamports = Long.toUnsignedString(buffer.getLong());
 
         // 2. 读取 seed 长度和内容
         int seedLength = Math.toIntExact(buffer.getLong());
@@ -340,11 +296,10 @@ public class SystemInstructionParser {
     /// The `u64` parameter is the lamports to withdraw, which must leave the
     /// account balance above the rent exempt reserve or at zero.
 //    WithdrawNonceAccount(u64),
-    private static Map<String, Object> parseWithdrawNonceAccount(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseWithdrawNonceAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-        long lamports = buffer.getLong();
+        String lamports = Long.toUnsignedString(buffer.getLong());
 
         info.put("nonceAccount", accounts[0]);
         info.put("destination", accounts[1]);
@@ -369,10 +324,11 @@ public class SystemInstructionParser {
     /// No signatures are required to execute this instruction, enabling derived
     /// nonce account addresses
 //    InitializeNonceAccount(Pubkey),
-    private static Map<String, Object> parseInitializeNonceAccount(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeNonceAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        byte[] authority = Arrays.copyOfRange(data, 0, 32);
+        byte[] authority = new byte[32];
+        buffer.get(authority);
 
         info.put("nonceAccount", accounts[0]);
         info.put("recentBlockhashesSysvar", accounts[1]);
@@ -390,15 +346,15 @@ public class SystemInstructionParser {
     ///
     /// The `Pubkey` parameter identifies the entity to authorize
 //    AuthorizeNonceAccount(Pubkey),
-    private static Map<String, Object> parseAuthorizeNonceAccount(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAuthorizeNonceAccount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        byte[] newAuthority = Arrays.copyOfRange(data, 0, 32);
+        byte[] newAuthority = new byte[32];
+        buffer.get(newAuthority);
 
         info.put("nonce", accounts[0]);
         info.put("authority", accounts[1]);
         info.put("newAuthority", Base58.encode(newAuthority));
-
         return info;
     }
 
@@ -421,10 +377,8 @@ public class SystemInstructionParser {
 //                /// Owner program account
 //                owner: Pubkey,
 //    },
-    private static Map<String, Object> parseAllocateWithSeed(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAllocateWithSeed(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-
         // 1. 读取 baee (32字节)
         byte[] baseBytes = new byte[32];
         buffer.get(baseBytes);
@@ -437,7 +391,7 @@ public class SystemInstructionParser {
         String seed = new String(seedBytes);
 
         // 3. 读取 space (8字节)
-        String space =Long.toUnsignedString(buffer.getLong()) ;
+        String space = Long.toUnsignedString(buffer.getLong());
 
         // 4. 读取 owner (32字节)
         byte[] ownerBytes = new byte[32];
@@ -469,10 +423,8 @@ public class SystemInstructionParser {
 //                owner: Pubkey,
 //    },
 
-    private static Map<String, Object> parseAssignWithSeed(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAssignWithSeed(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-
         // 1. 读取 baee (32字节)
         byte[] baseBytes = new byte[32];
         buffer.get(baseBytes);
@@ -507,7 +459,6 @@ public class SystemInstructionParser {
         Map<String, Object> info = new HashMap<>();
 
         info.put("nonceAccount", accounts[0]);
-
         return info;
     }
 } 

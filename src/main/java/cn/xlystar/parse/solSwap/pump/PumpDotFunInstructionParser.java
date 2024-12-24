@@ -1,5 +1,6 @@
 package cn.xlystar.parse.solSwap.pump;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
 import org.bouncycastle.util.encoders.Hex;
 
@@ -9,57 +10,43 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class PumpDotFunInstructionParser {
+public class PumpDotFunInstructionParser extends InstructionParser {
 
     private static final String PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        byte[] discriminatorBytes = new byte[8];
+        buffer.get(discriminatorBytes);
+        return Hex.toHexString(discriminatorBytes);
+    }
 
-        if (data == null || data.length == 0) {
-            result.put("error", "Invalid instruction data");
-            return result;
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (PumpDotFunInstruction.fromValue(methodId)) {
+            case INITIALIZE:
+                info = parseInitialize(buffer, accounts);
+                break;
+            case SET_PARAMS:
+                info = parseSetParams(buffer, accounts);
+                break;
+            case CREATE:
+                info = parseCreate(buffer, accounts);
+                break;
+            case BUY:
+                info = parseBuy(buffer, accounts);
+                break;
+            case SELL:
+                info = parseSell(buffer, accounts);
+                break;
+            case WITHDRAW:
+                info = parseWithdraw(buffer, accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
-
-        try {
-            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-            byte[] discriminatorBytes = new byte[8];
-            buffer.get(discriminatorBytes);
-            String discriminator = Hex.toHexString(discriminatorBytes);
-            PumpDotFunInstruction instructionType = PumpDotFunInstruction.fromValue(discriminator);
-            result.put("type", instructionType.name());
-
-            Map<String, Object> info;
-            switch (instructionType) {
-                case INITIALIZE:
-                    info = parseInitialize(buffer, accounts);
-                    break;
-                case SET_PARAMS:
-                    info = parseSetParams(buffer, accounts);
-                    break;
-                case CREATE:
-                    info = parseCreate(buffer, accounts);
-                    break;
-                case BUY:
-                    info = parseBuy(buffer, accounts);
-                    break;
-                case SELL:
-                    info = parseSell(buffer, accounts);
-                    break;
-                case WITHDRAW:
-                    info = parseWithdraw(buffer, accounts);
-                    break;
-                default:
-                    result.put("error", "Unknown instruction type: " + discriminator);
-                    return result;
-            }
-            result.put("info", info);
-
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+        return info;
     }
 
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
@@ -185,7 +172,6 @@ public class PumpDotFunInstructionParser {
         info.put("program", accounts[10]);
         return info;
     }
-
 
 
     // 工具方法：解析字符串

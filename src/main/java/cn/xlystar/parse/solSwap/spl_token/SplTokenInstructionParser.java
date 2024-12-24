@@ -1,116 +1,102 @@
 package cn.xlystar.parse.solSwap.spl_token;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 
-public class SplTokenInstructionParser {
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (data == null || data.length == 0) {
-            throw new IllegalArgumentException("Empty instruction data");
-        }
-
-        try {
-            int instructionType = data[0] & 0xFF;
-            SplTokenInstruction instruction = SplTokenInstruction.fromValue(instructionType);
-            result.put("type", instruction.name());
-
-            byte[] instructionData = Arrays.copyOfRange(data, 1, data.length);
-            Map<String, Object> info = new HashMap<>();
-
-            switch (instruction) {
-                case InitializeMint: // 0
-                    info = parseInitializeMint(instructionData, accounts);
-                    break;
-                case InitializeAccount: // 1
-                    info = parseInitializeAccount(accounts);
-                    break;
-                case InitializeMultisig: // 2
-                    info = parseInitializeMultisig(instructionData, accounts);
-                    break;
-                case Transfer: // 3
-                    info = parseTransfer(instructionData, accounts);
-                    break;
-                case Approve: // 4
-                    info = parseApprove(instructionData, accounts);
-                    break;
-                case Revoke: // 5
-                    info = parseRevoke(accounts);
-                    break;
-                case SetAuthority: // 6
-                    info = parseSetAuthority(instructionData, accounts);
-                    break;
-                case MintTo: // 7
-                    info = parseMintTo(instructionData, accounts);
-                    break;
-                case Burn: // 8
-                    info = parseBurn(instructionData, accounts);
-                    break;
-                case CloseAccount: // 9
-                    info = parseCloseAccount(accounts);
-                    break;
-                case FreezeAccount: // 10
-                    info = parseFreezeAccount(accounts);
-                    break;
-                case ThawAccount: // 11
-                    info = parseThawAccount(accounts);
-                    break;
-                case TransferChecked: // 12
-                    info = parseTransferChecked(instructionData, accounts);
-                    break;
-                case ApproveChecked: // 13
-                    info = parseApproveChecked(instructionData, accounts);
-                    break;
-                case MintToChecked: // 14
-                    info = parseMintToChecked(instructionData, accounts);
-                    break;
-                case BurnChecked: // 15
-                    info = parseBurnChecked(instructionData, accounts);
-                    break;
-                case InitializeAccount2: // 16
-                    info = parseInitializeAccount2(instructionData, accounts);
-                    break;
-                case SyncNative: // 17
-                    info = parseSyncNative(accounts);
-                    break;
-                case InitializeAccount3: // 18
-                    info = parseInitializeAccount3(instructionData, accounts);
-                    break;
-                case InitializeMultisig2: // 19
-                    info = parseInitializeMultisig2(instructionData, accounts);
-                    break;
-                case InitializeMint2: // 20
-                    info = parseInitializeMint2(instructionData, accounts);
-                    break;
-                case GetAccountDataSize: // 21
-                    info = parseGetAccountDataSize(instructionData, accounts);
-                    break;
-                case InitializeImmutableOwner: // 22
-                    info = parseInitializeImmutableOwner(accounts);
-                    break;
-                case AmountToUiAmount: // 23
-                    info = parseAmountToUiAmount(instructionData, accounts);
-                    break;
-                case UiAmountToAmount: // 24
-                    info = parseUiAmountToAmount(instructionData);
-                    break;
-                default:
-                    info.put("message", "Unsupported instruction type: " + instruction.name());
-            }
-
-            result.put("info", info);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+public class SplTokenInstructionParser extends InstructionParser {
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        return buffer.get() + "";
     }
+
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (SplTokenInstruction.fromValue(Integer.parseInt(methodId))) {
+            case InitializeMint: // 0
+                info = parseInitializeMint(buffer, accounts);
+                break;
+            case InitializeAccount: // 1
+                info = parseInitializeAccount(accounts);
+                break;
+            case InitializeMultisig: // 2
+                info = parseInitializeMultisig(buffer, accounts);
+                break;
+            case Transfer: // 3
+                info = parseTransfer(buffer, accounts);
+                break;
+            case Approve: // 4
+                info = parseApprove(buffer, accounts);
+                break;
+            case Revoke: // 5
+                info = parseRevoke(accounts);
+                break;
+            case SetAuthority: // 6
+                info = parseSetAuthority(buffer, accounts);
+                break;
+            case MintTo: // 7
+                info = parseMintTo(buffer, accounts);
+                break;
+            case Burn: // 8
+                info = parseBurn(buffer, accounts);
+                break;
+            case CloseAccount: // 9
+                info = parseCloseAccount(accounts);
+                break;
+            case FreezeAccount: // 10
+                info = parseFreezeAccount(accounts);
+                break;
+            case ThawAccount: // 11
+                info = parseThawAccount(accounts);
+                break;
+            case TransferChecked: // 12
+                info = parseTransferChecked(buffer, accounts);
+                break;
+            case ApproveChecked: // 13
+                info = parseApproveChecked(buffer, accounts);
+                break;
+            case MintToChecked: // 14
+                info = parseMintToChecked(buffer, accounts);
+                break;
+            case BurnChecked: // 15
+                info = parseBurnChecked(buffer, accounts);
+                break;
+            case InitializeAccount2: // 16
+                info = parseInitializeAccount2(buffer, accounts);
+                break;
+            case SyncNative: // 17
+                info = parseSyncNative(accounts);
+                break;
+            case InitializeAccount3: // 18
+                info = parseInitializeAccount3(buffer, accounts);
+                break;
+            case InitializeMultisig2: // 19
+                info = parseInitializeMultisig2(buffer, accounts);
+                break;
+            case InitializeMint2: // 20
+                info = parseInitializeMint2(buffer, accounts);
+                break;
+            case GetAccountDataSize: // 21
+                info = parseGetAccountDataSize(buffer, accounts);
+                break;
+            case InitializeImmutableOwner: // 22
+                info = parseInitializeImmutableOwner(accounts);
+                break;
+            case AmountToUiAmount: // 23
+                info = parseAmountToUiAmount(buffer, accounts);
+                break;
+            case UiAmountToAmount: // 24
+                info = parseUiAmountToAmount(buffer);
+                break;
+            default:
+                return new HashMap<>();
+        }
+        return info;
+    }
+
 
     /// Transfers tokens from one account to another either directly or via a
     /// delegate.  If this account is associated with the native mint then equal
@@ -133,20 +119,15 @@ public class SplTokenInstructionParser {
 //        /// The amount of tokens to transfer.
 //        amount: u64,
 //    },
-    private static Map<String, Object> parseTransfer(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseTransfer(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("Transfer raw data (hex): " + bytesToHex(data));
 
         // 读取转账金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long amount = amountBuffer.getLong();
-
+        String amount = Long.toUnsignedString(buffer.getLong());
         info.put("source", accounts[0]);          // 源代币账户
         info.put("destination", accounts[1]);     // 目标代币账户
         info.put("authority", accounts[2]);       // 源账户所有者
         info.put("amount", amount);
-
         return info;
     }
 
@@ -170,19 +151,16 @@ public class SplTokenInstructionParser {
 //        /// The amount of new tokens to mint.
 //        amount: u64,
 //    },
-    private static Map<String, Object> parseMintTo(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseMintTo(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 读取铸造金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long amount = amountBuffer.getLong();
+        String amount = Long.toUnsignedString(buffer.getLong());
 
         info.put("mint", accounts[0]);           // 代币铸造账户
         info.put("destination", accounts[1]);     // 目标代币账户
         info.put("mintAuthority", accounts[2]);   // 铸造权限账户
         info.put("amount", amount);
-
         return info;
     }
 
@@ -207,19 +185,15 @@ public class SplTokenInstructionParser {
 //        amount: u64,
 //    },
     // [todo] 多签解析没做，需要 case
-    private static Map<String, Object> parseBurn(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseBurn(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 读取销毁金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long amount = amountBuffer.getLong();
-
+        String amount = Long.toUnsignedString(buffer.getLong());
         info.put("account", accounts[0]);         // 要销毁代币的账户
         info.put("mint", accounts[1]);           // 代币铸造账户
         info.put("authority", accounts[2]);       // 代币账户所有者
         info.put("amount", amount);
-
         return info;
     }
 
@@ -245,20 +219,21 @@ public class SplTokenInstructionParser {
 //                /// The freeze authority/multisignature of the mint.
 //                freeze_authority: COption<Pubkey>,
 //    },
-    private static Map<String, Object> parseInitializeMint(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeMint(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 读取精度 (u8)
-        int decimals = data[0] & 0xFF;
+        int decimals = Byte.toUnsignedInt(buffer.get());
 
         // 读取铸造权限公钥 (32 bytes)
-        byte[] mintAuthority = Arrays.copyOfRange(data, 1, 33);
+        byte[] mintAuthority = new byte[32];
+        buffer.get(mintAuthority);
 
         // 读取冻结权限公钥 (option<32 bytes>)
-        boolean hasFreezeAuthority = (data[33] & 0xFF) == 1;
-        byte[] freezeAuthority = null;
+        boolean hasFreezeAuthority = (buffer.get() & 0xFF) == 1;
+        byte[] freezeAuthority = new byte[32];
         if (hasFreezeAuthority) {
-            freezeAuthority = Arrays.copyOfRange(data, 34, 66);
+            buffer.get(freezeAuthority);
         }
 
         info.put("mint", accounts[0]);           // 代币铸造账户
@@ -323,14 +298,10 @@ public class SplTokenInstructionParser {
 //        /// The amount of tokens the delegate is approved for.
 //        amount: u64,
 //    },
-    private static Map<String, Object> parseApprove(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseApprove(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("Approve raw data (hex): " + bytesToHex(data));
-
         // 读取授权金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        String amount = Long.toUnsignedString(amountBuffer.getLong());
+        String amount = Long.toUnsignedString(buffer.getLong());
 
         info.put("source", accounts[0]);          // 源代币账户
         info.put("delegate", accounts[1]);        // 被授权账户
@@ -360,7 +331,6 @@ public class SplTokenInstructionParser {
 
         info.put("source", accounts[0]);          // 源代币账户
         info.put("owner", accounts[1]);       // 源账户所有者
-
         return info;
     }
 
@@ -384,18 +354,16 @@ public class SplTokenInstructionParser {
 //                new_authority: COption<Pubkey>,
 //    },
     // [todo] AuthorityType data 存的是 index, 改成 value
-    private static Map<String, Object> parseSetAuthority(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseSetAuthority(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("SetAuthority raw data (hex): " + bytesToHex(data));
-
         // 读取权限类型 (u8)
-        int authorityType = data[0] & 0xFF;
+        int authorityType = Byte.toUnsignedInt(buffer.get());
 
         // 读取新权限公钥 (option<32 bytes>)
-        boolean hasNewAuthority = (data[1] & 0xFF) == 1;
-        byte[] newAuthority = null;
+        boolean hasNewAuthority = (Byte.toUnsignedInt(buffer.get()) & 0xFF) == 1;
+        byte[] newAuthority = new byte[32];
         if (hasNewAuthority) {
-            newAuthority = Arrays.copyOfRange(data, 2, 34);
+            buffer.get(newAuthority);
         }
 
         info.put("mint", accounts[0]);         // 要修改权限的账户
@@ -516,16 +484,12 @@ public class SplTokenInstructionParser {
 //                /// Expected number of base 10 digits to the right of the decimal place.
 //                decimals: u8,
 //    }
-    private static Map<String, Object> parseTransferChecked(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseTransferChecked(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("TransferChecked raw data (hex): " + bytesToHex(data));
-
         // 读取转账金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-        long amount = amountBuffer.getLong();
-
+        String amount = Long.toUnsignedString(buffer.getLong());
         // 读取精度 (u8)
-        int decimals = data[8] & 0xFF;
+        int decimals = buffer.get() & 0xFF;
 
         info.put("source", accounts[0]);          // 源代币账户
         info.put("mint", accounts[1]);           // 代币铸造账户
@@ -533,7 +497,6 @@ public class SplTokenInstructionParser {
         info.put("authority", accounts[3]);       // 源账户所有者
         info.put("amount", amount);
         info.put("decimals", decimals);
-
         return info;
     }
 
@@ -565,16 +528,13 @@ public class SplTokenInstructionParser {
 //                /// Expected number of base 10 digits to the right of the decimal place.
 //                decimals: u8,
 //    },
-    private static Map<String, Object> parseApproveChecked(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseApproveChecked(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 读取授权金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        String amount = Long.toUnsignedString(amountBuffer.getLong());
-
+        String amount = Long.toUnsignedString(buffer.getLong());
         // 读取精度 (u8)
-        int decimals = data[8] & 0xFF;
+        int decimals = buffer.get() & 0xFF;
 
         info.put("source", accounts[0]);          // 源代币账户
         info.put("mint", accounts[1]);           // 代币铸造账户
@@ -612,16 +572,13 @@ public class SplTokenInstructionParser {
 //                /// Expected number of base 10 digits to the right of the decimal place.
 //                decimals: u8,
 //    },
-    private static Map<String, Object> parseMintToChecked(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseMintToChecked(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("MintToChecked raw data (hex): " + bytesToHex(data));
 
         // 读取铸造金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-        String amount = Long.toUnsignedString(amountBuffer.getLong());
-
+        String amount = Long.toUnsignedString(buffer.getLong());
         // 读取精度 (u8)
-        int decimals = data[8] & 0xFF;
+        int decimals = buffer.get() & 0xFF;
 
         info.put("mint", accounts[0]);           // 代币铸造账户
         info.put("destination", accounts[1]);     // 目标代币账户
@@ -659,17 +616,12 @@ public class SplTokenInstructionParser {
 //                /// Expected number of base 10 digits to the right of the decimal place.
 //                decimals: u8,
 //    },
-    private static Map<String, Object> parseBurnChecked(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseBurnChecked(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        System.out.println("BurnChecked raw data (hex): " + bytesToHex(data));
-
-        // 读取销毁金额 (u64)
-        ByteBuffer amountBuffer = ByteBuffer.wrap(data);
-        amountBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        long amount = amountBuffer.getLong();
-
+        // 读取铸造金额 (u64)
+        String amount = Long.toUnsignedString(buffer.getLong());
         // 读取精度 (u8)
-        int decimals = data[8] & 0xFF;
+        int decimals = buffer.get() & 0xFF;
 
         info.put("account", accounts[0]);         // 要销毁代币的账户
         info.put("mint", accounts[1]);           // 代币铸造账户
@@ -705,11 +657,11 @@ public class SplTokenInstructionParser {
 //        /// account.
 //        m: u8,
 //    },
-    private static Map<String, Object> parseInitializeMultisig(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeMultisig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 读取签名者数量 (u8)
-        int m = data[0] & 0xFF;
+        int m = buffer.get() & 0xFF;
 
         info.put("account", accounts[0]);         // 多重签名账户
         info.put("rent", accounts[1]);           // 租金账户
@@ -737,12 +689,14 @@ public class SplTokenInstructionParser {
 //        /// The new account's owner/multisignature.
 //        owner: Pubkey,
 //    },
-    private static Map<String, Object> parseInitializeAccount2(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeAccount2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
+        byte[] owner = new byte[32];
+        buffer.get(owner);
         info.put("account", accounts[0]);
         info.put("mint", accounts[1]);
         info.put("rentSysvar", accounts[2]);
-        info.put("owner", Base58.encode(data));
+        info.put("owner", Base58.encode(owner));
         return info;
     }
 
@@ -776,11 +730,11 @@ public class SplTokenInstructionParser {
 //        /// The new account's owner/multisignature.
 //        owner: Pubkey,
 //    },
-    private static Map<String, Object> parseInitializeAccount3(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeAccount3(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         byte[] ownerBytes = new byte[32];
-        ByteBuffer.wrap(data).get(ownerBytes);
+        buffer.get(ownerBytes);
 
         info.put("account", accounts[0]);
         info.put("mint", accounts[1]);
@@ -802,11 +756,8 @@ public class SplTokenInstructionParser {
 //        /// account.
 //        m: u8,
 //    },
-    private static Map<String, Object> parseInitializeMultisig2(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeMultisig2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
         int m = buffer.get() & 0xFF;  // 需要的签名数量
 
         info.put("account", accounts[0]);
@@ -830,11 +781,9 @@ public class SplTokenInstructionParser {
 //                /// The freeze authority/multisignature of the mint.
 //                freeze_authority: COption<Pubkey>,
 //    },
-    private static Map<String, Object> parseInitializeMint2(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseInitializeMint2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
         int decimals = buffer.get() & 0xFF;
 
         byte[] ownerBytes = new byte[32];
@@ -861,7 +810,7 @@ public class SplTokenInstructionParser {
     ///   0. `[]` The mint to calculate for
 //    GetAccountDataSize, // typically, there's also data, but this program ignores it
     // [todo] extensionTypes 具体含义
-    private static Map<String, Object> parseGetAccountDataSize(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseGetAccountDataSize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 官方文档中说忽略这个参数
@@ -913,11 +862,9 @@ public class SplTokenInstructionParser {
 //        /// The amount of tokens to reformat.
 //        amount: u64,
 //    },
-    private static Map<String, Object> parseAmountToUiAmount(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseAmountToUiAmount(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
         String amount = Long.toUnsignedString(buffer.getLong());
         info.put("amount", amount);
         info.put("mint", accounts[0]);
@@ -940,11 +887,9 @@ public class SplTokenInstructionParser {
 //        /// The `ui_amount` of tokens to reformat.
 //        ui_amount: &'a str,
 //    },
-    private static Map<String, Object> parseUiAmountToAmount(byte[] data) {
+    private static Map<String, Object> parseUiAmountToAmount(ByteBuffer buffer) {
         Map<String, Object> info = new HashMap<>();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
         double uiAmount = buffer.getDouble();
         info.put("uiAmount", uiAmount);
 
@@ -953,25 +898,18 @@ public class SplTokenInstructionParser {
 
 
     // TransferFeeExtension - 转账费用扩展
-    private static Map<String, Object> parseTransferFeeExtension(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseTransferFeeExtension(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
+        info.put("transferFeeBasisPoints", Integer.toUnsignedString(buffer.getInt()));
+        info.put("maximumFee", Long.toUnsignedString(buffer.getLong()));
         info.put("mint", accounts[0]);
         info.put("authority", accounts[1]);
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        int transferFeeBasisPoints = buffer.getInt();
-        long maximumFee = buffer.getLong();
-
-        info.put("transferFeeBasisPoints", transferFeeBasisPoints);
-        info.put("maximumFee", maximumFee);
-
         return info;
     }
 
     // ConfidentialTransferExtension - 机密转账扩展
-    private static Map<String, Object> parseConfidentialTransferExtension(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseConfidentialTransferExtension(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         info.put("mint", accounts[0]);
         info.put("authority", accounts[1]);
@@ -980,33 +918,24 @@ public class SplTokenInstructionParser {
     }
 
     // DefaultAccountStateExtension - 默认账户状态扩展
-    private static Map<String, Object> parseDefaultAccountStateExtension(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseDefaultAccountStateExtension(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         info.put("mint", accounts[0]);
         info.put("authority", accounts[1]);
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        int accountState = buffer.get() & 0xFF;
-        info.put("accountState", accountState);
+        info.put("accountState", Byte.toUnsignedInt(buffer.get()));
 
         return info;
     }
 
     // Reallocate - 重新分配账户空间
-    private static Map<String, Object> parseReallocate(byte[] data, String[] accounts) {
+    private static Map<String, Object> parseReallocate(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         info.put("account", accounts[0]);
         info.put("payer", accounts[1]);
         info.put("systemProgram", accounts[2]);
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        long extensionTypes = buffer.getLong();
-        info.put("extensionTypes", extensionTypes);
-
+        info.put("extensionTypes", Long.toUnsignedString(buffer.getLong()));
         return info;
     }
 
@@ -1016,14 +945,6 @@ public class SplTokenInstructionParser {
         info.put("account", accounts[0]);
         info.put("authority", accounts[1]);
         return info;
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
     }
 
 }

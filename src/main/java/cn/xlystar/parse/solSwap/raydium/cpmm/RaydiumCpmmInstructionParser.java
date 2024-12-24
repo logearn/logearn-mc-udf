@@ -1,93 +1,58 @@
 package cn.xlystar.parse.solSwap.raydium.cpmm;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
+
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RaydiumCpmmInstructionParser {
+public class RaydiumCpmmInstructionParser extends InstructionParser {
 
     private static final String PROGRAM_ID = "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C";
 
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (data == null || data.length == 0) {
-            result.put("error", "Invalid instruction data");
-            return result;
-        }
-
-        try {
-            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-            String discriminator = Long.toUnsignedString(buffer.getLong());
-            RaydiumCpmmInstruction instructionType = RaydiumCpmmInstruction.fromValue(discriminator);
-            result.put("type", instructionType.name());
-
-            Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
-            result.put("info", info);
-
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        return Long.toUnsignedString(buffer.getLong());
     }
 
-    private static Map<String, Object> parseInstructionInfo(RaydiumCpmmInstruction instruction, ByteBuffer buffer, String[] accounts) {
-        Map<String, Object> info = new HashMap<>();
-
-        try {
-            switch (instruction) {
-                case CREATE_AMM_CONFIG: // 0
-                    info = parseCreateAmmConfig(buffer, accounts);
-                    info.put("type", "createAmmConfig");
-                    return info;
-                case UPDATE_AMM_CONFIG: // 1
-                    info = parseUpdateAmmConfig(buffer, accounts);
-                    info.put("type", "updateAmmConfig");
-                    return info;
-                case UPDATE_POOL_STATUS: // 2
-                    info = parseUpdatePoolStatus(buffer, accounts);
-                    info.put("type", "updatePoolStatus");
-                    return info;
-                case COLLECT_PROTOCOL_FEE: // 3
-                    info = parseCollectProtocolFee(buffer, accounts);
-                    info.put("type", "collectProtocolFee");
-                    return info;
-                case COLLECT_FUND_FEE: // 4
-                    info = parseCollectFundFee(buffer, accounts);
-                    info.put("type", "collectFundFee");
-                    return info;
-                case INITIALIZE: // 5
-                    info = parseInitialize(buffer, accounts);
-                    info.put("type", "initialize");
-                    return info;
-                case DEPOSIT: // 6
-                    info = parseDeposit(buffer, accounts);
-                    info.put("type", "deposit");
-                    return info;
-                case WITHDRAW: // 7
-                    info = parseWithdraw(buffer, accounts);
-                    info.put("type", "withdraw");
-                    return info;
-                case SWAP_BASE_IN: // 8
-                    info = parseSwapBaseIn(buffer, accounts);
-                    info.put("type", "swapBaseIn");
-                    return info;
-                case SWAP_BASE_OUT: // 9
-                    info = parseSwapBaseOut(buffer, accounts);
-                    info.put("type", "swapBaseOut");
-                    return info;
-                default:
-                    info.put("error", "Unknown instruction type: " + instruction.name());
-                    info.put("type", "unknown");
-                    return info;
-            }
-        } catch (Exception e) {
-            info.put("error", "Failed to parse " + instruction.name() + " parameters: " + e.getMessage());
-            info.put("type", "error");
-            return info;
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (RaydiumCpmmInstruction.fromValue(methodId)) {
+            case CREATE_AMM_CONFIG: // 0
+                info = parseCreateAmmConfig(buffer, accounts);
+                break;
+            case UPDATE_AMM_CONFIG: // 1
+                info = parseUpdateAmmConfig(buffer, accounts);
+                break;
+            case UPDATE_POOL_STATUS: // 2
+                info = parseUpdatePoolStatus(buffer, accounts);
+                break;
+            case COLLECT_PROTOCOL_FEE: // 3
+                info = parseCollectProtocolFee(buffer, accounts);
+                break;
+            case COLLECT_FUND_FEE: // 4
+                info = parseCollectFundFee(buffer, accounts);
+                break;
+            case INITIALIZE: // 5
+                info = parseInitialize(buffer, accounts);
+                break;
+            case DEPOSIT: // 6
+                info = parseDeposit(buffer, accounts);
+                break;
+            case WITHDRAW: // 7
+                info = parseWithdraw(buffer, accounts);
+                break;
+            case SWAP_BASE_IN: // 8
+                info = parseSwapBaseIn(buffer, accounts);
+                break;
+            case SWAP_BASE_OUT: // 9
+                info = parseSwapBaseOut(buffer, accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
+        return info;
     }
 
     private static Map<String, Object> parseCreateAmmConfig(ByteBuffer buffer, String[] accounts) {

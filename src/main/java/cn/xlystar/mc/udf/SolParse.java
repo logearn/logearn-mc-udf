@@ -1,12 +1,9 @@
 package cn.xlystar.mc.udf;
 
-import cn.xlystar.parse.solSwap.SolParseData;
+import cn.xlystar.parse.solSwap.SolInstructionProcessor;
 import com.aliyun.odps.udf.UDF;
-import org.apache.commons.lang.StringUtils;
-import org.bitcoinj.core.Base58;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.*;
 
 /**
@@ -22,16 +19,11 @@ public class SolParse extends UDF {
     public SolParse() {
     }
 
-    public String evaluate(String input, String protocol) throws IOException {
-        if (StringUtils.isEmpty(input) || StringUtils.isEmpty(protocol)) return "";
-        String result = "";
-        if (protocol.equals("spl_token")) SolParseData.transfer(input);
-        return result;
+    public Map<String, Object> evaluate(String programId, String[] accounts, String data) throws IOException {
+        return SolInstructionProcessor.processInstruction(programId, accounts, data);
     }
 
     public static void main(String[] args) throws Exception {
         SolParse ammParse = new SolParse();
-        String base58 = ammParse.evaluate("1B2QHX28YDABQZcX2tnnKVAzvTawWRfuwnFfNfcyRxPVug15f441AApFAavpqAKk8DrpaCC8pucneNcf", "spl_token");
-        System.out.println(base58);
     }
 }

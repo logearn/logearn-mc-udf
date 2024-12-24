@@ -9,46 +9,46 @@ import java.util.Map;
 public class WhirlpoolInstructionParserTest {
 
     public static void main(String[] args) throws DecoderException {
-//        testSwap(); // 通过
-//        testSwapV2(); // 通过
-//        testTwoHopSwap(); // 通过
-//        testTwoHopSwapV2(); // 通过
-//        testInitializePool(); // 通过
-//        testInitializePoolV2(); // 通过
-//        testIncreaseLiquidity(); // 通过
-//        testIncreaseLiquidityV2(); // 通过
-//        testDecreaseLiquidity(); // 通过
-//        testDecreaseLiquidityV2(); // 通过
-//        testDeletePositionBundle(); // 通过
-//        testOpenPositionWithMetadata(); // 通过
-//        testOpenBundledPosition(); // 通过
-//        testOpenPosition(); // 通过
+        testSwap(); // 通过
+        testSwapV2(); // 通过
+        testTwoHopSwap(); // 通过
+        testTwoHopSwapV2(); // 通过
+        testInitializePool(); // 通过
+        testInitializePoolV2(); // 通过
+        testIncreaseLiquidity(); // 通过
+        testIncreaseLiquidityV2(); // 通过
+        testDecreaseLiquidity(); // 通过
+        testDecreaseLiquidityV2(); // 通过
+        testDeletePositionBundle(); // 通过
+        testOpenPositionWithMetadata(); // 通过
+        testOpenBundledPosition(); // 通过
+        testOpenPosition(); // 通过
 
-//        testCloseBundledPosition(); // 通过
-//        testClosePosition(); // 通过
-//        testCollectFees(); // 通过
-//        testCollectFeesV2(); // 通过
-//        testCollectProtocolFees(); // 通过
-//        testCollectProtocolFeesV2(); // 通过
-//        testCollectReward();  // 通过
-//        testCollectRewardV2();  // 通过
-//        testUpdateFeesAndRewards(); // 通过
-//        testInitializeRewardV2(); // 通过
-//        testInitializeReward(); // 通过
-//        testInitializeTickArray(); // 通过
-//        testInitializePositionBundle(); // 通过
-//        testInitializeTokenBadge(); // 通过
-//        testInitializePositionBundleWithMetadata();// 通过
+        testCloseBundledPosition(); // 通过
+        testClosePosition(); // 通过
+        testCollectFees(); // 通过
+        testCollectFeesV2(); // 通过
+        testCollectProtocolFees(); // 通过
+        testCollectProtocolFeesV2(); // 通过
+        testCollectReward();  // 通过
+        testCollectRewardV2();  // 通过
+        testUpdateFeesAndRewards(); // 通过
+        testInitializeRewardV2(); // 通过
+        testInitializeReward(); // 通过
+        testInitializeTickArray(); // 通过
+        testInitializePositionBundle(); // 通过
+        testInitializeTokenBadge(); // 通过
+        testInitializePositionBundleWithMetadata();// 通过
 
-//        testInitializeConfig(); // 通过
-//        testInitializeFeeTier(); // 无具体 case
-//        testSetRewardEmissions(); // 通过
-//        testSetRewardEmissionsV2(); // 通过
-//        testSetRewardEmissionsSuperAuthority(); // 无具体 case
-//        testSetRewardAuthority(); // 无具体 case
-//        testSetRewardAuthorityBySuperAuthority(); // 通过
+        testInitializeConfig(); // 通过
+        testInitializeFeeTier(); // 无具体 case
+        testSetRewardEmissions(); // 通过
+        testSetRewardEmissionsV2(); // 通过
+        testSetRewardEmissionsSuperAuthority(); // 无具体 case
+        testSetRewardAuthority(); // 无具体 case
+        testSetRewardAuthorityBySuperAuthority(); // 通过
 
-//        testSetDefaultFeeRate(); // 通过
+        testSetDefaultFeeRate(); // 通过
 
 
     }
@@ -58,7 +58,7 @@ public class WhirlpoolInstructionParserTest {
             System.out.println("\n=== Testing " + testCase + " ===");
             byte[] decode = Hex.decodeHex(base58Data.toCharArray());
 //        byte[] decode = Base58.decode("15P");
-            Map<String, Object> result = WhirlpoolInstructionParser.parseInstruction(decode, accounts);
+            Map<String, Object> result = new WhirlpoolInstructionParser().parseInstruction(decode, accounts);
             System.out.println("Result: " + result);
         } catch (Exception e) {
             e.printStackTrace();

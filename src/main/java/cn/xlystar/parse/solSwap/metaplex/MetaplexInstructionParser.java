@@ -1,5 +1,8 @@
 package cn.xlystar.parse.solSwap.metaplex;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
+import org.bouncycastle.util.encoders.Hex;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,266 +10,197 @@ import java.util.Map;
 /**
  * Metaplex Token Metadata Program 指令解析器
  */
-public class MetaplexInstructionParser {
+public class MetaplexInstructionParser extends InstructionParser {
 
-    /**
-     * 解析 Metaplex 指令
-     */
-    /**
-     * 解析 Metaplex 指令
-     */
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-        ByteBuffer buffer = ByteBuffer.wrap(data);
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        byte[] discriminatorBytes = new byte[8];
+        buffer.get(discriminatorBytes);
+        return Hex.toHexString(discriminatorBytes);
+    }
 
-        // 读取指令类型
-        int discriminator = Byte.toUnsignedInt(buffer.get());
-        MetaplexInstruction instruction = MetaplexInstruction.fromValue(discriminator);
-
-        result.put("instruction", instruction.name());
-
-        // 根据指令类型解析数据
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
         Map<String, Object> parsed;
-        switch (instruction) {
+        switch (MetaplexInstruction.fromValue(Integer.parseInt(methodId))) {
             case CreateMetadataAccount:              // 0: 创建元数据账户
                 parsed = parseCreateMetadataAccount(buffer, accounts);
-                result.put("type", "createMetadataAccount");
                 break;
             case UpdateMetadataAccount:              // 1: 更新元数据账户
                 parsed = parseUpdateMetadataAccount(buffer, accounts);
-                result.put("type", "updateMetadataAccount");
                 break;
             case DeprecatedCreateMasterEdition:      // 2: 已弃用的创建主版本
                 parsed = parseDeprecatedCreateMasterEdition(buffer, accounts);
-                result.put("type", "deprecatedCreateMasterEdition");
                 break;
             case DeprecatedMintNewEditionFromMasterEditionViaPrintingToken: // 3: 已弃用的通过打印代币从主版本铸造新版本
                 parsed = parseDeprecatedMintNewEditionFromMasterEditionViaPrintingToken(buffer, accounts);
-                result.put("type", "deprecatedMintNewEditionFromMasterEditionViaPrintingToken");
                 break;
             case UpdatePrimarySaleHappenedViaToken:  // 4: 通过代币更新主要销售状态
                 parsed = parseUpdatePrimarySaleHappenedViaToken(buffer, accounts);
-                result.put("type", "updatePrimarySaleHappenedViaToken");
                 break;
             case DeprecatedSetReservationList:       // 5: 已弃用的设置预约列表
                 parsed = parseDeprecatedSetReservationList(buffer, accounts);
-                result.put("type", "deprecatedSetReservationList");
                 break;
             case DeprecatedCreateReservationList:    // 6: 已弃用的创建预约列表
                 parsed = parseDeprecatedCreateReservationList(buffer, accounts);
-                result.put("type", "deprecatedCreateReservationList");
                 break;
             case SignMetadata:                       // 7: 签名元数据
                 parsed = parseSignMetadata(buffer, accounts);
-                result.put("type", "signMetadata");
                 break;
             case DeprecatedMintPrintingTokensViaToken: // 8: 已弃用的通过代币铸造打印代币
                 parsed = parseDeprecatedMintPrintingTokensViaToken(buffer, accounts);
-                result.put("type", "deprecatedMintPrintingTokensViaToken");
                 break;
             case DeprecatedMintPrintingTokens:       // 9: 已弃用的铸造打印代币
                 parsed = parseDeprecatedMintPrintingTokens(buffer, accounts);
-                result.put("type", "deprecatedMintPrintingTokens");
                 break;
             case CreateMasterEdition:                // 10: 创建主版本
                 parsed = parseCreateMasterEdition(buffer, accounts);
-                result.put("type", "createMasterEdition");
                 break;
             case MintNewEditionFromMasterEditionViaToken: // 11: 通过代币从主版本铸造新版本
                 parsed = parseMintNewEditionFromMasterEditionViaToken(buffer, accounts);
-                result.put("type", "mintNewEditionFromMasterEditionViaToken");
                 break;
             case ConvertMasterEditionV1ToV2:         // 12: 将主版本V1转换为V2
                 parsed = parseConvertMasterEditionV1ToV2(buffer, accounts);
-                result.put("type", "convertMasterEditionV1ToV2");
                 break;
             case MintNewEditionFromMasterEditionViaVaultProxy: // 13: 通过保管库代理从主版本铸造新版本
                 parsed = parseMintNewEditionFromMasterEditionViaVaultProxy(buffer, accounts);
-                result.put("type", "mintNewEditionFromMasterEditionViaVaultProxy");
                 break;
             case PuffMetadata:                       // 14: 填充元数据
                 parsed = parsePuffMetadata(buffer, accounts);
-                result.put("type", "puffMetadata");
                 break;
             case UpdateMetadataAccountV2:            // 15: 更新元数据账户V2
                 parsed = parseUpdateMetadataAccountV2(buffer, accounts);
-                result.put("type", "updateMetadataAccountV2");
                 break;
             case CreateMetadataAccountV2:            // 16: 创建元数据账户V2
                 parsed = parseCreateMetadataAccountV2(buffer, accounts);
-                result.put("type", "createMetadataAccountV2");
                 break;
             case CreateMasterEditionV3:              // 17: 创建主版本V3
                 parsed = parseCreateMasterEditionV3(buffer, accounts);
-                result.put("type", "createMasterEditionV3");
                 break;
             case VerifyCollection:                   // 18: 验证收藏集
                 parsed = parseVerifyCollection(buffer, accounts);
-                result.put("type", "verifyCollection");
                 break;
             case Utilize:                            // 19: 使用
                 parsed = parseUtilize(buffer, accounts);
-                result.put("type", "utilize");
                 break;
             case ApproveUseAuthority:                // 20: 批准使用权限
                 parsed = parseApproveUseAuthority(buffer, accounts);
-                result.put("type", "approveUseAuthority");
                 break;
             case RevokeUseAuthority:                 // 21: 撤销使用权限
                 parsed = parseRevokeUseAuthority(buffer, accounts);
-                result.put("type", "revokeUseAuthority");
                 break;
             case UnverifyCollection:                 // 22: 取消验证收藏集
                 parsed = parseUnverifyCollection(buffer, accounts);
-                result.put("type", "unverifyCollection");
                 break;
             case ApproveCollectionAuthority:         // 23: 批准收藏集权限
                 parsed = parseApproveCollectionAuthority(buffer, accounts);
-                result.put("type", "approveCollectionAuthority");
                 break;
             case RevokeCollectionAuthority:          // 24: 撤销收藏集权限
                 parsed = parseRevokeCollectionAuthority(buffer, accounts);
-                result.put("type", "revokeCollectionAuthority");
                 break;
             case SetAndVerifyCollection:             // 25: 设置并验证收藏集
                 parsed = parseSetAndVerifyCollection(buffer, accounts);
-                result.put("type", "setAndVerifyCollection");
                 break;
             case FreezeDelegatedAccount:             // 26: 冻结委托账户
                 parsed = parseFreezeDelegatedAccount(buffer, accounts);
-                result.put("type", "freezeDelegatedAccount");
                 break;
             case ThawDelegatedAccount:               // 27: 解冻委托账户
                 parsed = parseThawDelegatedAccount(buffer, accounts);
-                result.put("type", "thawDelegatedAccount");
                 break;
             case RemoveCreatorVerification:          // 28: 移除创建者验证
                 parsed = parseRemoveCreatorVerification(buffer, accounts);
-                result.put("type", "removeCreatorVerification");
                 break;
             case BurnNft:                           // 29: 销毁NFT
                 parsed = parseBurnNft(buffer, accounts);
-                result.put("type", "burnNft");
                 break;
             case VerifySizedCollectionItem:         // 30: 验证有大小的收藏集项目
                 parsed = parseVerifySizedCollectionItem(buffer, accounts);
-                result.put("type", "verifySizedCollectionItem");
                 break;
             case UnverifySizedCollectionItem:       // 31: 取消验证有大小的收藏集项目
                 parsed = parseUnverifySizedCollectionItem(buffer, accounts);
-                result.put("type", "unverifySizedCollectionItem");
                 break;
             case SetAndVerifySizedCollectionItem:   // 32: 设置并验证有大小的收藏集项目
                 parsed = parseSetAndVerifySizedCollectionItem(buffer, accounts);
-                result.put("type", "setAndVerifySizedCollectionItem");
                 break;
             case CreateMetadataAccountV3:           // 33: 创建元数据账户V3
                 parsed = parseCreateMetadataAccountV3(buffer, accounts);
-                result.put("type", "createMetadataAccountV3");
                 break;
             case SetCollectionSize:                 // 34: 设置收藏集大小
                 parsed = parseSetCollectionSize(buffer, accounts);
-                result.put("type", "setCollectionSize");
                 break;
             case SetTokenStandard:                  // 35: 设置代币标准
                 parsed = parseSetTokenStandard(buffer, accounts);
-                result.put("type", "setTokenStandard");
                 break;
             case BubblegumSetCollectionSize:        // 36: Bubblegum设置收藏集大小
                 parsed = parseBubblegumSetCollectionSize(buffer, accounts);
-                result.put("type", "bubblegumSetCollectionSize");
                 break;
             case BurnEditionNft:                    // 37: 销毁版本NFT
                 parsed = parseBurnEditionNft(buffer, accounts);
-                result.put("type", "burnEditionNft");
                 break;
             case CreateEscrowAccount:               // 38: 创建托管账户
                 parsed = parseCreateEscrowAccount(buffer, accounts);
-                result.put("type", "createEscrowAccount");
                 break;
             case CloseEscrowAccount:                // 39: 关闭托管账户
                 parsed = parseCloseEscrowAccount(buffer, accounts);
-                result.put("type", "closeEscrowAccount");
                 break;
             case TransferOutOfEscrow:               // 40: 从托管转出
                 parsed = parseTransferOutOfEscrow(buffer, accounts);
-                result.put("type", "transferOutOfEscrow");
                 break;
             case Burn:                              // 41: 销毁
                 parsed = parseBurn(buffer, accounts);
-                result.put("type", "burn");
                 break;
             case Create:                            // 42: 创建
                 parsed = parseCreate(buffer, accounts);
-                result.put("type", "create");
                 break;
             case Mint:                              // 43: 铸造
                 parsed = parseMint(buffer, accounts);
-                result.put("type", "mint");
                 break;
             case Delegate:                          // 44: 委托
                 parsed = parseDelegate(buffer, accounts);
-                result.put("type", "delegate");
                 break;
             case Revoke:                            // 45: 撤销
                 parsed = parseRevoke(buffer, accounts);
-                result.put("type", "revoke");
                 break;
             case Lock:                              // 46: 锁定
                 parsed = parseLock(buffer, accounts);
-                result.put("type", "lock");
                 break;
             case Unlock:                            // 47: 解锁
                 parsed = parseUnlock(buffer, accounts);
-                result.put("type", "unlock");
                 break;
             case Migrate:                           // 48: 迁移
                 parsed = parseMigrate(buffer, accounts);
-                result.put("type", "migrate");
                 break;
             case Transfer:                          // 49: 转账
                 parsed = parseTransfer(buffer, accounts);
-                result.put("type", "transfer");
                 break;
             case Update:                            // 50: 更新
                 parsed = parseUpdate(buffer, accounts);
-                result.put("type", "update");
                 break;
             case Use:                               // 51: 使用
                 parsed = parseUse(buffer, accounts);
-                result.put("type", "use");
                 break;
             case Verify:                            // 52: 验证
                 parsed = parseVerify(buffer, accounts);
-                result.put("type", "verify");
                 break;
             case Unverify:                          // 53: 取消验证
                 parsed = parseUnverify(buffer, accounts);
-                result.put("type", "unverify");
                 break;
             case Collect:                           // 54: 收集
                 parsed = parseCollect(buffer, accounts);
-                result.put("type", "collect");
                 break;
             case Print:                             // 55: 打印
                 parsed = parsePrint(buffer, accounts);
-                result.put("type", "print");
                 break;
             case Resize:                            // 56: 调整大小
                 parsed = parseResize(buffer, accounts);
-                result.put("type", "resize");
                 break;
             case CloseAccounts:                     // 57: 关闭账户
                 parsed = parseCloseAccounts(buffer, accounts);
-                result.put("type", "closeAccounts");
                 break;
             default:
-                parsed = parseDefaultAccounts(accounts);
-                result.put("type", "unknown");
+                return new HashMap<>();
         }
-
-        result.putAll(parsed);
-        return result;
+        return parsed;
     }
 
     /**

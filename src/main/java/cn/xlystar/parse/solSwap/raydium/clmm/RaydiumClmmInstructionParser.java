@@ -1,174 +1,121 @@
 package cn.xlystar.parse.solSwap.raydium.clmm;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
-import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RaydiumClmmInstructionParser {
+public class RaydiumClmmInstructionParser extends InstructionParser {
 
     private static final String PROGRAM_ID = "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK";
 
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (data == null || data.length == 0) {
-            result.put("error", "Invalid instruction data");
-            return result;
-        }
-
-        try {
-            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-            byte[] discriminatorBytes = new byte[8];
-            buffer.get(discriminatorBytes);
-            String discriminator = Hex.toHexString(discriminatorBytes);
-            RaydiumClmmInstruction instructionType = RaydiumClmmInstruction.fromValue(discriminator);
-            result.put("type", instructionType.name());
-
-            Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
-            result.put("info", info);
-
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        return Long.toUnsignedString(buffer.getLong());
     }
 
-    private static Map<String, Object> parseInstructionInfo(RaydiumClmmInstruction instruction, ByteBuffer buffer, String[] accounts) {
-        Map<String, Object> info = new HashMap<>();
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (RaydiumClmmInstruction.fromValue(methodId)) {
+            // === AMM配置操作 (0-1) ===
+            case CREATE_AMM_CONFIG: // 0
+                info = parseCreateAmmConfig(buffer, accounts);
+                break;
+            case UPDATE_AMM_CONFIG: // 1
+                info = parseUpdateAmmConfig(buffer, accounts);
+                break;
 
-        try {
-            switch (instruction) {
-                // === AMM配置操作 (0-1) ===
-                case CREATE_AMM_CONFIG: // 0
-                    info = parseCreateAmmConfig(buffer, accounts);
-                    info.put("type", "createAmmConfig");
-                    return info;
-                case UPDATE_AMM_CONFIG: // 1
-                    info = parseUpdateAmmConfig(buffer, accounts);
-                    info.put("type", "updateAmmConfig");
-                    return info;
+            // === 池操作 (2-3) ===
+            case CREATE_POOL: // 2
+                info = parseCreatePool(buffer, accounts);
+                break;
+            case UPDATE_POOL_STATUS: // 3
+                info = parseUpdatePoolStatus(buffer, accounts);
+                break;
 
-                // === 池操作 (2-3) ===
-                case CREATE_POOL: // 2
-                    info = parseCreatePool(buffer, accounts);
-                    info.put("type", "createPool");
-                    return info;
-                case UPDATE_POOL_STATUS: // 3
-                    info = parseUpdatePoolStatus(buffer, accounts);
-                    info.put("type", "updatePoolStatus");
-                    return info;
+            // === 操作账户管理 (4-5) ===
+            case CREATE_OPERATION_ACCOUNT: // 4
+                info = parseCreateOperationAccount(buffer, accounts);
+                break;
+            case UPDATE_OPERATION_ACCOUNT: // 5
+                info = parseUpdateOperationAccount(buffer, accounts);
+                break;
 
-                // === 操作账户管理 (4-5) ===
-                case CREATE_OPERATION_ACCOUNT: // 4
-                    info = parseCreateOperationAccount(buffer, accounts);
-                    info.put("type", "createOperationAccount");
-                    return info;
-                case UPDATE_OPERATION_ACCOUNT: // 5
-                    info = parseUpdateOperationAccount(buffer, accounts);
-                    info.put("type", "updateOperationAccount");
-                    return info;
+            // === 奖励管理 (6-10) ===
+            case TRANSFER_REWARD_OWNER: // 6
+                info = parseTransferRewardOwner(buffer, accounts);
+                break;
+            case INITIALIZE_REWARD: // 7
+                info = parseInitializeReward(buffer, accounts);
+                break;
+            case COLLECT_REMAINING_REWARDS: // 8
+                info = parseCollectRemainingRewards(buffer, accounts);
+                break;
+            case UPDATE_REWARD_INFOS: // 9
+                info = parseUpdateRewardInfos(buffer, accounts);
+                break;
+            case SET_REWARD_PARAMS: // 10
+                info = parseSetRewardParams(buffer, accounts);
+                break;
 
-                // === 奖励管理 (6-10) ===
-                case TRANSFER_REWARD_OWNER: // 6
-                    info = parseTransferRewardOwner(buffer, accounts);
-                    info.put("type", "transferRewardOwner");
-                    return info;
-                case INITIALIZE_REWARD: // 7
-                    info = parseInitializeReward(buffer, accounts);
-                    info.put("type", "initializeReward");
-                    return info;
-                case COLLECT_REMAINING_REWARDS: // 8
-                    info = parseCollectRemainingRewards(buffer, accounts);
-                    info.put("type", "collectRemainingRewards");
-                    return info;
-                case UPDATE_REWARD_INFOS: // 9
-                    info = parseUpdateRewardInfos(buffer, accounts);
-                    info.put("type", "updateRewardInfos");
-                    return info;
-                case SET_REWARD_PARAMS: // 10
-                    info = parseSetRewardParams(buffer, accounts);
-                    info.put("type", "setRewardParams");
-                    return info;
+            // === 费用管理 (11-12) ===
+            case COLLECT_PROTOCOL_FEE: // 11
+                info = parseCollectProtocolFee(buffer, accounts);
+                break;
+            case COLLECT_FUND_FEE: // 12
+                info = parseCollectFundFee(buffer, accounts);
+                break;
 
-                // === 费用管理 (11-12) ===
-                case COLLECT_PROTOCOL_FEE: // 11
-                    info = parseCollectProtocolFee(buffer, accounts);
-                    info.put("type", "collectProtocolFee");
-                    return info;
-                case COLLECT_FUND_FEE: // 12
-                    info = parseCollectFundFee(buffer, accounts);
-                    info.put("type", "collectFundFee");
-                    return info;
+            // === 头寸操作 (13-16) ===
+            case OPEN_POSITION: // 13
+                info = parseOpenPosition(buffer, accounts);
+                break;
+            case OPEN_POSITION_V2: // 14
+                info = parseOpenPositionV2(buffer, accounts);
+                break;
+            case OPEN_POSITION_WITH_TOKEN22_NFT: // 15
+                info = parseOpenPositionWithToken22Nft(buffer, accounts);
+                break;
+            case CLOSE_POSITION: // 16
+                info = parseClosePosition(buffer, accounts);
+                break;
 
-                // === 头寸操作 (13-16) ===
-                case OPEN_POSITION: // 13
-                    info = parseOpenPosition(buffer, accounts);
-                    info.put("type", "openPosition");
-                    return info;
-                case OPEN_POSITION_V2: // 14
-                    info = parseOpenPositionV2(buffer, accounts);
-                    info.put("type", "openPositionV2");
-                    return info;
-                case OPEN_POSITION_WITH_TOKEN22_NFT: // 15
-                    info = parseOpenPositionWithToken22Nft(buffer, accounts);
-                    info.put("type", "openPositionWithToken22Nft");
-                    return info;
-                case CLOSE_POSITION: // 16
-                    info = parseClosePosition(buffer, accounts);
-                    info.put("type", "closePosition");
-                    return info;
+            // === 流动性操作 (17-20) ===
+            case INCREASE_LIQUIDITY: // 17
+                info = parseIncreaseLiquidity(buffer, accounts);
+                break;
+            case INCREASE_LIQUIDITY_V2: // 18
+                info = parseIncreaseLiquidityV2(buffer, accounts);
+                break;
+            case DECREASE_LIQUIDITY: // 19
+                info = parseDecreaseLiquidity(buffer, accounts);
+                break;
+            case DECREASE_LIQUIDITY_V2: // 20
+                info = parseDecreaseLiquidityV2(buffer, accounts);
+                break;
 
-                // === 流动性操作 (17-20) ===
-                case INCREASE_LIQUIDITY: // 17
-                    info = parseIncreaseLiquidity(buffer, accounts);
-                    info.put("type", "increaseLiquidity");
-                    return info;
-                case INCREASE_LIQUIDITY_V2: // 18
-                    info = parseIncreaseLiquidityV2(buffer, accounts);
-                    info.put("type", "increaseLiquidityV2");
-                    return info;
-                case DECREASE_LIQUIDITY: // 19
-                    info = parseDecreaseLiquidity(buffer, accounts);
-                    info.put("type", "decreaseLiquidity");
-                    return info;
-                case DECREASE_LIQUIDITY_V2: // 20
-                    info = parseDecreaseLiquidityV2(buffer, accounts);
-                    info.put("type", "decreaseLiquidityV2");
-                    return info;
-
-                // === 交易操作 (21-23) ===
-                case SWAP: // 21
-                    info = parseSwap(buffer, accounts);
-                    info.put("type", "swap");
-                    return info;
-                case SWAP_V2: // 22
-                    info = parseSwapV2(buffer, accounts);
-                    info.put("type", "swapV2");
-                    return info;
-                case SWAP_ROUTER_BASE_IN: // 23
-                    info = parseSwapRouterBaseIn(buffer, accounts);
-                    info.put("type", "swapRouterBaseIn");
-                    return info;
-
-                default:
-                    info.put("error", "Unknown instruction type: " + instruction.name());
-                    info.put("type", "unknown");
-                    return info;
-            }
-        } catch (Exception e) {
-            info.put("error", "Failed to parse " + instruction.name() + " parameters: " + e.getMessage());
-            info.put("type", "error");
-            return info;
+            // === 交易操作 (21-23) ===
+            case SWAP: // 21
+                info = parseSwap(buffer, accounts);
+                break;
+            case SWAP_V2: // 22
+                info = parseSwapV2(buffer, accounts);
+                break;
+            case SWAP_ROUTER_BASE_IN: // 23
+                info = parseSwapRouterBaseIn(buffer, accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
+        return info;
     }
+
     private static Map<String, Object> parseCreateAmmConfig(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         // 存储解析的字段

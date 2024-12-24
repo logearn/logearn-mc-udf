@@ -1,118 +1,77 @@
 package cn.xlystar.parse.solSwap.raydium.amm_v4;
 
+import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RaydiumAmmInstructionParser {
+public class RaydiumAmmInstructionParser extends InstructionParser {
 
     private static final String PROGRAM_ID = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
 
-    public static Map<String, Object> parseInstruction(byte[] data, String[] accounts) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (data == null || data.length == 0) {
-            result.put("error", "Invalid instruction data");
-            return result;
-        }
-
-        try {
-            int discriminator = data[0] & 0xFF;
-            RaydiumAmmInstruction instructionType = RaydiumAmmInstruction.fromValue(discriminator);
-
-            ByteBuffer buffer = ByteBuffer.wrap(data, 1, data.length - 1).order(ByteOrder.LITTLE_ENDIAN);
-            Map<String, Object> info = parseInstructionInfo(instructionType, buffer, accounts);
-            result.put("info", info);
-
-        } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
-        }
-
-        return result;
+    @Override
+    public String getMethodId(ByteBuffer buffer) {
+        return buffer.get() + "";
     }
 
-    private static Map<String, Object> parseInstructionInfo(RaydiumAmmInstruction instruction, ByteBuffer buffer, String[] accounts) {
-        Map<String, Object> info = new HashMap<>();
-
-        try {
-            switch (instruction) {
-                case INITIALIZE:
-                    info = parseInitialize(buffer, accounts);
-                    info.put("type", "initialize");
-                    return info;
-                case INITIALIZE2:
-                    info = parseInitialize2(buffer, accounts);
-                    info.put("type", "initialize2");
-                    return info;
-                case MONITOR_STEP:
-                    info = parseMonitorStep(buffer, accounts);
-                    info.put("type", "monitorStep");
-                    return info;
-                case DEPOSIT:
-                    info = parseDeposit(buffer, accounts);
-                    info.put("type", "deposit");
-                    return info;
-                case WITHDRAW:
-                    info = parseWithdraw(buffer, accounts);
-                    info.put("type", "withdraw");
-                    return info;
-                case MIGRATE_TO_OPEN_BOOK:
-                    info = parseMigrateToOpenBook(buffer, accounts);
-                    info.put("type", "migrateToOpenBook");
-                    return info;
-                case SET_PARAMS:
-                    info = parseSetParams(buffer, accounts);
-                    info.put("type", "setParams");
-                    return info;
-                case WITHDRAW_PNL:
-                    info = parseWithdrawPnl(buffer, accounts);
-                    info.put("type", "withdrawPnl");
-                    return info;
-                case WITHDRAW_SRM:
-                    info = parseWithdrawSrm(buffer, accounts);
-                    info.put("type", "withdrawSrm");
-                    return info;
-                case SWAP_BASE_IN:
-                    info = parseSwapBaseIn(buffer, accounts);
-                    info.put("type", "swapBaseIn");
-                    return info;
-                case PRE_INITIALIZE:
-                    info = parsePreInitialize(buffer, accounts);
-                    info.put("type", "preInitialize");
-                    return info;
-                case SWAP_BASE_OUT:
-                    info = parseSwapBaseOut(buffer, accounts);
-                    info.put("type", "swapBaseOut");
-                    return info;
-                case SIMULATE_INFO:
-                    info = parseSimulateInfo(buffer, accounts);
-                    info.put("type", "simulateInfo");
-                    return info;
-                case ADMIN_CANCEL_ORDERS:
-                    info = parseAdminCancelOrders(buffer, accounts);
-                    info.put("type", "adminCancelOrders");
-                    return info;
-                case CREATE_CONFIG_ACCOUNT:
-                    info = parseCreateConfigAccount(buffer, accounts);
-                    info.put("type", "createConfigAccount");
-                    return info;
-                case UPDATE_CONFIG_ACCOUNT:
-                    info = parseUpdateConfigAccount(buffer, accounts);
-                    info.put("type", "updateConfigAccount");
-                    return info;
-                default:
-                    info.put("error", "Unknown instruction type: " + instruction.name());
-                    info.put("type", "unknown");
-                    return info;
-            }
-        } catch (Exception e) {
-            info.put("error", "Failed to parse " + instruction.name() + " parameters: " + e.getMessage());
-            info.put("type", "error");
-            return info;
+    @Override
+    public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info;
+        switch (RaydiumAmmInstruction.fromValue(Integer.parseInt(methodId))) {
+            case INITIALIZE:
+                info = parseInitialize(buffer, accounts);
+                break;
+            case INITIALIZE2:
+                info = parseInitialize2(buffer, accounts);
+                break;
+            case MONITOR_STEP:
+                info = parseMonitorStep(buffer, accounts);
+                break;
+            case DEPOSIT:
+                info = parseDeposit(buffer, accounts);
+                break;
+            case WITHDRAW:
+                info = parseWithdraw(buffer, accounts);
+                break;
+            case MIGRATE_TO_OPEN_BOOK:
+                info = parseMigrateToOpenBook(buffer, accounts);
+                break;
+            case SET_PARAMS:
+                info = parseSetParams(buffer, accounts);
+                break;
+            case WITHDRAW_PNL:
+                info = parseWithdrawPnl(buffer, accounts);
+                break;
+            case WITHDRAW_SRM:
+                info = parseWithdrawSrm(buffer, accounts);
+                break;
+            case SWAP_BASE_IN:
+                info = parseSwapBaseIn(buffer, accounts);
+                break;
+            case PRE_INITIALIZE:
+                info = parsePreInitialize(buffer, accounts);
+                break;
+            case SWAP_BASE_OUT:
+                info = parseSwapBaseOut(buffer, accounts);
+                break;
+            case SIMULATE_INFO:
+                info = parseSimulateInfo(buffer, accounts);
+                break;
+            case ADMIN_CANCEL_ORDERS:
+                info = parseAdminCancelOrders(buffer, accounts);
+                break;
+            case CREATE_CONFIG_ACCOUNT:
+                info = parseCreateConfigAccount(buffer, accounts);
+                break;
+            case UPDATE_CONFIG_ACCOUNT:
+                info = parseUpdateConfigAccount(buffer, accounts);
+                break;
+            default:
+                return new HashMap<>();
         }
+        return info;
     }
 
     ///   Initializes a new AmmInfo.
@@ -653,32 +612,32 @@ public class RaydiumAmmInstructionParser {
     /**
      * 解析设置参数指令
      * ///   Set AMM params
-     *     ///
-     *     ///   0. `[]` Spl Token program id
-     *     ///   1. `[writable]` AMM Account.
-     *     ///   2. `[]` $authority derived from `create_program_address(&[AUTHORITY_AMM, &[nonce]])`.
-     *     ///   3. `[writable]` AMM open orders Account
-     *     ///   4. `[writable]` AMM target orders Account
-     *     ///   5. `[writable]` AMM coin vault account owned by $authority,
-     *     ///   6. `[writable]` AMM pc vault account owned by $authority,
-     *     ///   7. `[]` Market program id
-     *     ///   8. `[writable]` Market Account. Market program is the owner.
-     *     ///   9. `[writable]` Market coin vault Account
-     *     ///   10. `[writable]` Market pc vault Account
-     *     ///   11. '[]` Market vault signer Account
-     *     ///   12. `[writable]` Market event queue Account
-     *     ///   13. `[writable]` Market bids Account
-     *     ///   14. `[writable]` Market asks Account
-     *     ///   15. `[signer]` Admin Account
-     *     ///   16. `[]` (optional) New AMM open orders Account to replace old AMM open orders Account
-     *     SetParams(SetParamsInstruction),
-     *     pub struct SetParamsInstruction {
-     *          pub param: u8,
-     *          pub value: Option<u64>,
-     *          pub new_pubkey: Option<Pubkey>,
-     *          pub fees: Option<Fees>,
-     *          pub last_order_distance: Option<LastOrderDistance>,
-     *      }
+     * ///
+     * ///   0. `[]` Spl Token program id
+     * ///   1. `[writable]` AMM Account.
+     * ///   2. `[]` $authority derived from `create_program_address(&[AUTHORITY_AMM, &[nonce]])`.
+     * ///   3. `[writable]` AMM open orders Account
+     * ///   4. `[writable]` AMM target orders Account
+     * ///   5. `[writable]` AMM coin vault account owned by $authority,
+     * ///   6. `[writable]` AMM pc vault account owned by $authority,
+     * ///   7. `[]` Market program id
+     * ///   8. `[writable]` Market Account. Market program is the owner.
+     * ///   9. `[writable]` Market coin vault Account
+     * ///   10. `[writable]` Market pc vault Account
+     * ///   11. '[]` Market vault signer Account
+     * ///   12. `[writable]` Market event queue Account
+     * ///   13. `[writable]` Market bids Account
+     * ///   14. `[writable]` Market asks Account
+     * ///   15. `[signer]` Admin Account
+     * ///   16. `[]` (optional) New AMM open orders Account to replace old AMM open orders Account
+     * SetParams(SetParamsInstruction),
+     * pub struct SetParamsInstruction {
+     * pub param: u8,
+     * pub value: Option<u64>,
+     * pub new_pubkey: Option<Pubkey>,
+     * pub fees: Option<Fees>,
+     * pub last_order_distance: Option<LastOrderDistance>,
+     * }
      */
     private static Map<String, Object> parseSetParams(ByteBuffer buffer, String[] accounts) {
 
@@ -795,31 +754,31 @@ public class RaydiumAmmInstructionParser {
 
     /**
      * 解析迁移到OpenBook指令
-     *
+     * <p>
      * ///   Migrate the associated market from Serum to OpenBook.
-     *     ///
-     *     ///   0. `[]` Spl Token program id
-     *     ///   1. `[]` Sys program id
-     *     ///   2. `[]` Rent program id
-     *     ///   3. `[writable]` AMM Account
-     *     ///   4. `[]` $authority derived from `create_program_address(&[AUTHORITY_AMM, &[nonce]])`.
-     *     ///   5. `[writable]` AMM open orders Account
-     *     ///   6. `[writable]` AMM coin vault account owned by $authority,
-     *     ///   7. `[writable]` AMM pc vault account owned by $authority,
-     *     ///   8. `[writable]` AMM target orders Account
-     *     ///   9. `[]` Market program id
-     *     ///   10. `[writable]` Market Account. Market program is the owner.
-     *     ///   11. `[writable]` Market bids Account
-     *     ///   12. `[writable]` Market asks Account
-     *     ///   13. `[writable]` Market event queue Account
-     *     ///   14. `[writable]` Market coin vault Account
-     *     ///   15. `[writable]` Market pc vault Account
-     *     ///   16. '[]` Market vault signer Account
-     *     ///   17. '[writable]` AMM new open orders Account
-     *     ///   18. '[]` mew Market program id
-     *     ///   19. '[]` new Market market Account
-     *     ///   20. '[]` Admin Account
-     *     MigrateToOpenBook,
+     * ///
+     * ///   0. `[]` Spl Token program id
+     * ///   1. `[]` Sys program id
+     * ///   2. `[]` Rent program id
+     * ///   3. `[writable]` AMM Account
+     * ///   4. `[]` $authority derived from `create_program_address(&[AUTHORITY_AMM, &[nonce]])`.
+     * ///   5. `[writable]` AMM open orders Account
+     * ///   6. `[writable]` AMM coin vault account owned by $authority,
+     * ///   7. `[writable]` AMM pc vault account owned by $authority,
+     * ///   8. `[writable]` AMM target orders Account
+     * ///   9. `[]` Market program id
+     * ///   10. `[writable]` Market Account. Market program is the owner.
+     * ///   11. `[writable]` Market bids Account
+     * ///   12. `[writable]` Market asks Account
+     * ///   13. `[writable]` Market event queue Account
+     * ///   14. `[writable]` Market coin vault Account
+     * ///   15. `[writable]` Market pc vault Account
+     * ///   16. '[]` Market vault signer Account
+     * ///   17. '[writable]` AMM new open orders Account
+     * ///   18. '[]` mew Market program id
+     * ///   19. '[]` new Market market Account
+     * ///   20. '[]` Admin Account
+     * MigrateToOpenBook,
      */
     private static Map<String, Object> parseMigrateToOpenBook(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
@@ -830,9 +789,9 @@ public class RaydiumAmmInstructionParser {
      * 解析管理员取消订单指令
      * <p>
      * AdminCancelOrders(AdminCancelOrdersInstruction),
-     *      pub struct AdminCancelOrdersInstruction {
-     *          pub limit: u16,
-     *      }
+     * pub struct AdminCancelOrdersInstruction {
+     * pub limit: u16,
+     * }
      */
     private static Map<String, Object> parseAdminCancelOrders(ByteBuffer buffer, String[] accounts) {
         if (accounts.length < 8) {
