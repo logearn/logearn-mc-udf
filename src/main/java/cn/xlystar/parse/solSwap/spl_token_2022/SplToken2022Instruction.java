@@ -61,23 +61,19 @@ public enum SplToken2022Instruction {
     MemoTransferExtension(30),
     CreateNativeMint(31),
     // Token 2022 新增指令
-    InitializeInterestBearingConfig(32),
-    UpdateRateInterestBearingConfig(33),
-    EnableCpiGuard(34),
-    WithdrawWithheldTokensFromAccounts(35),
-    WithdrawWithheldTokensFromMint(36),
-    InitializePermanentDelegate(37),
-    TransferFeeConfig(38),//
-    WithholdFee(39),//
-    HarvestWithheldTokensToMint(40),
-    UpdateInterestAccrual(41),
-    DisableCpiGuard(42),
-    InitializeMetadataPointer(43),
-    UpdateMetadataPointer(44),
-    InitializeGroupPointer(45),
-    UpdateGroupPointer(46),
-    InitializeGroupMemberPointer(47),
-    UpdateGroupMemberPointer(48);
+    InitializeNonTransferableMint(32),
+    InterestBearingMintExtension(33),
+    CpiGuardExtension(34),
+    InitializePermanentDelegate(35),
+    TransferHookExtension(36),
+    ConfidentialTransferFeeExtension(37),
+    WithdrawExcessLamports(38),
+    MetadataPointerExtension(39),
+    GroupPointerExtension(40),
+    GroupMemberPointerExtension(41),
+    ConfidentialMintBurnExtension(42),
+    ScaledUiAmountExtension(43),
+    PausableExtension(44);
 
     private final int value;
 
