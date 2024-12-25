@@ -43,6 +43,9 @@ public class PumpDotFunInstructionParser extends InstructionParser {
             case WITHDRAW:
                 info = parseWithdraw(buffer, accounts);
                 break;
+            case ANCHOR_SELF_CPI_LOG:
+                info = parseAnchorSelfCpiLog(buffer, accounts);
+                break;
             default:
                 return new HashMap<>();
         }
@@ -170,6 +173,11 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         info.put("rent", accounts[8]);
         info.put("eventAuthority", accounts[9]);
         info.put("program", accounts[10]);
+        return info;
+    }
+
+    private static Map<String, Object> parseAnchorSelfCpiLog(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
         return info;
     }
 

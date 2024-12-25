@@ -13,13 +13,7 @@ public class SolInstructionProcessor {
         if (parser == null) {
             return null;
         }
-        // 2、异常处理
-        Map<String, Object> res = new HashMap<>();
-        if (StringUtils.isEmpty(instructionData) || StringUtils.isEmpty(programId)) {
-            res.put("error", "programId is null or instruction data is null");
-            return res;
-        }
-        // 3、解析
+        // 2、解析
         return parser.parseInstruction(Base58.decode(instructionData), inputAccount);
     }
 

@@ -2,6 +2,7 @@ package cn.xlystar.parse.solSwap.raydium.clmm;
 
 import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
+import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -16,7 +17,9 @@ public class RaydiumClmmInstructionParser extends InstructionParser {
 
     @Override
     public String getMethodId(ByteBuffer buffer) {
-        return Long.toUnsignedString(buffer.getLong());
+        byte[] methodIdByte = new byte[8];
+        buffer.get(methodIdByte);
+        return Hex.toHexString(methodIdByte);
     }
 
     @Override
@@ -435,10 +438,10 @@ public class RaydiumClmmInstructionParser extends InstructionParser {
         info.put("liquidity", liquidity.toString());
         info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
         info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("base_flag", 0);
         } else {
-            buffer.get();
+            ;
             info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
 
@@ -783,10 +786,10 @@ public class RaydiumClmmInstructionParser extends InstructionParser {
         info.put("liquidity", liquidity.toString());
         info.put("amount_0_max", Long.toUnsignedString(buffer.getLong()));
         info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("base_flag", 0);
         } else {
-            buffer.get();
+            ;
             info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
 
@@ -824,10 +827,10 @@ public class RaydiumClmmInstructionParser extends InstructionParser {
         info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
 
         info.put("with_metadata", Byte.toUnsignedInt(buffer.get()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("base_flag", 0);
         } else {
-            buffer.get();
+            ;
             info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
 
@@ -871,10 +874,10 @@ public class RaydiumClmmInstructionParser extends InstructionParser {
         info.put("amount_1_max", Long.toUnsignedString(buffer.getLong()));
 
         info.put("with_metadata", Byte.toUnsignedInt(buffer.get()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("base_flag", 0);
         } else {
-            buffer.get();
+            ;
             info.put("base_flag", Byte.toUnsignedInt(buffer.get()));
         }
 

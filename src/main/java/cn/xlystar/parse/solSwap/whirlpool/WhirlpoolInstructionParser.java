@@ -544,12 +544,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         info.put("sqrtPriceLimit", sqrtPriceLimit.toString());
         info.put("amountSpecifiedIsInput", buffer.get());
         info.put("aToB", buffer.get());
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
+
 
         // 解析账户
         info.put("tokenProgramA", accounts[0]);
@@ -588,10 +588,9 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         String twohigh = Long.toUnsignedString(buffer.getLong()); // 读取高位
         BigInteger sqrtPriceLimitTwo = new BigInteger(twohigh).shiftLeft(64).or(new BigInteger(twolow));
         info.put("sqrtPriceLimitTwo", sqrtPriceLimitTwo);
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
 
@@ -626,12 +625,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
     private static Map<String, Object> parseCollectFeesV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
+
         // 解析账户
         info.put("whirlpool", accounts[0]); // whirlpool 账户
         info.put("position_authority", accounts[1]); // 位置授权账户
@@ -700,14 +699,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         Map<String, Object> info = new HashMap<>();
 
         // 解析账户
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 3) {
-            accountMap.put("tokenBadge", accounts[0]);
-            accountMap.put("tokenBadgeAuthority", accounts[1]);
-            accountMap.put("receiver", accounts[2]);
-        }
-        info.put("accounts", accountMap);
-
+        info.put("whirlpools_config", accounts[0]); // whirlpools 配置账户
+        info.put("whirlpools_config_extension", accounts[1]); // whirlpools 配置扩展账户
+        info.put("token_badge_authority", accounts[2]); // 代币徽章授权账户
+        info.put("token_mint", accounts[3]); // 代币 mint 账户
+        info.put("token_badge", accounts[4]); // 代币徽章账户
+        info.put("receiver", accounts[5]); // 接受账号
         return info;
     }
 
@@ -851,12 +848,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         info.put("liquidityAmount", liquidityAmount.toString());
         info.put("tokenMaxA", Long.toUnsignedString(buffer.getLong()));
         info.put("tokenMaxB", Long.toUnsignedString(buffer.getLong()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
+
 
         // 解析账户
         info.put("whirlpool", accounts[0]); // 流动性池账户
@@ -887,12 +884,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         info.put("liquidityAmount", liquidityAmount.toString());
         info.put("tokenMinA", Long.toUnsignedString(buffer.getLong()));
         info.put("tokenMinB", Long.toUnsignedString(buffer.getLong()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
+
         // 账户信息
         info.put("whirlpool", accounts[0]); // 流动性池账户
         info.put("token_program_a", accounts[1]); // 代币 A 程序账户
@@ -916,15 +913,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
     private static Map<String, Object> parseInitializeConfigExtension(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        // 解析账户
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 4) {
-            accountMap.put("config", accounts[0]);
-            accountMap.put("configExtension", accounts[1]);
-            accountMap.put("funder", accounts[2]);
-            accountMap.put("systemProgram", accounts[3]);
-        }
-        info.put("accounts", accountMap);
+        // 账户信息
+        info.put("config", accounts[0]); // 配置账户
+        info.put("config_extension", accounts[1]); // 扩展配置账户
+        info.put("funder", accounts[2]); // 资金提供者账户
+        info.put("fee_authority", accounts[3]); // fee 权限账号
+        info.put("system_program", accounts[4]); // 系统程序账户
 
         return info;
     }
@@ -967,12 +961,12 @@ public class WhirlpoolInstructionParser extends InstructionParser {
 
         // 解析参数
         info.put("reward_index", Byte.toUnsignedInt(buffer.get()));
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
+
         // 账户信息
         info.put("whirlpool", accounts[0]); // whirlpool 账户
         info.put("position_authority", accounts[1]); // 位置授权账户
@@ -990,10 +984,9 @@ public class WhirlpoolInstructionParser extends InstructionParser {
     private static Map<String, Object> parseCollectProtocolFeesV2(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
-        if (buffer.limit() - buffer.position() < 2) {
+        if (buffer.get() == 0) {
             info.put("remainingAccountsInfo", 0);
         } else {
-            buffer.get();
             info.put("remainingAccountsInfo", buffer.get());
         }
 

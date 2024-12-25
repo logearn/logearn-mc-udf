@@ -1,6 +1,7 @@
 package cn.xlystar.mc.udf;
 
 import cn.xlystar.parse.solSwap.SolInstructionProcessor;
+import com.alibaba.fastjson.JSON;
 import com.aliyun.odps.udf.UDF;
 
 import java.io.IOException;
@@ -19,8 +20,8 @@ public class SolParse extends UDF {
     public SolParse() {
     }
 
-    public Map<String, Object> evaluate(String programId, List<String> accounts, String data) throws IOException {
-        return SolInstructionProcessor.processInstruction(programId, accounts.toArray(new String[0]), data);
+    public String evaluate(String programId, List<String> accounts, String data) throws IOException {
+        return JSON.toJSONString(SolInstructionProcessor.processInstruction(programId, accounts.toArray(new String[0]), data));
     }
 
     public static void main(String[] args) throws Exception {

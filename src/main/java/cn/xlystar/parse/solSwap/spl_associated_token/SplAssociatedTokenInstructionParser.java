@@ -9,6 +9,9 @@ import java.util.Map;
 public class SplAssociatedTokenInstructionParser extends InstructionParser {
     @Override
     public String getMethodId(ByteBuffer buffer) {
+        if (buffer.limit() <= 0) {
+            return SplAssociatedTokenInstruction.Create.getValue() + "";
+        }
         return buffer.get() + "";
     }
 

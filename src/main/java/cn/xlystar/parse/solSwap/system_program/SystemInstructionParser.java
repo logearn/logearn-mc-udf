@@ -9,8 +9,12 @@ import java.nio.ByteBuffer;
 public class SystemInstructionParser extends InstructionParser {
     @Override
     public String getMethodId(ByteBuffer buffer) {
-
-        return buffer.getInt() + "";
+        String methodId = buffer.get() + "";
+        if (buffer.limit() >= 4) {
+            // 填充移动
+            buffer.get(new byte[3]);
+        }
+        return methodId;
     }
 
     public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {

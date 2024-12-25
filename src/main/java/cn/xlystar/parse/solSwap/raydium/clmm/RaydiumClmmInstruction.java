@@ -25,7 +25,7 @@ public enum RaydiumClmmInstruction {
     COLLECT_FUND_FEE("a78a4e95dfc2067e"),              // 收集资金费用
     OPEN_POSITION("87802f4d0f98f031"),                 // 开仓
     OPEN_POSITION_V2("4db84ad67056f1c7"),              // 开仓V2
-    OPEN_POSITION_WITH_TOKEN22_NFT("15"),// 使用Token22 NFT开仓 [todo]  调整指令标识符
+    OPEN_POSITION_WITH_TOKEN22_NFT("4dffae527d1dc92e"), // 使用Token22 NFT开仓
     CLOSE_POSITION("7b86510031446262"),                // 关仓
     INCREASE_LIQUIDITY("2e9cf3760dcdfbb2"),            // 增加流动性
     INCREASE_LIQUIDITY_V2("851d59df45eeb00a"),         // 增加流动性V2

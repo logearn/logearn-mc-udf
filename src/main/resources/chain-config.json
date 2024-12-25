@@ -63,9 +63,9 @@
     "chain_id": "-10",
     "chain_name": "solana",
     "coin": "SOL",
-    "wcoin": "SOL",
+    "wcoin": "WSOL",
     "tokens": {
-      "SQL": {"address": "sol", "scale": "1e9", "name": "SOL" }
+      "SQL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "name": "WSOL" }
     },
     "protocols": {
       "system_program": {

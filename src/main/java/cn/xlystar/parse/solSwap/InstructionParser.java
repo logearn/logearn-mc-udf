@@ -1,10 +1,11 @@
 package cn.xlystar.parse.solSwap;
 
-import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstruction;
 import org.apache.commons.collections.MapUtils;
+import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,23 +26,14 @@ public abstract class InstructionParser {
         Map<String, Object> result = new HashMap<>();
         ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
 
-        WhirlpoolInstruction instructionType = null;
-        String discriminator = "";
         try {
-            discriminator = getMethodId(buffer);
-            instructionType = WhirlpoolInstruction.fromValue(discriminator);
-        } catch (Exception e) {
-            result.put("unparsed", discriminator);
-            return result;
-        }
-        result.put("type", instructionType.name());
-
-        try {
-            Map<String, Object> info = matchInstruction(instructionType.getValue(), buffer, accounts);
-            if (MapUtils.isEmpty(info)) return result;
+            String discriminator = getMethodId(buffer);
+            result.put("method_id", discriminator);
+            Map<String, Object> info = matchInstruction(discriminator, buffer, accounts);
+            if (MapUtils.isEmpty(info)) result.put("unparsed", discriminator);
             else result.put("info", info);
         } catch (Exception e) {
-            result.put("error", "Failed to parse instruction: " + e.getMessage());
+            result.put("error", "data:" + Hex.toHexString(data) + ", accounts: " + Arrays.toString(accounts) + ", Failed to parse instruction: " + Arrays.toString(Arrays.stream(e.getStackTrace()).toArray()));
         }
         return result;
     }

@@ -13,7 +13,8 @@ public enum PumpDotFunInstruction {
     SET_PARAMS("1beab2349302bb8d"),               // 设置参数
     BUY("66063d1201daebea"),                      // 购买代币
     SELL("33e685a4017f83ad"),                     // 出售代币
-    WITHDRAW("b712469c946da122");                 // 提取资金
+    WITHDRAW("b712469c946da122"),                 // 提取资金
+    ANCHOR_SELF_CPI_LOG("e445a52e51cb9a1d");                 // CPI 日志
 
     private final String value;
 

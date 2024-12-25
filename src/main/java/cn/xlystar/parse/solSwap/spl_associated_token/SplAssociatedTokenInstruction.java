@@ -45,6 +45,6 @@ public enum SplAssociatedTokenInstruction {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown instruction type: " + value);
+        throw new IllegalArgumentException("SplAssociatedTokenInstruction Unknown instruction type: " + value);
     }
 } 
