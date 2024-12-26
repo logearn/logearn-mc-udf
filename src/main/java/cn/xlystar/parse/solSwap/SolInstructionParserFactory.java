@@ -1,6 +1,7 @@
 package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.metaplex.MetadataInstructionParser;
+import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstructionParser;
@@ -37,6 +38,8 @@ public class SolInstructionParserFactory {
         configMap.put("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", new WhirlpoolInstructionParser());
         // pump.fun 协议
         configMap.put("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", new PumpDotFunInstructionParser());
+        // moonshot 协议
+        configMap.put("MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG", new MoonshotInstructionParser());
     }
 
     public static InstructionParser getParser(String key) {

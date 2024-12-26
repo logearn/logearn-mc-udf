@@ -10,7 +10,7 @@ package cn.xlystar.parse.solSwap.whirlpool;
  */
 public enum WhirlpoolInstruction {
     INITIALIZE_CONFIG("d07f1501c2bec446"),                    // 初始化配置
-    INITIALIZE_POOL("5fb40aac54aee828"),       // 初始化池子
+    INITIALIZE_POOL("5fb40aac54aee828"),                     // 初始化池子
     INITIALIZE_TICK_ARRAY("0bbcc1d68d5b95b8"),                // 初始化价格刻度数组
     INITIALIZE_FEE_TIER("b74a9ca070022a1e"),                  // 初始化费率层级
     INITIALIZE_REWARD("5f87c0c4f281e644"),                    // 初始化奖励
@@ -26,7 +26,7 @@ public enum WhirlpoolInstruction {
     SWAP("f8c69e91e17587c8"),                                // 交换
     CLOSE_POSITION("7b86510031446262"),                      // 平仓
     SET_DEFAULT_FEE_RATE("76d7d69db6e5d0e4"),                // 设置默认费率
-    SET_DEFAULT_PROTOCOL_FEE_RATE("17"),       // 设置默认协议费率 [todo] 无具体case
+    SET_DEFAULT_PROTOCOL_FEE_RATE("6bcdf9e297235600"),       // 设置默认协议费率
     SET_FEE_RATE("35f38941088c9e06"),          // 设置费率 [todo] 无具体case
     SET_PROTOCOL_FEE_RATE("5f0704329a4f9c83"), // 设置协议费率 [todo] 无具体case
     SET_FEE_AUTHORITY("1f013257ed656184"),     // 设置费用权限 [todo] 无具体case
@@ -40,8 +40,8 @@ public enum WhirlpoolInstruction {
     DELETE_POSITION_BUNDLE("64196302d9ef7cad"),              // 删除头寸包
     OPEN_BUNDLED_POSITION("a9717eabd5acd431"),               // 开启打包头寸
     CLOSE_BUNDLED_POSITION("2924d8f51b556743"),              // 关闭打包头寸
-    OPEN_POSITION_WITH_TOKEN_EXTENSIONS("31"), // 使用代币扩展开仓 [todo] 缺少case
-    CLOSE_POSITION_WITH_TOKEN_EXTENSIONS("32"), // 使用代币扩展平仓 [todo] 缺少case
+    OPEN_POSITION_WITH_TOKEN_EXTENSIONS("d42f5f5c726683fa"), // 使用代币扩展开仓
+    CLOSE_POSITION_WITH_TOKEN_EXTENSIONS(""), // 使用代币扩展平仓 [todo] 缺少case
     COLLECT_FEES_V2("cf755fbfe5b4e20f"),                    // 收取费用 V2
     COLLECT_PROTOCOL_FEES_V2("6780de8672c816c8"),           // 收取协议费 V2
     COLLECT_REWARD_V2("b16b25b4a01331d1"),                  // 收取奖励 V2

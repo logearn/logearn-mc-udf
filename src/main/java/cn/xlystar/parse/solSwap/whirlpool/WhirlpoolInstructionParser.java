@@ -480,12 +480,8 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         info.put("defaultProtocolFeeRate", defaultProtocolFeeRate);
 
         // 解析账户
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 2) {
-            accountMap.put("whirlpoolsConfig", accounts[0]);
-            accountMap.put("feeAuthority", accounts[1]);
-        }
-        info.put("accounts", accountMap);
+        info.put("whirlpoolsConfig", accounts[0]);
+        info.put("feeAuthority", accounts[1]);
 
         return info;
     }
@@ -1135,57 +1131,38 @@ public class WhirlpoolInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseOpenPositionWithTokenExtensions(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-
         // 解析参数
-        byte bumps = buffer.get();  // OpenPositionBumps
         int tickLowerIndex = buffer.getInt();
         int tickUpperIndex = buffer.getInt();
+        byte with_token_metadata = buffer.get();
 
-        info.put("bumps", bumps);
         info.put("tickLowerIndex", tickLowerIndex);
         info.put("tickUpperIndex", tickUpperIndex);
+        info.put("withTokenMetadata", with_token_metadata);
 
         // 解析账户
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 14) {
-            accountMap.put("funder", accounts[0]);
-            accountMap.put("owner", accounts[1]);
-            accountMap.put("position", accounts[2]);
-            accountMap.put("positionMint", accounts[3]);
-            accountMap.put("positionMetadataAccount", accounts[4]);
-            accountMap.put("positionTokenAccount", accounts[5]);
-            accountMap.put("whirlpool", accounts[6]);
-            accountMap.put("tokenProgram", accounts[7]);
-            accountMap.put("systemProgram", accounts[8]);
-            accountMap.put("rent", accounts[9]);
-            accountMap.put("associatedTokenProgram", accounts[10]);
-            accountMap.put("metadataProgram", accounts[11]);
-            accountMap.put("tokenBadge", accounts[12]);
-            accountMap.put("tokenBadgeAuthority", accounts[13]);
-        }
-        info.put("accounts", accountMap);
+        info.put("funder", accounts[0]); // funder
+        info.put("owner", accounts[1]); // owner
+        info.put("position", accounts[2]); // position
+        info.put("positionMint", accounts[3]); // position_mint
+        info.put("positionTokenAccount", accounts[4]); // position_token_account
+        info.put("whirlpool", accounts[5]); // whirlpool
+        info.put("token2022Program", accounts[6]); // token_2022_program
+        info.put("systemProgram", accounts[7]); // system_program
+        info.put("associatedTokenProgram", accounts[8]); // associated_token_program
+        info.put("metadataUpdateAuth", accounts[9]); // metadata_update_auth
 
         return info;
     }
 
     private static Map<String, Object> parseClosePositionWithTokenExtensions(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-
-        // 解析账户
-        Map<String, String> accountMap = new HashMap<>();
-        if (accounts.length >= 10) {
-            accountMap.put("positionAuthority", accounts[0]);
-            accountMap.put("receiver", accounts[1]);
-            accountMap.put("position", accounts[2]);
-            accountMap.put("positionMint", accounts[3]);
-            accountMap.put("positionTokenAccount", accounts[4]);
-            accountMap.put("tokenProgram", accounts[5]);
-            accountMap.put("tokenBadge", accounts[6]);
-            accountMap.put("tokenBadgeAuthority", accounts[7]);
-            accountMap.put("whirlpool", accounts[8]);
-            accountMap.put("systemProgram", accounts[9]);
-        }
-        info.put("accounts", accountMap);
+        info.put("positionAuthority", accounts[0]); // position_authority
+        info.put("receiver", accounts[1]); // receiver
+        info.put("position", accounts[2]); // position
+        info.put("positionMint", accounts[3]); // position_mint
+        info.put("positionTokenAccount", accounts[4]); // position_token_account
+        info.put("token2022Program", accounts[5]); // token_2022_program
 
         return info;
     }

@@ -160,12 +160,16 @@ public class MoonshotInstructionParser extends InstructionParser {
         info.put("curveTokenAccount", accounts[3]);
         info.put("migrationAuthorityTokenAccount", accounts[4]);
         info.put("mint", accounts[5]);
-        info.put("dexFeeAccount", accounts[6]);
-        info.put("helioFeeAccount", accounts[7]);
-        info.put("configAccount", accounts[8]);
-        if (accounts.length > 9) info.put("systemProgram", accounts[9]);
-        if (accounts.length > 10) info.put("tokenProgram", accounts[10]);
-        if (accounts.length > 11) info.put("associatedTokenProgram", accounts[11]);
+        int offset = 0;
+        if (accounts.length > 11) {
+            info.put("dexFeeAccount", accounts[6]);
+            info.put("helioFeeAccount", accounts[7]);
+            offset = 2;
+        }
+        info.put("configAccount", accounts[6+offset]);
+        info.put("systemProgram", accounts[7+offset]);
+        info.put("tokenProgram", accounts[8+offset]);
+        info.put("associatedTokenProgram", accounts[9+offset]);
 
         return info;
     }
