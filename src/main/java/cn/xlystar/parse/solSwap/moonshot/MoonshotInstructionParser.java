@@ -163,9 +163,9 @@ public class MoonshotInstructionParser extends InstructionParser {
         info.put("dexFeeAccount", accounts[6]);
         info.put("helioFeeAccount", accounts[7]);
         info.put("configAccount", accounts[8]);
-        info.put("systemProgram", accounts[9]);
-        info.put("tokenProgram", accounts[10]);
-        info.put("associatedTokenProgram", accounts[11]);
+        if (accounts.length > 9) info.put("systemProgram", accounts[9]);
+        if (accounts.length > 10) info.put("tokenProgram", accounts[10]);
+        if (accounts.length > 11) info.put("associatedTokenProgram", accounts[11]);
 
         return info;
     }
