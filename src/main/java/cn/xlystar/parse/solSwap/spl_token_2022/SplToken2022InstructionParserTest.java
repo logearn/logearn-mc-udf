@@ -163,7 +163,7 @@ public class SplToken2022InstructionParserTest {
             }
             byte[] data = Hex.decodeHex(base58Data.toCharArray());
             
-            Map<String, Object> result = SplToken2022InstructionParser.parseInstruction(data, accounts);
+            Map<String, Object> result = new SplToken2022InstructionParser().parseInstruction(data, accounts);
             System.out.println("✅ Parse result: " + result);
             
         } catch (Exception e) {

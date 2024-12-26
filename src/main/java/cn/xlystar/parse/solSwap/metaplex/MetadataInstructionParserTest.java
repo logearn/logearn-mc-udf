@@ -10,13 +10,30 @@ public class MetadataInstructionParserTest {
         System.out.println("Starting metaplex instruction parser tests...\n");
         
         // 基础代币操作 + 账户状态相关操作
-        testBasicPlusOperation();
+//        testUpdateMetadataAccountV2();
+        testCreateMetadataAccountV3();
 
-  
         System.out.println("\nAll tests completed!");
     }
 
-    
+    private static void testUpdateMetadataAccountV2() {
+        // ✅ UpdateMetadataAccountV2
+        String tx_hash4 = "5JWeuJsNER4YYHuHe3JPthzgWMDrQ8Us7h46AHx7RuRBzwqjoiVLTsNDCXVTUw7LHnCHbwvpBudNMi2sjAnqDSFJ";
+        String[] accounts4 = "98siPraHCUc2xM6jeLbRoiUSBRcunTE6tfC9i7Rx65zj, EZpCW9PJJ4W7CgRph6hDHd9pRhH8ihgeRNpqHPzaQybk"
+                .split(", ");
+        String base58Data4 = "0f0001547b14b269a4bba9ff53ff1b2d0c1cb2e09215a2a826d1bc9a2fdbfbb31a2f550000";  // amount=6579000000000
+        testInstruction("UpdateMetadataAccountV2", base58Data4, accounts4, tx_hash4);
+    }
+    private static void testCreateMetadataAccountV3() {
+        // ✅ CreateMetadataAccountV3
+        String tx_hash4 = "4UtBHVVUTJBFYKnNXpEM2FzXAf7gDpqGXv5dQqeaVYV1YTcKJCfMezsUULEpog4Wf73PKCFUQDeRrgtcTt5E8tyC";
+        String[] accounts4 = "Dudun6gH3PcyjiZ83nvPzDfHmrEfzq8UfVyHa4fCNVB, 69tSe4vcmKatbd2yvVLeYZKmtUG2RU7FE8FyJq9Upump, TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM, 8K8jy86YZDSzbqkA7zGvts4fuJidcfoQBxHaoJYW4ndr, TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM, 11111111111111111111111111111111"
+                .split(", ");
+        String base58Data4 = "210e0000005370696365206f66204172616b730500000073706963654300000068747470733a2f2f697066732e696f2f697066732f516d5432656764766f396f487833614b666a576341557236537166456354554361574c38514e57774c766e76736100000000000000";  // amount=6579000000000
+        testInstruction("CreateMetadataAccountV3", base58Data4, accounts4, tx_hash4);
+    }
+
+
     private static void testBasicPlusOperation() {        
 
         // ✅ CreateMetadataAccount
@@ -45,7 +62,7 @@ public class MetadataInstructionParserTest {
             }
             byte[] data = Hex.decodeHex(base58Data.toCharArray());
             
-            Map<String, Object> result = MetadataInstructionParser.parseInstruction(data, accounts);
+            Map<String, Object> result = new MetadataInstructionParser().parseInstruction(data, accounts);
             System.out.println("✅ Parse result: " + result);
             
         } catch (Exception e) {

@@ -11,30 +11,30 @@ package cn.xlystar.parse.solSwap.metaplex;
  * 2. 后续字节为指令参数
  */
 public enum MetadataInstruction {
-    CreateMetadataAccount(0),
-    UpdateMetadataAccount(1),
+    CreateMetadataAccount(0), // [todo] deprecated instruction
+    UpdateMetadataAccount(1), // [todo] deprecated instruction
     CreateMasterEdition(10),
     MintNewEditionFromMasterEditionViaToken(11),
     UpdateMetadataAccountV2(15),
-    CreateMetadataAccountV2(16),
+    CreateMetadataAccountV2(16), // [todo] deprecated instruction
     CreateMasterEditionV3(17), 
     CreateMetadataAccountV3(33),
     Burn(41),
     Create(42),
     Mint(43),
-    Migrate(48),
+    Migrate(48), // [todo] deprecated instruction
     Transfer(49),
     Update(50);
 
     // 以下是弃用的指令， 目前没解析
-    // DeprecatedCreateMasterEdition(2),
-    // DeprecatedMintNewEditionFromMasterEditionViaPrintingToken(3),
+    // DeprecatedCreateMasterEdition(2), // [todo] deprecated instruction
+    // DeprecatedMintNewEditionFromMasterEditionViaPrintingToken(3), // [todo] deprecated instruction
     // UpdatePrimarySaleHappenedViaToken(4),
-    // DeprecatedSetReservationList(5),
-    // DeprecatedCreateReservationList(6),
+    // DeprecatedSetReservationList(5), // [todo] deprecated instruction
+    // DeprecatedCreateReservationList(6),// [todo] deprecated instruction
     // SignMetadata(7),
-    // DeprecatedMintPrintingTokensViaToken(8),
-    // DeprecatedMintPrintingTokens(9),
+    // DeprecatedMintPrintingTokensViaToken(8), // [todo] deprecated instruction
+    // DeprecatedMintPrintingTokens(9), // [todo] deprecated instruction
     // ConvertMasterEditionV1ToV2(12),
     // MintNewEditionFromMasterEditionViaVaultProxy(13),
     // PuffMetadata(14),
