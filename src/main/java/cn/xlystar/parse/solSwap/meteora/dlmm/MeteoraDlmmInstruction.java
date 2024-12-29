@@ -9,24 +9,24 @@ package cn.xlystar.parse.solSwap.meteora.dlmm;
  */
 public enum MeteoraDlmmInstruction {
     // 解析的方法
-    INITIALIZE_LB_PAIR("032ca4b87b0df5b3"),                    // 初始化交易对
-    INITIALIZE_REWARD("66063d1201daebea"),                    // 初始化奖励
+    INITIALIZE_LB_PAIR("2d9aedd2dd0fa65c"),                    // 初始化交易对
+    INITIALIZE_REWARD("5f87c0c4f281e644"),                    // 初始化奖励
 
-    ADD_LIQUIDITY("33e685a4017f83ad"),                            // 添加流动性
-    ADD_LIQUIDITY_BY_WEIGHT("2ae50ae7bd3ec1ae"),          // 按权重添加流动性
+    ADD_LIQUIDITY("b59d59438fb63448"),                            // 添加流动性
+    ADD_LIQUIDITY_BY_WEIGHT("1c8cee63e7a21595"),          // 按权重添加流动性
     ADD_LIQUIDITY_ONE_SIDE("2ae50ae7bd3ec1ae"),           // 单边添加流动性    
-    INITIALIZE_POSITION("50256d88528759f1"),                 // 初始化仓位
-    SWAP("50256d88528759f1"),                                             // 交换
+    INITIALIZE_POSITION("dbc0ea47bebf6650"),                 // 初始化仓位
+    SWAP("f8c69e91e17587c8"),                                             // 交换
 
-    WITHDRAW_PROTOCOL_FEE("50256d88528759f1"),             // 提取协议费用
-    FUND_REWARD("50256d88528759f1"),                               // 注资奖励
-    UPDATE_REWARD_FUNDER("50256d88528759f1"),              // 更新奖励注资者
+    WITHDRAW_PROTOCOL_FEE("502564d88528759f1"),             // 提取协议费用
+    FUND_REWARD("bc32f9a55d97263f"),                               // 注资奖励
+    UPDATE_REWARD_FUNDER("50256d885286759f1"),              // 更新奖励注资者
     UPDATE_REWARD_DURATION("50256d88528759f1"),          // 更新奖励持续时间
     CLAIM_REWARD("claimReward"),                             // 领���奖励
     CLAIM_FEE("claimFee"),                                   // 领取费用
 
-    CLOSE_POSITION("closePosition"),                         // 关闭仓位
-    REMOVE_LIQUIDITY("removeLiquidity"),                      // 移除流动性
+    CLOSE_POSITION("7b86510031446262"),                         // 关闭仓位
+    REMOVE_LIQUIDITY("5055d14818ceb16c"),                      // 移除流动性
     REMOVE_LIQUIDITY_BY_RANGE("removeLiquidityByRange"),     // 按范围移除流动性
 
     // due 无数据,暂时不解析
