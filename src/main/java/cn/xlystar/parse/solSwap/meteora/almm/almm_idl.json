@@ -112,7 +112,6 @@
             "isMut": true,
             "isSigner": false,
             "docs": [
-              "Admin pool LP token account. Used to receive LP during first deposit (initialize pool)",
               "Admin pool LP token account. Used to receive LP during first deposit (initialize pool)"
             ]
           },

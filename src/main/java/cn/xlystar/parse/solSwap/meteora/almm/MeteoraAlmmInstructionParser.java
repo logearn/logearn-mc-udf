@@ -208,21 +208,26 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
     private static Map<String, Object> parseSwap(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         
-        // 解析参数 - 正确,需要amountIn和minimumAmountOut两个参数
+        // 参数解析正确,不需要修改
         info.put("amount_in", Long.toUnsignedString(buffer.getLong()));
         info.put("minimum_amount_out", Long.toUnsignedString(buffer.getLong()));
 
-        // 账户信息
-        info.put("user", accounts[0]);
-        info.put("pool", accounts[1]);
-        info.put("user_source_token", accounts[2]);
-        info.put("user_destination_token", accounts[3]);
-        info.put("source_vault", accounts[4]);
-        info.put("destination_vault", accounts[5]);
-        info.put("source_vault_lp", accounts[6]);
-        info.put("destination_vault_lp", accounts[7]);
-        info.put("token_program", accounts[8]);
-        info.put("vault_program", accounts[9]);
+        // 账户顺序需要修改为IDL中定义的顺序
+        info.put("pool", accounts[0]);
+        info.put("user_source_token", accounts[1]); 
+        info.put("user_destination_token", accounts[2]);
+        info.put("a_vault", accounts[3]);
+        info.put("b_vault", accounts[4]);
+        info.put("a_token_vault", accounts[5]);
+        info.put("b_token_vault", accounts[6]);
+        info.put("a_vault_lp_mint", accounts[7]);
+        info.put("b_vault_lp_mint", accounts[8]);
+        info.put("a_vault_lp", accounts[9]);
+        info.put("b_vault_lp", accounts[10]);
+        info.put("protocol_token_fee", accounts[11]);
+        info.put("user", accounts[12]);
+        info.put("vault_program", accounts[13]);
+        info.put("token_program", accounts[14]);
 
         return info;
     }
@@ -237,11 +242,13 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
         info.put("owner", accounts[0]);
         info.put("pool", accounts[1]);
         info.put("lock_escrow", accounts[2]);
-        info.put("owner_token_a", accounts[3]);
-        info.put("owner_token_b", accounts[4]);
-        info.put("protocol_token_a_fee", accounts[5]);
-        info.put("protocol_token_b_fee", accounts[6]);
-        info.put("token_program", accounts[7]);
+        info.put("owner_lp", accounts[3]);
+        info.put("escrow_lp", accounts[4]);
+        info.put("owner_token_a_fee", accounts[5]);
+        info.put("owner_token_b_fee", accounts[6]);
+        info.put("protocol_token_a_fee", accounts[7]);
+        info.put("protocol_token_b_fee", accounts[8]);
+        info.put("token_program", accounts[9]);
 
         return info;
     }
@@ -255,16 +262,22 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
         info.put("min_lp_amount", Long.toUnsignedString(buffer.getLong()));
 
         // 账户信息
-        info.put("user", accounts[0]);
-        info.put("pool", accounts[1]);
-        info.put("user_token_a", accounts[2]);
-        info.put("user_token_b", accounts[3]);
-        info.put("user_lp", accounts[4]);
-        info.put("token_a_vault", accounts[5]);
-        info.put("token_b_vault", accounts[6]);
-        info.put("lp_mint", accounts[7]);
-        info.put("token_program", accounts[8]);
-        info.put("vault_program", accounts[9]);
+        info.put("pool", accounts[0]);
+        info.put("lp_mint", accounts[1]); 
+        info.put("user", accounts[2]);
+        info.put("user_token_a", accounts[3]);
+        info.put("user_token_b", accounts[4]);
+        info.put("user_lp", accounts[5]);
+        info.put("token_program", accounts[6]);
+        info.put("a_token_vault", accounts[7]);
+        info.put("b_token_vault", accounts[8]);
+        info.put("a_vault", accounts[9]);
+        info.put("b_vault", accounts[10]);
+        info.put("a_vault_lp", accounts[11]);
+        info.put("b_vault_lp", accounts[12]);
+        info.put("a_vault_lp_mint", accounts[13]);
+        info.put("b_vault_lp_mint", accounts[14]);
+        info.put("vault_program", accounts[15]);
 
         return info;
     }
