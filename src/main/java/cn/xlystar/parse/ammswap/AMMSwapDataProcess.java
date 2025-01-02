@@ -1,6 +1,7 @@
 package cn.xlystar.parse.ammswap;
 
 import cn.xlystar.entity.TransferEvent;
+import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,17 +21,12 @@ public class AMMSwapDataProcess {
 
         // 从logs中解析swap
         List<Map<String, String>> maps = AMMSwapDataProcessFull.parseFullUniswap(from, conf, logs, hash, validInternalTxs);
-        for (int i = 0, len = maps.size(); i < len; i++) {
-            Map<String, String> t = maps.get(i);
-            if (t.get("errorMsg") != null || t.get("tokenIn") == null || t.get("tokenOut") == null) {
-                maps.remove(i);
-                len--;
-                i--;
-            }
-        }
         return maps;
     }
 
+    public static List<Map<String, String>> decodeSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents) {
+        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents);
+    }
 
 
 

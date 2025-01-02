@@ -1,107 +1,86 @@
 package cn.xlystar.mc.udf;
 
-import cn.xlystar.entity.ParseEntity;
-import cn.xlystar.utils.HttpClientUtil;
+import cn.xlystar.entity.TransferEvent;
+import cn.xlystar.entity.UniswapEvent;
+import cn.xlystar.helpers.ChainConfig;
+import cn.xlystar.helpers.ConfigHelper;
+import cn.xlystar.parse.ammswap.AMMSwapDataProcess;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.aliyun.odps.udf.UDF;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.collections.CollectionUtils;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 计算引擎：maxCompute
- * parse_data(String program_account, String data)
- * program_account：program_account 地址
+ * sol_amm_parse()
  * data: 要解析的数据
  */
 public class SolanaParse extends UDF {
-    private String BASE58 = "base58";
-    private String HEX = "hex";
-    private String URL = "/parse";
-    private final String protocol = "https://";
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    private Cache<String, String> loadingCache;
-
     public SolanaParse() {
-        loadingCache = Caffeine.newBuilder()
-                .recordStats()
-                //cache的初始容量
-                .initialCapacity(100000)
-                //cache最大缓存数
-                .maximumSize(100000)
-                .build();
     }
 
-    public String evaluate(String program_account, String data, String domain) {
-        String domainUrl = protocol + domain + URL;
-        // 1. 查询缓存
-        String result = loadingCache.getIfPresent(program_account + data);
-        if (result != null) {
-            log.info("Hit Cache: 命中率: {}, 被驱逐的缓存数量: {}, 指标：{}, result: {}",
-                    loadingCache.stats().hitRate(),
-                    loadingCache.stats().evictionCount(),
-                    loadingCache.stats(),
-                    result);
-            return result;
-        }
-        // 2. 发起请求
-        Map<String, String> map = new HashMap<>();
-        map.put("encoding", BASE58);
-        map.put("programid", program_account);
-        map.put("data", data);
-        Gson gson = new Gson();
-        String request_body = gson.toJson(map, new TypeToken<Map<String, String>>() {
-        }.getType());
+    public String evaluate(String originSender, String chainId, String protocol, String hash, List<String> swapEvents, List<String> transferEvents) throws IOException {
+        ChainConfig conf = new ConfigHelper().getConfig(chainId, protocol);
+        List<Map<String, String>> maps = new ArrayList<>();
+        String res = "";
 
-        // 需要返回实体
-        ParseEntity parseEntity = new ParseEntity();
-        // 计算请求时间
-        long start = System.currentTimeMillis();
-
+        List<UniswapEvent> swapEventLists = new ArrayList<>();
+        List<TransferEvent> transferEventLists = new ArrayList<>();
         try {
-            String result_json = HttpClientUtil.postJSON(domainUrl, request_body);
-            JSONObject resultObject = JSONObject.parseObject(result_json);
-            parseEntity.setInstruction_name(String.valueOf(((JSONObject) resultObject.get("data")).get("command")));
-            parseEntity.setInstruction_parameters(String.valueOf(((JSONObject) resultObject.get("data")).get("body")));
-
-            log.info("success! " + resultObject);
+            if (!CollectionUtils.isEmpty(swapEvents)) swapEventLists = swapEvents.stream().map(t -> {
+                JSONObject json = JSONObject.parseObject(t);
+                return UniswapEvent.builder()
+                        .to(json.getString("to"))
+                        .sender(json.getString("sender"))
+                        .tokenIn(json.getString("token_in"))
+                        .tokenOut(json.getString("token_out"))
+                        .amountIn(new BigInteger(json.getString("amount_in")))
+                        .amountOut(new BigInteger(json.getString("amount_out")))
+                        .logIndex(json.getBigInteger("log_index"))
+                        .contractAddress(json.getString("contract_address"))
+                        .version(json.getString("version"))
+                        .build();
+            }).collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(transferEvents)) transferEventLists = transferEvents.stream().map(t -> {
+                JSONObject json = JSONObject.parseObject(t);
+                return TransferEvent.builder()
+                        .sender(json.getString("sender"))
+                        .receiver(json.getString("receiver"))
+                        .blockTime(json.getInteger("block_time"))
+                        .amount(json.getBigInteger("amount"))
+                        .logIndex(json.getBigInteger("log_index"))
+                        .contractAddress(json.getString("contract_address"))
+                        .assetType(json.getString("asset_type"))
+                        .origin(json.getString("origin"))
+                        .build();
+            }).collect(Collectors.toList());
+            maps = AMMSwapDataProcess.decodeSwap(conf,
+                    originSender,
+                    hash,
+                    swapEventLists,
+                    transferEventLists
+            );
+            res = JSON.toJSONString(maps);
         } catch (Exception e) {
-            parseEntity.setInstruction_name("解析失败");
-            parseEntity.setInstruction_parameters(e.getMessage());
-
-            log.info("error! request_body: { error: \"{}\", program_account: \"{}\", data: {} } ", e.getMessage(), program_account, data);
+            e.printStackTrace();
+            throw new RuntimeException(String.format("swapEvents:%s, transferEvents:%s, hash:%s, stack:%s, msg:%s", swapEventLists, transferEventLists, hash, Arrays.toString(e.getStackTrace()), e.getLocalizedMessage()));
+        } catch (StackOverflowError | OutOfMemoryError e) {
+            e.printStackTrace();
+            maps = new ArrayList<>();
+            HashMap<String, String> errorSwap = new HashMap<>();
+            errorSwap.put("errorMsg", "oom");
+            errorSwap.put("chain", chainId);
+            errorSwap.put("protocol", protocol);
+            maps.add(errorSwap);
+            throw new RuntimeException(String.format("swapEvents:%s, transferEvents:%s, hash:%s", swapEvents, transferEvents, hash));
         }
-
-        result = JSONObject.toJSONString(parseEntity);
-        loadingCache.put(program_account + data, result);
-        log.info("Write Cache: 命中率: {}, 被驱逐的缓存数量: {}, 指标：{}",
-                loadingCache.stats().hitRate(),
-                loadingCache.stats().evictionCount(),
-                loadingCache.stats());
-        log.info("cost time: {} s", (System.currentTimeMillis() - start) / 1000F);
-        return result;
+        return res;
     }
 
-//    public static void main(String[] args) {
-//        SolanaParse solana_parse = new SolanaParse();
-//        for (int i = 0; i < 5; i++) {
-//            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn"));
-//        }
-////        for (int i = 0; i < 6; i++) {
-////            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
-////        }
-////        for (int i = 0; i < 5; i++) {
-////            System.out.println(solana_parse.evaluate("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "1Ajt59NQPCA4H6Ed4kLfLF8WRwQoVjnwh3vbzBJxtoLfujKChSAZtNBPBoqJvKm3YVdDWgSnfrEaeAPoXbPArEufw63d36PyL76hVW5uRtKTT3whnSE68RHvLhmLkJu2Pn3jvXwmF2yLnLVaUBWjEjwRgEqDZFH49zGGgHH39MqmcN6gtQMKySkSVV6MvRNFgdpUFA9TswxYiMn" + i));
-////        }
-////        System.out.println(solana_parse.evaluate("metaplexMetadata", "1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY1LkA5fhKvB7XqtkhvsGc4JB7rLt1PCrDzZq5w47zdJ91tok34mbjUjbxzJT6FPJsU7V8ZaNbrcXKPATv38roh8qLD1789FZAZ7VsZkUN6uacHocDPz7sHgAuLAoJPDjXE7DfAjxz6jci3qNBpvkCeQuWAJ4nFCmBAvUsrwdaywbDAUv2T3v51WZ7ayDkFq8NqVXsvA1RbtEpg8bB2KX6fNbpWv1jkc4jXYZRXWJLSGbfRoKiX4inHPeFo47rtegz74zks92zBNqbmfZ2HSg6WJkwdKgbHyo5JKBi1oGwkkzXNeaJXF9ByNHHpHGUXsGNi8Cq75Npz7qy3CaNgY"));
-//    }
-//
 
 }

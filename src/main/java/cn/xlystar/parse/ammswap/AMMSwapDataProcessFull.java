@@ -8,11 +8,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.beanutils.BeanUtils;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class AMMSwapDataProcessFull {
@@ -21,9 +23,24 @@ public class AMMSwapDataProcessFull {
      * 格式化最后的返回值
      */
     public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs) throws IOException {
-        List<Map<String, String>> lists = new ArrayList<>();
+        // 解析
         List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs);
-        uniswapEvents.forEach(t -> {
+        // 后缀处理
+        return processSwap(uniswapEvents, new ArrayList<>(), conf);
+    }
+
+    /**
+     * 格式化最后的返回值
+     */
+    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents) {
+        // 解析 solana swap
+        List<UniswapEvent> uniswapEvents = getSolanaSwapEvents(conf, originSender, hash, swapEvents, transferEvents);
+        // 后缀处理
+        return processSwap(uniswapEvents, new ArrayList<>(), conf);
+    }
+
+    private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf) {
+        swapEvents.forEach(t -> {
                     // 非 eth 币对处理
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
                         // 找到第一个 ETH 的池子
@@ -49,7 +66,7 @@ public class AMMSwapDataProcessFull {
                                             .rawSwapLog(t.getRawSwapLog())
                                             .version(t.getVersion())
                                             .errorMsg(t.getErrorMsg());
-                                    lists.add(swapResultStruct(conf, ethSellUniswap.build()));
+                                    finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
 
                                     // buy eth币对
                                     ethBuyUniswap = UniswapEvent.builder()
@@ -67,24 +84,24 @@ public class AMMSwapDataProcessFull {
                                             .version(t.getVersion())
                                             .errorMsg(t.getErrorMsg());
 
-                                    lists.add(swapResultStruct(conf, ethBuyUniswap.build()));
+                                    finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
                                     return;
                                 }
 
                             }
                         }
-                        // 不存在 eth 的池子
+                        // 不存在 coin 的池子
                         t.setAmountOut(BigInteger.ZERO);
                         t.setTokenOut(conf.getWCoinAddress());
                     }
 
-                    lists.add(swapResultStruct(conf, t));
+                    finalSwap.add(swapResultStruct(conf, t));
                 }
         );
         Set<Integer> logIndexRange = new HashSet<>();
         int minLogIndex = Integer.MAX_VALUE;
-        for (int i = 0; i < lists.size(); i++) {
-            Map<String, String> entry = lists.get(i);
+        for (int i = 0; i < finalSwap.size(); i++) {
+            Map<String, String> entry = finalSwap.get(i);
             if (entry.get("logIndex") == null) continue;
 
             Integer logIndex = Integer.valueOf(entry.get("logIndex"));
@@ -94,8 +111,8 @@ public class AMMSwapDataProcessFull {
 
         // 设定初始的 logIndex 值，从 0 开始自增
         int nextLogIndex = 0;
-        for (int i = 0; i < lists.size(); i++) {
-            Map<String, String> map = lists.get(i);
+        for (int i = 0; i < finalSwap.size(); i++) {
+            Map<String, String> map = finalSwap.get(i);
             if (map.get("logIndex") == null) {
                 // 找到不重复的 logIndex 值
                 while (logIndexRange.contains(nextLogIndex)) {
@@ -109,7 +126,16 @@ public class AMMSwapDataProcessFull {
             }
         }
 
-        return lists;
+        // 删除有问题的 swap
+        for (int i = 0, len = finalSwap.size(); i < len; i++) {
+            Map<String, String> t = finalSwap.get(i);
+            if (t.get("errorMsg") != null || t.get("tokenIn") == null || t.get("tokenOut") == null) {
+                finalSwap.remove(i);
+                len--;
+                i--;
+            }
+        }
+        return finalSwap;
     }
 
     private static HashMap<String, String> swapResultStruct(ChainConfig conf, UniswapEvent swap) {
@@ -138,6 +164,64 @@ public class AMMSwapDataProcessFull {
         }
         return map;
     }
+
+    public static List<UniswapEvent> getSolanaSwapEvents(ChainConfig conf, String originSender, String hash, List<UniswapEvent> uniswapEvents, List<TransferEvent> rawTransferEvents) {
+        // 1、移除 swap 的 transfer event
+        List<TransferEvent> transferEvents = rawTransferEvents.stream().filter(t -> {
+            for (int i = 0; i < uniswapEvents.size(); i++) {
+                if (uniswapEvents.get(i).getLogIndex().compareTo(t.getLogIndex()) == 0) return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+        // 2、将构建好的所有 swapEvent 的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
+        List<UniswapEvent> rawSwapEvents = new ArrayList<>();
+        uniswapEvents.forEach(t -> {
+            try {
+                UniswapEvent temp = UniswapEvent.builder().build();
+                BeanUtils.copyProperties(temp, t);
+                rawSwapEvents.add(temp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(uniswapEvents);
+        log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
+
+        // 2、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
+        fullUniswapEvents.forEach(ut -> {
+            TransferEvent _tmpPreTf = null;
+            try {
+                _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, null, ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+                if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
+                    log.debug("******* ❌  not fond any pre transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
+                    return;
+                }
+                ut.setSender(_tmpPreTf.getSender());
+
+                TransferEvent _tmpAftTf = TransferEvent.findAfterTx(originSender, transferEvents, null, ut.getAmountOut(), ut.getSender(), ut.getTo(), ut.getTokenOut(), ut);
+                if (_tmpAftTf == null || _tmpAftTf.getSender().equalsIgnoreCase("")) {
+                    log.debug("******* ❌  not fond any after transfer to merge \n");
+                    ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity to :" + hash);
+                    return;
+                }
+                ut.setAmountOut(_tmpAftTf.getAmount());
+                ut.setTo(_tmpAftTf.getReceiver());
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
+        // 3、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
+        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
+        transferToUniswapSell(conf, getFinalTransferOutEvent, fullUniswapEvents);
+        log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
+
+        // 4、保存原始 swap
+        fullUniswapEvents.forEach(t -> t.setRawSwapLog(rawSwapEvents));
+        return fullUniswapEvents;
+    }
+
 
     /**
      * 解析所有的swap

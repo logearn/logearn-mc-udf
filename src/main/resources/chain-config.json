@@ -59,13 +59,13 @@
       }
     }
   },
-  "-10": {
-    "chain_id": "-10",
+  "3": {
+    "chain_id": "3",
     "chain_name": "solana",
     "coin": "SOL",
     "wcoin": "WSOL",
     "tokens": {
-      "SQL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "name": "WSOL" }
+      "WSOL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "name": "WSOL" }
     },
     "protocols": {
       "system_program": {

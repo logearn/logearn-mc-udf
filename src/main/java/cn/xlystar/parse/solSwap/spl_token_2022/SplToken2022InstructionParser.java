@@ -59,7 +59,11 @@ public class SplToken2022InstructionParser extends InstructionParser {
             case CreateNativeMint:
                 info = parseCreateNativeMintInstruction(accounts);
                 break;
-
+            case TransferChecked:
+            case MintToChecked:
+            case BurnChecked:
+                info = parseCheckedInstruction(buffer, accounts, splToken2022Instruction);
+                break;
 
             // @warning 以下代码，没有测试 case 保护
             // case InitializeMultisig:
@@ -76,11 +80,7 @@ public class SplToken2022InstructionParser extends InstructionParser {
             //     info = parseInitializePermanentDelegate(accounts);
             //     break;
             // // 带精度检查的操作
-            // case TransferChecked:
-            // case MintToChecked:
-            // case BurnChecked:
-            //     info = parseCheckedInstruction(buffer, accounts, instruction);
-            //     break;
+
             // // 授权相关操作
             // case Approve:
             // case ApproveChecked:
@@ -271,33 +271,32 @@ public class SplToken2022InstructionParser extends InstructionParser {
     //     return info;
     // }
 
-    // private static Map<String, Object> parseCheckedInstruction(ByteBuffer buffer, String[] accounts, SplToken2022Instruction instruction) {
-    //     Map<String, Object> info = new HashMap<>();
-    //     ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+     private static Map<String, Object> parseCheckedInstruction(ByteBuffer buffer, String[] accounts, SplToken2022Instruction instruction) {
+         Map<String, Object> info = new HashMap<>();
 
-    //     switch (instruction) {
-    //         case TransferChecked:
-    //             info.put("source", accounts[0]);
-    //             info.put("mint", accounts[1]);
-    //             info.put("destination", accounts[2]);
-    //             info.put("authority", accounts[3]);
-    //             break;
-    //         case MintToChecked:
-    //             info.put("mint", accounts[0]);
-    //             info.put("account", accounts[1]);
-    //             info.put("authority", accounts[2]);
-    //             break;
-    //         case BurnChecked:
-    //             info.put("account", accounts[0]);
-    //             info.put("mint", accounts[1]);
-    //             info.put("authority", accounts[2]);
-    //             break;
-    //     }
+         switch (instruction) {
+             case TransferChecked:
+                 info.put("source", accounts[0]);
+                 info.put("mint", accounts[1]);
+                 info.put("destination", accounts[2]);
+                 info.put("authority", accounts[3]);
+                 break;
+             case MintToChecked:
+                 info.put("mint", accounts[0]);
+                 info.put("account", accounts[1]);
+                 info.put("authority", accounts[2]);
+                 break;
+             case BurnChecked:
+                 info.put("account", accounts[0]);
+                 info.put("mint", accounts[1]);
+                 info.put("authority", accounts[2]);
+                 break;
+         }
 
-    //     info.put("amount", buffer.getLong());
-    //     info.put("decimals", buffer.get() & 0xFF);
-    //     return info;
-    // }
+         info.put("amount", buffer.getLong());
+         info.put("decimals", buffer.get() & 0xFF);
+         return info;
+     }
 
     // private static Map<String, Object> parseApproveInstruction(ByteBuffer buffer, String[] accounts, SplToken2022Instruction instruction) {
     //     Map<String, Object> info = new HashMap<>();
