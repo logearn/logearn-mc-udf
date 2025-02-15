@@ -1,13 +1,9 @@
 package cn.xlystar.parse.solSwap.pump;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-
-import java.util.Map;
 
 public class PumpDotFunInstructionParserTest {
 
-    public static void main(String[] args) throws DecoderException {
+    public static void main(String[] args) {
 //        testCreate(); // 通过
 //        testInitialize();  // 通过
 //        testBuy();  // 通过
@@ -19,10 +15,10 @@ public class PumpDotFunInstructionParserTest {
     private static void testInstruction(String testCase, String base58Data, String[] accounts){
         try {
         System.out.println("\n=== Testing " + testCase + " ===");
-        byte[] decode = Hex.decodeHex(base58Data.toCharArray());
+//        byte[] decode = Hex.decodeHex(base58Data.toCharArray());
 //        byte[] decode = Base58.decode("15P");
-        Map<String, Object> result = new PumpDotFunInstructionParser().parseInstruction(decode, accounts);
-        System.out.println("Result: " + result);
+//        Map<String, Object> result = new PumpDotFunInstructionParser().parseInstruction(decode, accounts);
+//        System.out.println("Result: " + result);
         } catch (Exception e) {
             e.printStackTrace();
         }

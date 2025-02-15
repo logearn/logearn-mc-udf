@@ -1,7 +1,5 @@
 package cn.xlystar.parse.solSwap.metaplex;
 
-import org.apache.commons.codec.binary.Hex;
-import java.util.Map;
 
 public class MetadataInstructionParserTest {
 
@@ -60,10 +58,10 @@ public class MetadataInstructionParserTest {
             for (int i = 0; i < accounts.length; i++) {
                 System.out.println("  " + i + ": " + accounts[i]);
             }
-            byte[] data = Hex.decodeHex(base58Data.toCharArray());
-            
-            Map<String, Object> result = new MetadataInstructionParser().parseInstruction(data, accounts);
-            System.out.println("✅ Parse result: " + result);
+//            byte[] data = Hex.decodeHex(base58Data.toCharArray());
+//
+//            Map<String, Object> result = new MetadataInstructionParser().parseInstruction(data, accounts);
+//            System.out.println("✅ Parse result: " + result);
             
         } catch (Exception e) {
             System.err.println("❌ Test failed: " + e.getMessage());

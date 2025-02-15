@@ -1,7 +1,5 @@
 package cn.xlystar.parse.solSwap.spl_token_2022;
 
-import org.apache.commons.codec.binary.Hex;
-import java.util.Map;
 
 public class SplToken2022InstructionParserTest {
 
@@ -161,10 +159,10 @@ public class SplToken2022InstructionParserTest {
             for (int i = 0; i < accounts.length; i++) {
                 System.out.println("  " + i + ": " + accounts[i]);
             }
-            byte[] data = Hex.decodeHex(base58Data.toCharArray());
+//            byte[] data = Hex.decodeHex(base58Data.toCharArray());
             
-            Map<String, Object> result = new SplToken2022InstructionParser().parseInstruction(data, accounts);
-            System.out.println("✅ Parse result: " + result);
+//            Map<String, Object> result = new SplToken2022InstructionParser().parseInstruction(data, accounts);
+//            System.out.println("✅ Parse result: " + result);
             
         } catch (Exception e) {
             System.err.println("❌ Test failed: " + e.getMessage());

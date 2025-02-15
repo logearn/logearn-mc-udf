@@ -7,6 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 public class SplTokenInstructionParser extends InstructionParser {
+
+    public static final String PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+
     @Override
     public String getMethodId(ByteBuffer buffer) {
         return buffer.get() + "";

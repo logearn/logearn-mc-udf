@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class RaydiumAmmInstructionParser extends InstructionParser {
 
-    private static final String PROGRAM_ID = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
+    public static final String PROGRAM_ID = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
 
     @Override
     public String getMethodId(ByteBuffer buffer) {

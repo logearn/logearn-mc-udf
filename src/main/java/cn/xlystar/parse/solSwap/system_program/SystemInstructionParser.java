@@ -2,11 +2,13 @@ package cn.xlystar.parse.solSwap.system_program;
 
 import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
+
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.nio.ByteBuffer;
 
 public class SystemInstructionParser extends InstructionParser {
+    public static final String PROGRAM_ID = "11111111111111111111111111111111";
     @Override
     public String getMethodId(ByteBuffer buffer) {
         String methodId = buffer.get() + "";

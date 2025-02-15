@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SplAssociatedTokenInstructionParser extends InstructionParser {
+
+    public static String PROGRAM_ID ="ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
     @Override
     public String getMethodId(ByteBuffer buffer) {
         if (buffer.limit() <= 0) {

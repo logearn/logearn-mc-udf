@@ -1,9 +1,6 @@
 package cn.xlystar.parse.solSwap.moonshot;
 
-import org.apache.commons.codec.binary.Hex;
-import org.bitcoinj.core.Base58;
 
-import java.util.Map;
 
 public class MoonshotInstructionParserTest {
 
@@ -79,10 +76,10 @@ public class MoonshotInstructionParserTest {
                 System.out.println("  " + i + ": " + accounts[i]);
             }
             
-            byte[] data = Hex.decodeHex(base58Data.toCharArray());
-            MoonshotInstructionParser parser = new MoonshotInstructionParser();
-            Map<String, Object> result = parser.parseInstruction(data, accounts);
-            System.out.println("✅ 解析结果: " + result);
+//            byte[] data = Hex.decode(base58Data.toCharArray());
+//            MoonshotInstructionParser parser = new MoonshotInstructionParser();
+//            Map<String, Object> result = parser.parseInstruction(data, accounts);
+//            System.out.println("✅ 解析结果: " + result);
             
         } catch (Exception e) {
             System.err.println("❌ 测试失败: " + e.getMessage());

@@ -1,6 +1,8 @@
 package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.metaplex.MetadataInstructionParser;
+import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
+import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
@@ -28,18 +30,21 @@ public class SolInstructionParserFactory {
         configMap.put("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", new SplTokenInstructionParser());
         configMap.put("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", new SplToken2022InstructionParser());
         configMap.put("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", new SplAssociatedTokenInstructionParser());
-        // metaplex 元数据存储
+//        // metaplex 元数据存储
         configMap.put("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", new MetadataInstructionParser());
         // raydium 协议
         configMap.put("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", new RaydiumAmmInstructionParser());
         configMap.put("CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", new RaydiumClmmInstructionParser());
         configMap.put("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C", new RaydiumCpmmInstructionParser());
-        // orca whirlpool 协议
+//        // orca whirlpool 协议
         configMap.put("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", new WhirlpoolInstructionParser());
-        // pump.fun 协议
+//        // pump.fun 协议
         configMap.put("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", new PumpDotFunInstructionParser());
-        // moonshot 协议
+//        // moonshot 协议
         configMap.put("MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG", new MoonshotInstructionParser());
+//        // meteora 协议
+        configMap.put("Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB", new MeteoraAlmmInstructionParser());
+        configMap.put("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo", new MeteoraDlmmInstructionParser());
     }
 
     public static InstructionParser getParser(String key) {

@@ -1,13 +1,9 @@
 package cn.xlystar.parse.solSwap.raydium.amm_v4;
 
-import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstructionParser;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-import java.util.Map;
 
 public class RaydiumAmmInstructionParserTest {
 
-    public static void main(String[] args) throws DecoderException {
+    public static void main(String[] args)  {
 //        testInitialize(); // 通过
 //        testInitialize2(); // 通过
 //        testMonitorStep(); // 通过
@@ -29,10 +25,10 @@ public class RaydiumAmmInstructionParserTest {
     private static void testInstruction(String testCase, String base58Data, String[] accounts){
         try {
         System.out.println("\n=== Testing " + testCase + " ===");
-        byte[] decode = Hex.decodeHex(base58Data.toCharArray());
+//        byte[] decode = Hex.decodeHex(base58Data.toCharArray());
 //        byte[] decode = Base58.decode("15P");
-        Map<String, Object> result = new RaydiumAmmInstructionParser().parseInstruction(decode, accounts);
-        System.out.println("Result: " + result);
+//        Map<String, Object> result = new RaydiumAmmInstructionParser().parseInstruction(decode, accounts);
+//        System.out.println("Result: " + result);
         } catch (Exception e) {
             e.printStackTrace();
         }

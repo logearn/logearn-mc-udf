@@ -1,7 +1,6 @@
 package cn.xlystar.parse.solSwap.raydium.cpmm;
 
 import cn.xlystar.parse.solSwap.InstructionParser;
-import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -9,7 +8,7 @@ import java.util.Map;
 
 public class RaydiumCpmmInstructionParser extends InstructionParser {
 
-    private static final String PROGRAM_ID = "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C";
+    public static final String PROGRAM_ID = "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C";
 
     public String getMethodId(ByteBuffer buffer) {
         return Long.toUnsignedString(buffer.getLong());

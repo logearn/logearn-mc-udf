@@ -24,8 +24,8 @@ public class AMMSwapDataProcess {
         return maps;
     }
 
-    public static List<Map<String, String>> decodeSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents) {
-        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents);
+    public static List<Map<String, String>> decodeSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price) {
+        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents, price);
     }
 
 

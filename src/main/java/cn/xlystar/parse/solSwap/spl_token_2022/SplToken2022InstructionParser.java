@@ -1,12 +1,15 @@
 package cn.xlystar.parse.solSwap.spl_token_2022;
 
-import java.nio.ByteBuffer;
-import java.util.*;
-
 import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bitcoinj.core.Base58;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+
 public class SplToken2022InstructionParser extends InstructionParser {
+
+    public static final String PROGRAM_ID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
     @Override
     public String getMethodId(ByteBuffer buffer) {

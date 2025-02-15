@@ -1,14 +1,9 @@
 package cn.xlystar.parse.solSwap.whirlpool;
 
-import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-
-import java.util.Map;
 
 public class WhirlpoolInstructionParserTest {
 
-    public static void main(String[] args) throws DecoderException {
+    public static void main(String[] args) {
         testSwap(); // 通过
         testSwapV2(); // 通过
         testTwoHopSwap(); // 通过
@@ -56,10 +51,10 @@ public class WhirlpoolInstructionParserTest {
     private static void testInstruction(String testCase, String base58Data, String[] accounts) {
         try {
             System.out.println("\n=== Testing " + testCase + " ===");
-            byte[] decode = Hex.decodeHex(base58Data.toCharArray());
+//            byte[] decode = Hex.decodeHex(base58Data.toCharArray());
 //        byte[] decode = Base58.decode("15P");
-            Map<String, Object> result = new WhirlpoolInstructionParser().parseInstruction(decode, accounts);
-            System.out.println("Result: " + result);
+//            Map<String, Object> result = new WhirlpoolInstructionParser().parseInstruction(decode, accounts);
+//            System.out.println("Result: " + result);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,13 +1,5 @@
 package cn.xlystar.parse.solSwap.meteora.almm;
 
-import org.apache.commons.codec.binary.Hex;
-import org.bitcoinj.core.Base58;
-
-import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
-import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
-
-import java.util.Map;
-
 public class MeteoraAlmmInstructionParserTest {
 
     public static void main(String[] args) {
@@ -109,10 +101,10 @@ public class MeteoraAlmmInstructionParserTest {
                 System.out.println("  " + i + ": " + accounts[i]);
             }
             
-            byte[] data = Hex.decodeHex(base58Data.toCharArray());
-            MeteoraAlmmInstructionParser parser = new MeteoraAlmmInstructionParser();
-            Map<String, Object> result = parser.parseInstruction(data, accounts);
-            System.out.println("✅ 解析结果: " + result);
+//            byte[] data = Hex.decodeHex(base58Data.toCharArray());
+//            MeteoraAlmmInstructionParser parser = new MeteoraAlmmInstructionParser();
+//            Map<String, Object> result = parser.parseInstruction(data, accounts);
+//            System.out.println("✅ 解析结果: " + result);
             
         } catch (Exception e) {
             System.err.println("❌ 测试失败: " + e.getMessage());

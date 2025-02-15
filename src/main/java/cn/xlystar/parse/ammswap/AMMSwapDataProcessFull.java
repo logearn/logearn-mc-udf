@@ -1,7 +1,7 @@
 package cn.xlystar.parse.ammswap;
 
-import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
+import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.helpers.ChainConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -9,12 +9,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class AMMSwapDataProcessFull {
@@ -26,73 +29,80 @@ public class AMMSwapDataProcessFull {
         // 解析
         List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs);
         // 后缀处理
-        return processSwap(uniswapEvents, new ArrayList<>(), conf);
+        return processSwap(uniswapEvents, new ArrayList<>(), conf, "");
     }
 
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents) {
+    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price) {
         // 解析 solana swap
         List<UniswapEvent> uniswapEvents = getSolanaSwapEvents(conf, originSender, hash, swapEvents, transferEvents);
         // 后缀处理
-        return processSwap(uniswapEvents, new ArrayList<>(), conf);
+        return processSwap(uniswapEvents, new ArrayList<>(), conf, price);
     }
 
-    private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf) {
+    private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price) {
         swapEvents.forEach(t -> {
-                    // 非 eth 币对处理
+                    // 非 wcoin 币对处理
+                    if (conf.getChainId().equals("3") && !CollectionUtils.isEmpty(t.getRawSwapLog())) {
+                        t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
+                    }
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
-                        // 找到第一个 ETH 的池子
-                        List<UniswapEvent> connectedPools = t.getConnectedPools();
-                        if (connectedPools != null && connectedPools.size() > 0) {
-                            UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
-                            UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
-                            for (int i = 0; i < connectedPools.size(); i++) {
-                                UniswapEvent uniswapEvent = connectedPools.get(i);
-                                if (uniswapEvent.getTokenOut().equals(conf.getWCoinAddress())) {
-                                    // sell
-                                    ethSellUniswap = UniswapEvent.builder()
-                                            .sender(t.getSender())
-                                            .to(t.getSender())
-                                            .tokenIn(t.getTokenIn())
-                                            .amountIn(t.getAmountIn())
-                                            .tokenOut(conf.getWCoinAddress())
-                                            .amountOut(uniswapEvent.getAmountOut())
-                                            .pair(t.getPair())
-                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
-                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
-                                            .connectedPools(t.getConnectedPools())
-                                            .rawSwapLog(t.getRawSwapLog())
-                                            .version(t.getVersion())
-                                            .errorMsg(t.getErrorMsg());
-                                    finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
+                        switch (conf.getChainId()) {
+                            case "3":
+                                if (convertToSol(conf, t, new BigDecimal(price))) break;
+                            default:
+                                List<UniswapEvent> connectedPools = t.getConnectedPools();
+                                if (connectedPools != null && connectedPools.size() > 0) {
+                                    UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
+                                    UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
+                                    for (int i = 0; i < connectedPools.size(); i++) {
+                                        UniswapEvent uniswapEvent = connectedPools.get(i);
+                                        if (uniswapEvent.getTokenOut().equals(conf.getWCoinAddress())) {
+                                            // sell
+                                            ethSellUniswap = UniswapEvent.builder()
+                                                    .sender(t.getSender())
+                                                    .to(t.getSender())
+                                                    .tokenIn(t.getTokenIn())
+                                                    .amountIn(t.getAmountIn())
+                                                    .tokenOut(conf.getWCoinAddress())
+                                                    .amountOut(uniswapEvent.getAmountOut())
+                                                    .pair(t.getPair())
+                                                    .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                    .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                    .connectedPools(t.getConnectedPools())
+                                                    .rawSwapLog(t.getRawSwapLog())
+                                                    .version(t.getVersion())
+                                                    .errorMsg(t.getErrorMsg());
+                                            finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
 
-                                    // buy eth币对
-                                    ethBuyUniswap = UniswapEvent.builder()
-                                            .sender(t.getSender())
-                                            .to(t.getTo())
-                                            .tokenIn(conf.getWCoinAddress())
-                                            .amountIn(uniswapEvent.getAmountOut())
-                                            .tokenOut(t.getTokenOut())
-                                            .amountOut(t.getAmountOut())
-                                            .pair(t.getPair())
-                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
-                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
-                                            .connectedPools(t.getConnectedPools())
-                                            .rawSwapLog(t.getRawSwapLog())
-                                            .version(t.getVersion())
-                                            .errorMsg(t.getErrorMsg());
+                                            // buy eth币对
+                                            ethBuyUniswap = UniswapEvent.builder()
+                                                    .sender(t.getSender())
+                                                    .to(t.getTo())
+                                                    .tokenIn(conf.getWCoinAddress())
+                                                    .amountIn(uniswapEvent.getAmountOut())
+                                                    .tokenOut(t.getTokenOut())
+                                                    .amountOut(t.getAmountOut())
+                                                    .pair(t.getPair())
+                                                    .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                    .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                    .connectedPools(t.getConnectedPools())
+                                                    .rawSwapLog(t.getRawSwapLog())
+                                                    .version(t.getVersion())
+                                                    .errorMsg(t.getErrorMsg());
 
-                                    finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
-                                    return;
+                                            finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
+                                            return;
+                                        }
+
+                                    }
                                 }
-
-                            }
+                                // 不存在 coin 的池子
+                                t.setAmountOut(BigInteger.ZERO);
+                                t.setTokenOut(conf.getWCoinAddress());
                         }
-                        // 不存在 coin 的池子
-                        t.setAmountOut(BigInteger.ZERO);
-                        t.setTokenOut(conf.getWCoinAddress());
                     }
 
                     finalSwap.add(swapResultStruct(conf, t));
@@ -138,6 +148,41 @@ public class AMMSwapDataProcessFull {
         return finalSwap;
     }
 
+    private static boolean convertToSol(ChainConfig conf, UniswapEvent t, BigDecimal price) {
+        String wcoinDecimals = conf.getTokens().get(conf.getChainConf().get("wcoin").asText()).get("scale").asText();
+        String usdcAddress = conf.getTokens().get("USDC").get("address").asText();
+        String usdcDecimals = conf.getTokens().get("USDC").get("scale").asText();
+        String usdtAddress = conf.getTokens().get("USDT").get("address").asText();
+        String usdtDecimals = conf.getTokens().get("USDT").get("scale").asText();
+        boolean hasUsdc = usdcAddress.equals(t.getTokenIn()) || usdcAddress.equals(t.getTokenOut());
+        boolean hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
+
+        String tokenAddress = "";
+        String decimals = "";
+
+        if (hasUsdc) {
+            tokenAddress = usdcAddress;
+            decimals = usdcDecimals;
+        } else if (hasUsdt) {
+            tokenAddress = usdtAddress;
+            decimals = usdtDecimals;
+        }
+
+        if (StringUtils.isEmpty(tokenAddress)) return false;
+
+        BigInteger tokenAmount = t.getTokenIn().equals(tokenAddress) ? t.getAmountIn() : t.getAmountOut();
+        BigInteger wcoinAmount = new BigDecimal(tokenAmount).divide(price, 20, RoundingMode.HALF_UP).multiply(new BigDecimal(wcoinDecimals)).divide(new BigDecimal(decimals)).toBigInteger();
+        if (t.getTokenIn().equals(tokenAddress)) {
+            t.setTokenIn(conf.getWCoinAddress());
+            t.setAmountIn(wcoinAmount);
+        } else {
+            t.setTokenOut(conf.getWCoinAddress());
+            t.setAmountOut(wcoinAmount);
+        }
+
+        return true;
+    }
+
     private static HashMap<String, String> swapResultStruct(ChainConfig conf, UniswapEvent swap) {
         HashMap<String, String> map = new HashMap<>();
         map.put("caller", swap.getSender());
@@ -165,14 +210,14 @@ public class AMMSwapDataProcessFull {
         return map;
     }
 
-    public static List<UniswapEvent> getSolanaSwapEvents(ChainConfig conf, String originSender, String hash, List<UniswapEvent> uniswapEvents, List<TransferEvent> rawTransferEvents) {
+    public static List<UniswapEvent> getSolanaSwapEvents(ChainConfig conf, String originSender, String hash, List<UniswapEvent> uniswapEvents, List<TransferEvent> transferEvents) {
         // 1、移除 swap 的 transfer event
-        List<TransferEvent> transferEvents = rawTransferEvents.stream().filter(t -> {
-            for (int i = 0; i < uniswapEvents.size(); i++) {
-                if (uniswapEvents.get(i).getLogIndex().compareTo(t.getLogIndex()) == 0) return false;
-            }
-            return true;
-        }).collect(Collectors.toList());
+//        List<TransferEvent> transferEvents = CollectionUtils.isEmpty(uniswapEvents) ? rawTransferEvents : rawTransferEvents.stream().filter(t -> {
+//            for (int i = 0; i < uniswapEvents.size(); i++) {
+//                if (uniswapEvents.get(i).getLogIndex().compareTo(t.getLogIndex()) == 0) return false;
+//            }
+//            return true;
+//        }).collect(Collectors.toList());
         // 2、将构建好的所有 swapEvent 的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
         List<UniswapEvent> rawSwapEvents = new ArrayList<>();
         uniswapEvents.forEach(t -> {
@@ -218,7 +263,7 @@ public class AMMSwapDataProcessFull {
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
 
         // 4、保存原始 swap
-        fullUniswapEvents.forEach(t -> t.setRawSwapLog(rawSwapEvents));
+        fullUniswapEvents.forEach(t -> t.setSwapRawSwapLog(rawSwapEvents));
         return fullUniswapEvents;
     }
 
@@ -277,8 +322,9 @@ public class AMMSwapDataProcessFull {
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
 
         // 10、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
-        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
-        transferToUniswapSell(conf, getFinalTransferOutEvent, fullUniswapEvents);
+//        Map<String, Map<String, BigInteger>> finalTransfer = TransferEvent.calculateBalances(transferEvents);
+//        List<TransferEvent> getFinalTransferOutEvent = getTransferOutEvent(finalTransfer);
+        transferToUniswapSell(conf, transferEvents, fullUniswapEvents);
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
 
 

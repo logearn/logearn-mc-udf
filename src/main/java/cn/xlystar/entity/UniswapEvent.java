@@ -36,6 +36,16 @@ public class UniswapEvent extends Event implements Serializable {
 
     private String errorMsg;
 
+    public void setSwapRawSwapLog(List<UniswapEvent> swapLog) {
+        swapLog.stream().forEach(t -> {
+            t.setConnectedPools(null);
+            t.setFromMergedTransferEvent(null);
+            t.setToMergedTransferEvent(null);
+            t.setPair(null);
+        });
+        this.rawSwapLog = swapLog;
+    }
+
     /**
      * 将多个events，串联起来，形成完整的uniswapEvents事件， 串联规则：前一个swap的to是后一个sender
      */

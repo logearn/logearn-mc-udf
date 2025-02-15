@@ -203,11 +203,11 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private void parseConfigParams(ByteBuffer buffer, Map<String, Object> info) {
         // 解析所有可选字段
-        if (buffer.get() == 1) info.put("migrationAuthority", Base58.encode(readPubkey(buffer)));
-        if (buffer.get() == 1) info.put("backendAuthority", Base58.encode(readPubkey(buffer)));
-        if (buffer.get() == 1) info.put("configAuthority", Base58.encode(readPubkey(buffer)));
-        if (buffer.get() == 1) info.put("helioFee", Base58.encode(readPubkey(buffer)));
-        if (buffer.get() == 1) info.put("dexFee", Base58.encode(readPubkey(buffer)));
+        if (buffer.get() == 1) info.put("migrationAuthority", readPubkey(buffer));
+        if (buffer.get() == 1) info.put("backendAuthority", readPubkey(buffer));
+        if (buffer.get() == 1) info.put("configAuthority", readPubkey(buffer));
+        if (buffer.get() == 1) info.put("helioFee", readPubkey(buffer));
+        if (buffer.get() == 1) info.put("dexFee", readPubkey(buffer));
         if (buffer.get() == 1) info.put("feeBps", buffer.getShort());
         if (buffer.get() == 1) info.put("dexFeeShare", buffer.get());
         if (buffer.get() == 1) info.put("migrationFee", Long.toUnsignedString(buffer.getLong()));
@@ -229,9 +229,69 @@ public class MoonshotInstructionParser extends InstructionParser {
     }
 
     // 工具方法：读取公钥
-    private static byte[] readPubkey(ByteBuffer buffer) {
+    private static String readPubkey(ByteBuffer buffer) {
         byte[] pubkey = new byte[32];
         buffer.get(pubkey);
-        return pubkey;
+        return Base58.encode(pubkey);
+    }
+
+
+    @Override
+    public Map<String, Object> matchLogEvent(ByteBuffer buffer, String eventType) {
+        Map<String, Object> info = new HashMap<>();
+        switch (eventType) {
+            case "trade":
+                return parseMoonTradeEvent(buffer);
+            case "migration":
+                return parseMoonMigrationEvent(buffer);
+            default:
+                info.put("eventType", eventType);
+                return info;
+        }
+    }
+
+    /**
+     * 根据 discriminator 判断事件类型
+     */
+    @Override
+    public String getLogEventType(ByteBuffer buffer) {
+        String discriminator = Long.toUnsignedString(buffer.getLong());
+        if (discriminator.equals("17177263679997991869")) {
+            return "trade";
+        } else if (discriminator.equals("")) {
+            return "migration";
+        }
+        return discriminator;
+    }
+
+
+    private static Map<String, Object> parseMoonTradeEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        event.put("amount", Long.toUnsignedString(buffer.getLong()));           // u64
+        event.put("collateralAmount", Long.toUnsignedString(buffer.getLong())); // u64
+        event.put("dexFee", Long.toUnsignedString(buffer.getLong()));           // u64
+        event.put("helioFee", Long.toUnsignedString(buffer.getLong()));         // u64
+        event.put("allocation", Long.toUnsignedString(buffer.getLong()));       // u64
+        event.put("curve", readPubkey(buffer));                                 // publicKey
+        event.put("costToken", readPubkey(buffer));                             // publicKey
+        event.put("sender", readPubkey(buffer));                                // publicKey
+        event.put("type", buffer.get());                                        // TradeType (enum) buy/sell
+        event.put("label", parseString(buffer));                                // string
+        event.put("eventType", "trade");
+        return event;
+    }
+
+    private static Map<String, Object> parseMoonMigrationEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        // 按照 IDL 中的字段顺序解析
+        event.put("tokensMigrated", Long.toUnsignedString(buffer.getLong()));     // u64
+        event.put("tokensBurned", Long.toUnsignedString(buffer.getLong()));       // u64
+        event.put("collateralMigrated", Long.toUnsignedString(buffer.getLong())); // u64
+        event.put("fee", Long.toUnsignedString(buffer.getLong()));                // u64
+        event.put("label", parseString(buffer));                                  // string
+        event.put("eventType", "migration");
+        return event;
     }
 } 

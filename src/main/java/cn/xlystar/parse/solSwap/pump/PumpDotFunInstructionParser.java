@@ -5,14 +5,17 @@ import org.bitcoinj.core.Base58;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
 
 public class PumpDotFunInstructionParser extends InstructionParser {
 
-    private static final String PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+    public static final String PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+    private static final String CREATE_DISCRIMINATOR = "8530921459188068891";
+    private static final String TRADE_DISCRIMINATOR = "17177263679997991869";
+    private static final String COMPLETE_DISCRIMINATOR = "619296439455019615";
+    private static final String SET_PARAMS_DISCRIMINATOR = "9479848787621954527";
 
     @Override
     public String getMethodId(ByteBuffer buffer) {
@@ -178,7 +181,107 @@ public class PumpDotFunInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseAnchorSelfCpiLog(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        return info;
+        // 获取前 8 字节作为 discriminator
+        String discriminator = Long.toUnsignedString(buffer.getLong());
+        String eventType = getEventType(discriminator);
+
+        switch (eventType) {
+            case "create":
+                return parseCreateEvent(buffer);
+            case "trade":
+                return parseTradeEvent(buffer);
+            case "complete":
+                return parseCompleteEvent(buffer);
+            case "setParams":
+                return parseSetParamsEvent(buffer);
+            default:
+                info.put("eventType", discriminator);
+                return info;
+        }
+    }
+
+    /**
+     * 根据 discriminator 判断事件类型
+     */
+    private static String getEventType(String discriminator) {
+        if (discriminator.equals(CREATE_DISCRIMINATOR)) {
+            return "create";
+        } else if (discriminator.equals(TRADE_DISCRIMINATOR)) {
+            return "trade";
+        } else if (discriminator.equals(COMPLETE_DISCRIMINATOR)) {
+            return "complete";
+        } else if (discriminator.equals(SET_PARAMS_DISCRIMINATOR)) {
+            return "setParams";
+        }
+        return "";
+    }
+
+    /**
+     * 解析 Trade 事件
+     * 参考: https://github.com/TeamRaccoons/pump/blob/master/programs/amm/src/events.rs
+     */
+    private static Map<String, Object> parseCreateEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        event.put("name", parseString(buffer));
+        event.put("symbol", parseString(buffer));
+        event.put("uri", parseString(buffer));
+        event.put("mint", readPubkey(buffer));
+        event.put("bondingCurve", readPubkey(buffer));
+        event.put("user", readPubkey(buffer));
+        event.put("eventType", "create");
+
+        return event;
+    }
+
+    private static Map<String, Object> parseTradeEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        event.put("mint", readPubkey(buffer));
+        event.put("solAmount", Long.toUnsignedString(buffer.getLong()));
+        event.put("tokenAmount", Long.toUnsignedString(buffer.getLong()));
+        event.put("isBuy", buffer.get());
+        event.put("user", readPubkey(buffer));
+        event.put("timestamp", Long.toUnsignedString(buffer.getLong()));
+        event.put("virtual_sol_reserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("virtual_token_reserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("real_sol_reserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("real_token_reserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("eventType", "trade");
+
+        return event;
+    }
+
+    private static Map<String, Object> parseCompleteEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        event.put("user", readPubkey(buffer));
+        event.put("mint", readPubkey(buffer));
+        event.put("bondingCurve", readPubkey(buffer));
+        event.put("timestamp", Long.toUnsignedString(buffer.getLong()));
+        event.put("eventType", "complete");
+
+        return event;
+    }
+
+    private static Map<String, Object> parseSetParamsEvent(ByteBuffer buffer) {
+        Map<String, Object> event = new HashMap<>();
+
+        event.put("feeRecipient", readPubkey(buffer));
+        event.put("initialVirtualTokenReserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("initialVirtualSolReserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("initialRealTokenReserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("tokenTotalSupply", Long.toUnsignedString(buffer.getLong()));
+        event.put("feeBasisPoints", Long.toUnsignedString(buffer.getLong()));
+        event.put("eventType", "setParams");
+
+        return event;
+    }
+
+    private static String readPubkey(ByteBuffer buffer) {
+        byte[] pubkey = new byte[32];
+        buffer.get(pubkey);
+        return Base58.encode(pubkey);
     }
 
 
@@ -188,5 +291,11 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         byte[] bytes = new byte[length];
         buffer.get(bytes);
         return new String(bytes);
+    }
+
+    public static void main(String[] args) {
+        String data = "e445a52e51cb9a1d1b72a94ddeeb63760a0000004d414e41204147454e54060000004d4147454e544300000068747470733a2f2f697066732e696f2f697066732f516d596b744b3576364c7a6a5a574c46644a706b7262714151615872537066376d4c7131565155655a69514b344a7f3b3dd6a7ce312fb0b3c517d7e0a87f2d95556a88bb0839b3758e64d9f1d76dcde4711190fb622a07de52bc6997724e5e3d9e5f81cd7971a3bb01b9758cae3e4e9acc3a398370427c4218f7742b63a3aa2a32d343dee315d63dfc97eee22bd0";
+        PumpDotFunInstructionParser pumpfun = new PumpDotFunInstructionParser();
+        System.out.println(pumpfun.parseInstruction(Hex.decode(data), new String[]{}));
     }
 }
