@@ -65,15 +65,17 @@ public class SolanaParse extends UDF {
                 swapEventLists.forEach(t -> {
                     boolean isInTransfer = false;
                     boolean isOutTransfer = false;
-                    for (int i = 0; i < transferEventLists.size(); i++) {
-                        TransferEvent transferEvent = transferEventLists.get(i);
+                    Iterator<TransferEvent> iterator = transferEventLists.iterator();
+                    while (iterator.hasNext()) {
+                        TransferEvent transferEvent = iterator.next();
+
                         if (transferEvent.getSender().equals(t.getSender())
                                 && transferEvent.getLogIndex().divide(new BigInteger("1000")).equals(t.getLogIndex().divide(new BigInteger("1000"))) // outer instruction
                                 && transferEvent.getContractAddress().equals(t.getTokenIn())
                                 && transferEvent.getAmount().equals(t.getAmountIn())
                                 && !isInTransfer
                         ) {
-                            transferEventLists.remove(transferEvent);
+                            iterator.remove(); // 使用迭代器安全地移除元素
                             isInTransfer = true;
                             continue;
                         }
@@ -84,7 +86,7 @@ public class SolanaParse extends UDF {
                                 && transferEvent.getAmount().equals(t.getAmountOut())
                                 && !isOutTransfer
                         ) {
-                            transferEventLists.remove(transferEvent);
+                            iterator.remove(); // 使用迭代器安全地移除元素
                             isOutTransfer = true;
                         }
                     }
@@ -102,7 +104,7 @@ public class SolanaParse extends UDF {
             res = JSON.toJSONString(maps);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(String.format("swapEvents:%s, transferEvents:%s, hash:%s, stack:%s, msg:%s", swapEventLists, finalEventLists, hash, Arrays.toString(e.getStackTrace()), e.getLocalizedMessage()));
+            throw new RuntimeException(String.format("price:%s,swapEvents:%s, transferEvents:%s, hash:%s, stack:%s, msg:%s", price, swapEventLists, finalEventLists, hash, Arrays.toString(e.getStackTrace()), e.getLocalizedMessage()));
         } catch (StackOverflowError | OutOfMemoryError e) {
             e.printStackTrace();
             maps = new ArrayList<>();
@@ -118,10 +120,10 @@ public class SolanaParse extends UDF {
 
     public static void main(String[] args) throws IOException {
         SolanaParse solanaParse = new SolanaParse();
-        String originSender = "J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm";
-        String hash = "4y8q63rALSWZY5AyFQuQPZThTSnatUikPpiyrFAxMzCtRXPMrQGkaQHria19maLHgU1xNrLNJfm2cqp2Z1PguKn3";
-        String swapList = "[{\"sender\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"to\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"token_in\":\"So11111111111111111111111111111111111111112\",\"token_out\":\"6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN\",\"amount_in\":\"3194672\",\"amount_out\":\"292086\",\"log_index\":2004,\"contract_address\":\"A8dZPP72tn7HAHe4h3ocjE8U3ePFGRsnbugeraqVAntY\",\"version\":\"meteoral\"}]";
-        String transferList = "[{\"sender\":\"3AbG3ZA19fJKjTSTMTCz7j2bodPagXog4PwTBi8H7UA4\",\"receiver\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"block_time\":1739202400,\"amount\":\"4677377\",\"log_index\":2011,\"contract_address\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"A8dZPP72tn7HAHe4h3ocjE8U3ePFGRsnbugeraqVAntY\",\"receiver\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"block_time\":1739202400,\"amount\":\"292086\",\"log_index\":2006,\"contract_address\":\"6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"AF11KSdsZYTqPBuNJwsF3CJZA8sbMJfdgcTY6ABWsJNJ\",\"receiver\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"block_time\":1739202400,\"amount\":\"3194672\",\"log_index\":2002,\"contract_address\":\"FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"receiver\":\"3AbG3ZA19fJKjTSTMTCz7j2bodPagXog4PwTBi8H7UA4\",\"block_time\":1739202400,\"amount\":\"292086\",\"log_index\":2010,\"contract_address\":\"6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"receiver\":\"3ZuFZNPktr4VA6BLrNmT9CWYE3k7mu8tjpLcUhpBrHSg\",\"block_time\":1739202400,\"amount\":\"4674607\",\"log_index\":2001,\"contract_address\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"receiver\":\"45ruCyfdRkWpRNGEqWzjCiXRHkZs8WXCLQ67Pnpye7Hp\",\"block_time\":1739202400,\"amount\":\"3194672\",\"log_index\":2005,\"contract_address\":\"So11111111111111111111111111111111111111112\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"J9mMr2nzTrKvMBVPr3RN8Ey5wkhd8g3iuruSPBnUgJQm\",\"receiver\":\"AtfwFfmzS5BQr5fe2cfSSm44XG1Ruqh9BvtXoXThGbd6\",\"block_time\":1739202400,\"amount\":\"87\",\"log_index\":3000,\"contract_address\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\",\"asset_type\":\"token\",\"origin\":\"log\"}]";
+        String originSender = "8w15mVWttbKurtphm4z7YfTAQqdx79s7M3U45gCuMotS";
+        String hash = "8w15mVWttbKurtphm4z7YfTAQqdx79s7M3U45gCuMotS";
+        String swapList = "[{\"sender\":\"2QdgkUTBsPJAQ8gcUUAWF3J2EwLap7rHJxQ5CyRs8s6E\",\"to\":\"2QdgkUTBsPJAQ8gcUUAWF3J2EwLap7rHJxQ5CyRs8s6E\",\"token_in\":\"So11111111111111111111111111111111111111112\",\"token_out\":\"43YakhC3TcSuTgSXnxFgw8uKL8VkuLuFa4M6Bninpump\",\"amount_in\":\"2500000000\",\"amount_out\":\"1216146905549\",\"log_index\":1005,\"contract_address\":\"CaysL4cjU1BuB9ECvhQ4yNQBVt7eug3GcZjndcJdf5JU\",\"version\":\"raydium\"}]";
+        String transferList = "[{\"sender\":\"2QdgkUTBsPJAQ8gcUUAWF3J2EwLap7rHJxQ5CyRs8s6E\",\"receiver\":\"5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1\",\"block_time\":1739613966,\"amount\":\"2500000000\",\"log_index\":1006,\"contract_address\":\"So11111111111111111111111111111111111111112\",\"asset_type\":\"token\",\"origin\":\"log\"}, {\"sender\":\"5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1\",\"receiver\":\"2QdgkUTBsPJAQ8gcUUAWF3J2EwLap7rHJxQ5CyRs8s6E\",\"block_time\":1739613966,\"amount\":\"1216146905549\",\"log_index\":1007,\"contract_address\":\"43YakhC3TcSuTgSXnxFgw8uKL8VkuLuFa4M6Bninpump\",\"asset_type\":\"token\",\"origin\":\"log\"}]";
         String price =  "255";
         String evaluate = solanaParse.evaluate(originSender, "3", "swap", hash, JSONArray.parseArray(swapList, String.class),JSONArray.parseArray(transferList, String.class), price);
         System.out.println(evaluate);

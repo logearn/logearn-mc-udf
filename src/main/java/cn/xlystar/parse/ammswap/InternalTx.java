@@ -28,6 +28,7 @@ public class InternalTx {
         JsonNode txTrace = InternalTx.getTraceJsonNode(internalTxs);
         // 将内部交易的string转为json
         ArrayList<Tx> txs = new ArrayList<>();
+        if (txTrace == null) return new ArrayList<>();
         if (txTrace.isArray()) {
             for (JsonNode tmp : txTrace) {
                 JsonNode action = tmp.get("action");
