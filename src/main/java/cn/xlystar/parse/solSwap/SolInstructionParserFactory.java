@@ -5,6 +5,7 @@ import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
+import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.cpmm.RaydiumCpmmInstructionParser;
@@ -40,6 +41,7 @@ public class SolInstructionParserFactory {
         configMap.put("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", new WhirlpoolInstructionParser());
 //        // pump.fun 协议
         configMap.put("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", new PumpDotFunInstructionParser());
+        configMap.put("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA", new PumpSwapInstructionParser());
 //        // moonshot 协议
         configMap.put("MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG", new MoonshotInstructionParser());
 //        // meteora 协议
