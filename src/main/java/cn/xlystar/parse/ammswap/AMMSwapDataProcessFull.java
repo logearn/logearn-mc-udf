@@ -359,6 +359,8 @@ public class AMMSwapDataProcessFull {
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
+        List<UniswapEvent> fourMemeSwapV2 = Log.findFourMemeSwapV2(conf, txLog, transferEvents);
+        List<UniswapEvent> fourMemeSwapV1 = Log.findFourMemeSwapV1(conf, txLog, transferEvents);
 
         log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条，uniswapStableCoinEvents： {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size(), uniswapStableCoinEvents.size());
 
@@ -366,6 +368,8 @@ public class AMMSwapDataProcessFull {
         uniswapEvents.addAll(uniswapV3Events);
         uniswapEvents.addAll(uniswapMMEvents);
         uniswapEvents.addAll(uniswapStableCoinEvents);
+        uniswapEvents.addAll(fourMemeSwapV1);
+        uniswapEvents.addAll(fourMemeSwapV2);
         Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
 
         // 2、 结合 TransferEvent 将v2和v3构建为标准的 SwapEvent事件，构建完成以后并且删除构建中使用的 TransferEvent
