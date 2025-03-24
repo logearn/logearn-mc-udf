@@ -30,24 +30,4 @@ public class PumpSwapInstructionParserTest {
     }
 
 
-    private static void testInstruction(String testName, String base58Data, String[] accounts, String tx) {
-        try {
-            System.out.println("\n测试 " + testName);
-            System.out.println("\nTX " + tx);
-            System.out.println("Base58 数据: " + base58Data);
-            System.out.println("账户列表:");
-            for (int i = 0; i < accounts.length; i++) {
-                System.out.println("  " + i + ": " + accounts[i]);
-            }
-            
-           byte[] data = Hex.decode(base58Data.toCharArray());
-           PumpSwapInstructionParser parser = new PumpSwapInstructionParser();
-           Map<String, Object> result = parser.parseInstruction(data, accounts);
-           System.out.println("✅ 解析结果: " + result);
-            
-        } catch (Exception e) {
-            System.err.println("❌ 测试失败: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 } 
