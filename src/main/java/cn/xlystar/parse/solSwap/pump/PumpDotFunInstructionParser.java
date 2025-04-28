@@ -12,6 +12,7 @@ import java.util.Map;
 public class PumpDotFunInstructionParser extends InstructionParser {
 
     public static final String PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+    public static final String MIGRATION_PROGRAM_ID = "39azUYFWPz3VHgKCf3VChUwbpURdCHRxjWVowf5jUJjg";
     private static final String CREATE_DISCRIMINATOR = "8530921459188068891";
     private static final String TRADE_DISCRIMINATOR = "17177263679997991869";
     private static final String COMPLETE_DISCRIMINATOR = "619296439455019615";
@@ -97,10 +98,14 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         String name = parseString(buffer);
         String symbol = parseString(buffer);
         String uri = parseString(buffer);
+        byte[] creatorBytes = new byte[32];
+        buffer.get(creatorBytes);
+        String creator = Base58.encode(creatorBytes);
 
         info.put("name", name);
         info.put("symbol", symbol);
         info.put("uri", uri);
+        info.put("creator", creator);
 
         info.put("mint", accounts[0]);
         info.put("mintAuthority", accounts[1]);
