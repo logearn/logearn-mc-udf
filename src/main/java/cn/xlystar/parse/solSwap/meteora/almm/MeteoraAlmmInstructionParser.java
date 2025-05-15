@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class MeteoraAlmmInstructionParser extends InstructionParser {
 
-    private static final String PROGRAM_ID = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB";
+    public static final String PROGRAM_ID = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB";
 
     @Override
     public String getMethodId(ByteBuffer buffer) {

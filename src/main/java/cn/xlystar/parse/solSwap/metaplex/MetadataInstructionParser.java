@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 public class MetadataInstructionParser extends InstructionParser {
+
+    public static final String PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
     @Override
     public String getMethodId(ByteBuffer buffer) {
         return Byte.toUnsignedInt(buffer.get()) + "";

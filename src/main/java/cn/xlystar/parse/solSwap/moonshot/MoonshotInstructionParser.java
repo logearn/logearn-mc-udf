@@ -10,8 +10,7 @@ import java.util.Map;
 
 public class MoonshotInstructionParser extends InstructionParser {
 
-    // private static final String PROGRAM_ID = "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG";
-
+    public static final String PROGRAM_ID = "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG";
     @Override
     public String getMethodId(ByteBuffer buffer) {
         byte[] discriminatorBytes = new byte[8];
