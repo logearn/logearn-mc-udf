@@ -3,7 +3,6 @@ package cn.xlystar.parse.solSwap.meteora.dbc;
 import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bouncycastle.util.encoders.Hex;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
 
     /**
      * 解析 Swap 指令
-     *
+     * https://solscan.io/tx/2fUxJjYB2yKrEgEVvB1ENNAyJCR2r1dpAm7wvyj258D8grLpj8Hdj5GiMrC6n6GUuFs91aaJSgTRBDrwn9fdv9mp
      * @param buffer  数据缓冲区
      * @param accounts 账户列表
      * @return 指令信息
@@ -67,8 +66,8 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
         Map<String, Object> info = new HashMap<>();
         
         // 解析 SwapParameters 结构
-        info.put("amount_in", new BigInteger(buffer.getLong()+""));
-        info.put("minimum_amount_out", new BigInteger(buffer.getLong()+""));
+        info.put("amount_in", Long.toUnsignedString(buffer.getLong()));
+        info.put("minimum_amount_out", Long.toUnsignedString(buffer.getLong()));
         
         // 解析账户
         info.put("pool_authority", accounts[0]);
@@ -125,7 +124,7 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
     
     /**
      * 解析 InitializeVirtualPoolWithSplToken 指令
-     *
+     * https://solscan.io/tx/2WVgZw6j9MVVKFoETQyFFEAnKuiECvhfx291V4cnmFJYb4QRqNY7MAfBuNENUTKQqYnz8ZiAUYETPXZQKrbP94sg
      * @param buffer   数据缓冲区
      * @param accounts 账户列表
      * @return 指令信息
@@ -136,9 +135,9 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
         // 解析 InitializePoolParameters 结构
         // 由于结构复杂，这里只解析基本参数
         // 实际应用中可能需要根据具体需求解析更多参数
-//        info.put("initial_price", new BigInteger(buffer.getLong()+""));
-//        info.put("initial_base_reserve", new BigInteger(buffer.getLong()+""));
-//        info.put("initial_quote_reserve", new BigInteger(buffer.getLong()+""));
+        info.put("name", parseString(buffer));
+        info.put("symbol", parseString(buffer));
+        info.put("uri", parseString(buffer));
         
         // 解析账户
         info.put("config", accounts[0]);
@@ -160,6 +159,13 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
         
         return info;
     }
+    // 工具方法：解析字符串
+    private static String parseString(ByteBuffer buffer) {
+        int length = buffer.getInt();
+        byte[] bytes = new byte[length];
+        buffer.get(bytes);
+        return new String(bytes);
+    }
     
     /**
      * 解析 InitializeVirtualPoolWithToken2022 指令
@@ -174,9 +180,9 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
         // 解析 InitializePoolParameters 结构
         // 由于结构复杂，这里只解析基本参数
         // 实际应用中可能需要根据具体需求解析更多参数
-//        info.put("initial_price", new BigInteger(buffer.getLong()+""));
-//        info.put("initial_base_reserve", new BigInteger(buffer.getLong()+""));
-//        info.put("initial_quote_reserve", new BigInteger(buffer.getLong()+""));
+        info.put("name", parseString(buffer));
+        info.put("symbol", parseString(buffer));
+        info.put("uri", parseString(buffer));
         
         // 解析账户
         info.put("config", accounts[0]);

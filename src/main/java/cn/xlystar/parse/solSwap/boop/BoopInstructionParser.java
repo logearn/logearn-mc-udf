@@ -26,6 +26,12 @@ public class BoopInstructionParser extends InstructionParser {
             case BUY_TOKEN:
                 info = parseBuyToken(buffer, accounts);
                 break;
+            case SELL_TOKEN:
+                info = parseSellToken(buffer, accounts);
+                break;
+            case GRADUATE:
+                info = parseGraduate(buffer, accounts);
+                break;
             case CREATE_RAYDIUM_POOL:
                 info = parseCreateRaydiumPool(buffer, accounts);
                 break;
@@ -44,9 +50,6 @@ public class BoopInstructionParser extends InstructionParser {
             case INITIALIZE:
                 info = parseInitialize(buffer, accounts);
                 break;
-            case SELL_TOKEN:
-                info = parseSellToken(buffer, accounts);
-                break;
             case SWAP_SOL_FOR_TOKENS_ON_RAYDIUM:
                 info = parseSwapSolForTokensOnRaydium(buffer, accounts);
                 break;
@@ -59,6 +62,7 @@ public class BoopInstructionParser extends InstructionParser {
         return info;
     }
 
+    // 2uGsaw6Yit3WuBGuDDx2ZRnd8prrU4XP1v2TPCom78ySthH6bWtQNp5xVxmRB6mTQGe5wYJXxGvX3CwjDTGU3XJF
     private static Map<String, Object> parseBuyToken(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         info.put("buy_amount", Long.toUnsignedString(buffer.getLong()));
@@ -71,19 +75,19 @@ public class BoopInstructionParser extends InstructionParser {
         info.put("bonding_curve_sol_vault", accounts[4]);
         info.put("recipient_token_account", accounts[5]);
         info.put("buyer", accounts[6]);
-        info.put("config", accounts[6]);
-        info.put("vault_authority", accounts[7]);
-        info.put("wsol", accounts[8]);
-        info.put("system_program", accounts[9]);
-        info.put("token_program", accounts[10]);
-        info.put("associated_token_program", accounts[11]);
+        info.put("config", accounts[7]);
+        info.put("vault_authority", accounts[8]);
+        info.put("wsol", accounts[9]);
+        info.put("system_program", accounts[10]);
+        info.put("token_program", accounts[11]);
+        info.put("associated_token_program", accounts[12]);
         return info;
     }
 
 
     /**
      * 解析 CreateRaydiumPool 指令
-     *
+     * AcRJLfG2zTFSyj2kyXgWeoUe6vCJ1XdUHBeA4K9BNSGeQWmWfQwP8Y8AxbkaCX2uSi7k8LBd4gdErMKFBuWyLyS
      * @param buffer   数据缓冲区
      * @param accounts 账户列表
      * @return 指令信息
@@ -114,6 +118,35 @@ public class BoopInstructionParser extends InstructionParser {
         info.put("associated_token_program", accounts[19]);
         info.put("system_program", accounts[20]);
         info.put("rent", accounts[21]);
+
+        return info;
+    }
+    /**
+     * 解析 Graduate 指令
+     *
+     * @param buffer   数据缓冲区
+     * @param accounts 账户列表
+     * @return 指令信息
+     */
+    private static Map<String, Object> parseGraduate(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 解析账户
+        info.put("mint", accounts[0]);
+        info.put("wsol", accounts[1]);
+        info.put("protocol_fee_recipient", accounts[2]);
+        info.put("token_distributor", accounts[3]);
+        info.put("token_distributor_token_account", accounts[4]);
+        info.put("vault_authority", accounts[5]);
+        info.put("bonding_curve_sol_vault", accounts[6]);
+        info.put("bonding_curve", accounts[7]);
+        info.put("bonding_curve_vault", accounts[8]);
+        info.put("bonding_curve_wsol_account", accounts[9]);
+        info.put("operator", accounts[10]);
+        info.put("config", accounts[11]);
+        info.put("system_program", accounts[12]);
+        info.put("token_program", accounts[13]);
+        info.put("associated_token_program", accounts[14]);
 
         return info;
     }
@@ -165,25 +198,14 @@ public class BoopInstructionParser extends InstructionParser {
         Map<String, Object> info = new HashMap<>();
 
         // 解析参数
-        info.put("salt", buffer.getLong());
+        info.put("salt", Long.toUnsignedString(buffer.getLong()));
 
         // 读取字符串参数：name
-        byte nameLength = buffer.get();
-        byte[] nameBytes = new byte[nameLength];
-        buffer.get(nameBytes);
-        info.put("name", new String(nameBytes));
-
+        info.put("name", parseString(buffer));
         // 读取字符串参数：symbol
-        byte symbolLength = buffer.get();
-        byte[] symbolBytes = new byte[symbolLength];
-        buffer.get(symbolBytes);
-        info.put("symbol", new String(symbolBytes));
-
+        info.put("symbol", parseString(buffer));
         // 读取字符串参数：uri
-        byte uriLength = buffer.get();
-        byte[] uriBytes = new byte[uriLength];
-        buffer.get(uriBytes);
-        info.put("uri", new String(uriBytes));
+        info.put("uri", parseString(buffer));
 
         // 解析账户
         info.put("config", accounts[0]);
@@ -212,7 +234,7 @@ public class BoopInstructionParser extends InstructionParser {
         byte[] creatorBytes = new byte[32];
         buffer.get(creatorBytes);
         info.put("creator", Base58.encode(creatorBytes));
-        info.put("salt", buffer.getLong());
+        info.put("salt", Long.toUnsignedString(buffer.getLong()));
 
         // 解析账户
         info.put("mint", accounts[0]);
@@ -368,7 +390,7 @@ public class BoopInstructionParser extends InstructionParser {
 
     /**
      * 解析 SellToken 指令
-     *
+     * 2i44HFsocHgKGGNGn8mHddLNymbwXGpNJHpS3YdQvXWJd7AFvEvKsezYbRW37QWEYr7oS8dZQf7E5rH6RiXuE4wH
      * @param buffer   数据缓冲区
      * @param accounts 账户列表
      * @return 指令信息
@@ -395,6 +417,13 @@ public class BoopInstructionParser extends InstructionParser {
         info.put("associated_token_program", accounts[11]);
 
         return info;
+    }
+
+    private static String parseString(ByteBuffer buffer) {
+        int length = buffer.getInt();
+        byte[] bytes = new byte[length];
+        buffer.get(bytes);
+        return new String(bytes);
     }
 
 }
