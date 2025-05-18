@@ -38,6 +38,7 @@ import org.apache.commons.collections.MapUtils;
 import org.bitcoinj.core.Base58;
 
 import java.math.BigInteger;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +52,16 @@ public class SolInstructionProcessor {
         }
         // 2、解析
         return parser.parseInstruction(Base58.decode(instructionData), inputAccount);
+    }
+
+    public static Map<String, Object> processLogs(String programId, String logs) {
+        // 1、获取解析器
+        InstructionParser parser = SolInstructionParserFactory.getParser(programId);
+        if (parser == null) {
+            return null;
+        }
+        // 2、解析
+        return parser.parseLogs(Base64.getDecoder().decode(logs));
     }
 
     public static Map<String, Object> processInstructionRt(String programId, String[] inputAccount, String instructionData) {
