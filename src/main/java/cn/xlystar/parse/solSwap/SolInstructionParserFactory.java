@@ -5,6 +5,7 @@ import cn.xlystar.parse.solSwap.metaplex.MetadataInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dbc.MeteoraDbcInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
+import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2InstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
 import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstructionParser;
@@ -51,6 +52,7 @@ public class SolInstructionParserFactory {
 //        // meteora 协议
         configMap.put(MeteoraAlmmInstructionParser.PROGRAM_ID, new MeteoraAlmmInstructionParser());
         configMap.put(MeteoraDlmmInstructionParser.PROGRAM_ID, new MeteoraDlmmInstructionParser());
+        configMap.put(MeteoraDlmmV2InstructionParser.PROGRAM_ID, new MeteoraDlmmV2InstructionParser());
         configMap.put(MeteoraDbcInstructionParser.PROGRAM_ID, new MeteoraDbcInstructionParser());
         // boop 协议
         configMap.put(BoopInstructionParser.PROGRAM_ID, new BoopInstructionParser());

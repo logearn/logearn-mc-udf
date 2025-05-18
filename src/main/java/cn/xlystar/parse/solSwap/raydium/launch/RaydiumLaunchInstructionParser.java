@@ -95,22 +95,23 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         return info;
     }
 
+    // https://solscan.io/tx/4iCugPNJQEzRhyHKeqRcJ3jw74FPUKC8rA6X8GkZTFbjCt5DdNDMKrfUp7uLGA7okWL3AEocJBtBMzSoJoKpdkvq
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        byte[] base_mint_param = new byte[32];
-        buffer.get(base_mint_param);
-        String baseStr = Base58.encode(base_mint_param);
-        info.put("base_mint_param", baseStr);
-
-        byte[] curve_param = new byte[32];
-        buffer.get(base_mint_param);
-        String curveStr = Base58.encode(curve_param);
-        info.put("curve_param", curveStr);
-
-        byte[] vesting_param = new byte[32];
-        buffer.get(base_mint_param);
-        String vestingStr = Base58.encode(vesting_param);
-        info.put("vesting_param", vestingStr);
+//        byte[] base_mint_param = new byte[32];
+//        buffer.get(base_mint_param);
+//        String baseStr = Base58.encode(base_mint_param);
+//        info.put("base_mint_param", baseStr);
+//
+//        byte[] curve_param = new byte[32];
+//        buffer.get(base_mint_param);
+//        String curveStr = Base58.encode(curve_param);
+//        info.put("curve_param", curveStr);
+//
+//        byte[] vesting_param = new byte[32];
+//        buffer.get(base_mint_param);
+//        String vestingStr = Base58.encode(vesting_param);
+//        info.put("vesting_param", vestingStr);
 
         info.put("payer", accounts[0]);
         info.put("creator", accounts[1]);
