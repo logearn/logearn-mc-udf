@@ -88,7 +88,7 @@ public class MeteoraDlmmInstructionParser extends InstructionParser {
 
         // 参数解析
         info.put("active_id", buffer.getInt());
-        info.put("bin_step", Short.toUnsignedInt(buffer.getShort())); // 修改为getShort因为u16类型
+        info.put("bin_step", buffer.getShort()); // 修改为getShort因为u16类型
 
         // 账户信息
         info.put("lb_pair", accounts[0]);

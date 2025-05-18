@@ -1,9 +1,5 @@
 package cn.xlystar.parse.solSwap.pump_swap;
 
-import java.util.Map;
-import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
-import org.bouncycastle.util.encoders.Hex;
-
 public class PumpSwapInstructionParserTest {
 
 
@@ -11,14 +7,14 @@ public class PumpSwapInstructionParserTest {
         System.out.println("开始测试 PumpSwap 指令解析器...\n");
         
         testTPumpSwapOperations();
-     
+
         System.out.println("\n所有测试完成!");
     }
 
     private static void testTPumpSwapOperations() {
         System.out.println("\n=== 测试 swap 操作 ===");
 
-     
+
         // ✅ buy
         // String tx_hash6 = "5dJABuWZi5DR3SZhZ5ndKCSDisnzxPUnYfCTRdzyRFbpWCNBac7EnobXbGFG7ZefpRerXNL3aqWEfi8FFnH1bhg1";
         // String[] accounts6 = "51V3VBfMwkNbUMSHDzKC882LuYdR8Hgi3fNtYJyxz8xQ, 36Eru7v11oU5Pfrojyn5oY3nETA1a1iqsw2WUu6afkM9, 11111111111111111111111111111111".split(", ");
@@ -26,7 +22,7 @@ public class PumpSwapInstructionParserTest {
         // testInstruction("CONFIG_INIT", base58Data6, accounts6, tx_hash6);
 
         // 目前找不到 测试数据， due 上面还没解析这个 合约， 看看，怎么拿真是数据去测试意义
-  
+
     }
 
 

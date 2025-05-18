@@ -223,8 +223,8 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
 
         info.put("damm_config", accounts[5]);
         info.put("lp_mint", accounts[6]);
-        info.put("token_a_mint", accounts[8]);
-        info.put("token_b_mint", accounts[9]);
+        info.put("base_mint", accounts[8]);
+        info.put("quote_mint", accounts[9]);
         info.put("a_vault", accounts[10]);
 
         info.put("b_vault", accounts[11]);
@@ -322,5 +322,10 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
         info.put("event_authority", accounts[5]);
         info.put("program", accounts[6]);
         return info;
+    }
+
+    public static boolean isMigrated(String methodId) {
+        return methodId.equals(MeteoraDbcInstruction.MIGRATION_DAMM_V2.getValue())
+                || methodId.equals(MeteoraDbcInstruction.MIGRATE_METEORA_DAMM.getValue());
     }
 }

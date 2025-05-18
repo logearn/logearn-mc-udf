@@ -426,4 +426,8 @@ public class BoopInstructionParser extends InstructionParser {
         return new String(bytes);
     }
 
+    public static boolean isMigrated(String methodId) {
+        return methodId.equals(BoopInstruction.GRADUATE.getValue());
+    }
+
 }

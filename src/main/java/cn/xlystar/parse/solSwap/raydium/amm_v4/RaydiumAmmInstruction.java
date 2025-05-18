@@ -39,8 +39,8 @@ public enum RaydiumAmmInstruction {
         this.value = value;
     }
 
-    public int getValue() {
-        return value;
+    public String getValue() {
+        return value + "";
     }
 
     public static RaydiumAmmInstruction fromValue(int value) {

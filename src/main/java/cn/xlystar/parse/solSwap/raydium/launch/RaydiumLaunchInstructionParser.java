@@ -1,8 +1,8 @@
 package cn.xlystar.parse.solSwap.raydium.launch;
 
 import cn.xlystar.parse.solSwap.InstructionParser;
-import org.bitcoinj.core.Base58;
 import org.bouncycastle.util.encoders.Hex;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -95,7 +95,6 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         return info;
     }
 
-    // https://solscan.io/tx/4iCugPNJQEzRhyHKeqRcJ3jw74FPUKC8rA6X8GkZTFbjCt5DdNDMKrfUp7uLGA7okWL3AEocJBtBMzSoJoKpdkvq
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 //        byte[] base_mint_param = new byte[32];
@@ -149,8 +148,8 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         info.put("user_quote_token", accounts[6]);
         info.put("base_vault", accounts[7]);
         info.put("quote_vault", accounts[8]);
-        info.put("base_token_mint", accounts[9]);
-        info.put("quote_token_mint", accounts[10]);
+        info.put("base_mint", accounts[9]);
+        info.put("quote_mint", accounts[10]);
         info.put("base_token_program", accounts[11]);
         info.put("quote_token_program", accounts[12]);
         info.put("event_authority", accounts[13]);
@@ -173,8 +172,8 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         info.put("user_quote_token", accounts[6]);
         info.put("base_vault", accounts[7]);
         info.put("quote_vault", accounts[8]);
-        info.put("base_token_mint", accounts[9]);
-        info.put("quote_token_mint", accounts[10]);
+        info.put("base_mint", accounts[9]);
+        info.put("quote_mint", accounts[10]);
         info.put("base_token_program", accounts[11]);
         info.put("quote_token_program", accounts[12]);
         info.put("event_authority", accounts[13]);
@@ -253,5 +252,10 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         info.put("rent_program", accounts[26]);
         info.put("metadata_program", accounts[27]);
         return info;
+    }
+
+    public static boolean isMigrated(String methodId) {
+        return methodId.equals(RaydiumLaunchInstruction.MIGRATE_TO_AMM.getValue())
+                || methodId.equals(RaydiumLaunchInstruction.MIGRATE_TO_CPSWAP.getValue());
     }
 }

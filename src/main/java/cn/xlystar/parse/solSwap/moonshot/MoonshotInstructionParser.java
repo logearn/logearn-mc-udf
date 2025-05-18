@@ -6,11 +6,15 @@ import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MoonshotInstructionParser extends InstructionParser {
 
-    public static final String PROGRAM_ID = "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG";
+     public static final String PROGRAM_ID = "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG";
+
     @Override
     public String getMethodId(ByteBuffer buffer) {
         byte[] discriminatorBytes = new byte[8];
@@ -48,7 +52,7 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseTokenMint(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 TokenMintParams
         String name = parseString(buffer);
         String symbol = parseString(buffer);
@@ -87,7 +91,7 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseBuy(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 TradeParams
         long tokenAmount = buffer.getLong();
         long collateralAmount = buffer.getLong();
@@ -118,7 +122,7 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseSell(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 TradeParams (与 Buy 相同的参数结构)
         long tokenAmount = buffer.getLong();
         long collateralAmount = buffer.getLong();
@@ -149,9 +153,9 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseMigrateFunds(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // migrateFunds 没有参数需要解析
-        
+
         // 添加账户信息
         info.put("backendAuthority", accounts[0]);
         info.put("migrationAuthority", accounts[1]);
@@ -175,7 +179,7 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseConfigInit(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 ConfigParams
         parseConfigParams(buffer, info);
 
@@ -189,7 +193,7 @@ public class MoonshotInstructionParser extends InstructionParser {
 
     private Map<String, Object> parseConfigUpdate(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 ConfigParams
         parseConfigParams(buffer, info);
 
@@ -292,5 +296,28 @@ public class MoonshotInstructionParser extends InstructionParser {
         event.put("label", parseString(buffer));                                  // string
         event.put("eventType", "migration");
         return event;
+    }
+
+    /**
+     * 从日志中提取转账金额（如 "98999972"）
+     */
+    public static String extractCollateralAmount(List<String> logs) {
+        Pattern pattern = Pattern.compile("Transfering collateral from buyer to curve account: (\\d+)");
+        for (int i = 0; i < logs.size(); i++) {
+            String log = logs.get(i);
+            Matcher matcher = pattern.matcher(log);
+            if (matcher.find()) {
+                if (i + 4 <= logs.size()
+                        && logs.get(i + 2).startsWith("Program MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG consumed")
+                        && logs.get(i + 3).startsWith("Program MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG success")
+                ) return matcher.group(1); // 返回第一个捕获组的数字
+            }
+        }
+
+        return null;
+    }
+
+    public static boolean isMigrated(String methodId) {
+        return methodId.equals(MoonshotInstruction.MIGRATE_FUNDS.getValue());
     }
 } 

@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WhirlpoolInstructionParser extends InstructionParser {
+
     public static final String PROGRAM_ID = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc";
+
     @Override
     public String getMethodId(ByteBuffer buffer) {
         byte[] discriminatorBytes = new byte[8];
