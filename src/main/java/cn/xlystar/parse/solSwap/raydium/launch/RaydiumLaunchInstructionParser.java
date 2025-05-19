@@ -153,7 +153,6 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         info.put("base_token_program", accounts[11]);
         info.put("quote_token_program", accounts[12]);
         info.put("event_authority", accounts[13]);
-        info.put("program", accounts[14]);
         return info;
     }
 
@@ -177,7 +176,6 @@ public class RaydiumLaunchInstructionParser extends InstructionParser {
         info.put("base_token_program", accounts[11]);
         info.put("quote_token_program", accounts[12]);
         info.put("event_authority", accounts[13]);
-        info.put("program", accounts[14]);
         return info;
     }
     private static Map<String, Object> parseMigrateToAmm(ByteBuffer buffer, String[] accounts) {
