@@ -223,35 +223,35 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
 
         info.put("damm_config", accounts[5]);
         info.put("lp_mint", accounts[6]);
-        info.put("base_mint", accounts[8]);
-        info.put("quote_mint", accounts[9]);
-        info.put("a_vault", accounts[10]);
+        info.put("base_mint", accounts[7]);
+        info.put("quote_mint", accounts[8]);
+        info.put("a_vault", accounts[9]);
 
-        info.put("b_vault", accounts[11]);
-        info.put("a_token_vault", accounts[12]);
-        info.put("b_token_vault", accounts[13]);
-        info.put("a_vault_lp_mint", accounts[14]);
-        info.put("b_vault_lp_mint", accounts[15]);
+        info.put("b_vault", accounts[10]);
+        info.put("a_token_vault", accounts[11]);
+        info.put("b_token_vault", accounts[12]);
+        info.put("a_vault_lp_mint", accounts[13]);
+        info.put("b_vault_lp_mint", accounts[14]);
 
-        info.put("a_vault_lp", accounts[16]);
-        info.put("b_vault_lp", accounts[17]);
-        info.put("base_vault", accounts[18]);
-        info.put("quote_vault", accounts[19]);
-        info.put("virtual_pool_lp", accounts[20]);
+        info.put("a_vault_lp", accounts[15]);
+        info.put("b_vault_lp", accounts[16]);
+        info.put("base_vault", accounts[17]);
+        info.put("quote_vault", accounts[18]);
+        info.put("virtual_pool_lp", accounts[19]);
 
-        info.put("protocol_token_a_fee", accounts[21]);
-        info.put("protocol_token_b_fee", accounts[22]);
-        info.put("payer", accounts[23]);
-        info.put("rent", accounts[24]);
-        info.put("mint_metadata", accounts[25]);
+        info.put("protocol_token_a_fee", accounts[20]);
+        info.put("protocol_token_b_fee", accounts[21]);
+        info.put("payer", accounts[22]);
+        info.put("rent", accounts[23]);
+        info.put("mint_metadata", accounts[24]);
 
-        info.put("metadata_program", accounts[26]);
-        info.put("amm_program", accounts[27]);
-        info.put("vault_program", accounts[28]);
-        info.put("token_program", accounts[29]);
-        info.put("associated_token_program", accounts[30]);
+        info.put("metadata_program", accounts[25]);
+        info.put("amm_program", accounts[26]);
+        info.put("vault_program", accounts[27]);
+        info.put("token_program", accounts[28]);
+        info.put("associated_token_program", accounts[29]);
 
-        info.put("system_program", accounts[31]);
+        info.put("system_program", accounts[30]);
 
         return info;
     }
