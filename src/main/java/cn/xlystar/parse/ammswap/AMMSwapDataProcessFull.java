@@ -156,7 +156,7 @@ public class AMMSwapDataProcessFull {
         String wcoin = conf.getChainConf().get("wcoin").asText();
         String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
         String wcoinAddress = conf.getTokens().get(wcoin).get("address").asText();
-        if (t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress)) return false;
+        if (t.getTokenIn() == null || t.getTokenOut() == null || t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress)) return false;
         JsonNode usdc = conf.getTokens().get("USDC");
         JsonNode usdt = conf.getTokens().get("USDT");
         JsonNode usd1 = conf.getTokens().get("USD1");
