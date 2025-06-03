@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -794,7 +795,8 @@ public class Log {
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
         for (JsonNode tmp : logLists) {
             String contractAddress = tmp.get("address").asText().toLowerCase();
-            if (!contractAddress.equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b") || tmp.get("data").toString().length() != 516) continue;
+            if (!contractAddress.equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b") || tmp.get("data").toString().length() != 516)
+                continue;
             String data = tmp.get("data").asText().substring(2);
             List<String> topicLists = parseTopics(tmp.get("topics"));
             JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
@@ -810,12 +812,13 @@ public class Log {
                 BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
                 BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
 
+                BigInteger amountIn = coin.add(fee);
                 UniswapEvent uniswapEvent = UniswapEvent.builder()
                         .sender("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
                         .to(sender)
                         .tokenIn(conf.getWCoinAddress())
                         .tokenOut(token_address)
-                        .amountIn(coin.add(fee))
+                        .amountIn(amountIn)
                         .amountOut(token)
                         .logIndex(logIndex)
                         .contractAddress(contractAddress)
@@ -827,10 +830,20 @@ public class Log {
 
                 for (TransferEvent transferEvent : transferEvents) {
                     if (transferEvent.getContractAddress().equals(token_address)
-                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
                         uniswapEvent.setTo(transferEvent.getReceiver());
                         transferEvents.remove(transferEvent);
                         break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    // 非 BNB 的情况，比如 USD1
+                    if (transferEvent.getAmount().subtract(token).abs().compareTo(new BigDecimal(fee).multiply(new BigDecimal("0.001")).toBigInteger()) <= 0
+                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+                            && transferEvent.getSender().equals("0x01edcd07559250e38d0b3166850c5b2b6fe816dd")
+                    ) {
+                        uniswapEvent.setTokenIn(transferEvent.getContractAddress());
                     }
                 }
 
@@ -862,13 +875,22 @@ public class Log {
                         .build();
                 for (TransferEvent transferEvent : transferEvents) {
                     if (transferEvent.getContractAddress().equals(token_address)
-                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
                         uniswapEvent.setSender(transferEvent.getSender());
                         transferEvents.remove(transferEvent);
                         break;
                     }
                 }
-
+                for (TransferEvent transferEvent : transferEvents) {
+                    // 非 BNB 的情况，比如 USD1
+                    if (transferEvent.getAmount().subtract(token).abs().compareTo(new BigDecimal(fee).multiply(new BigDecimal("0.001")).toBigInteger()) <= 0
+                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+                            && transferEvent.getReceiver().equals("0x01edcd07559250e38d0b3166850c5b2b6fe816dd")
+                    ) {
+                        uniswapEvent.setTokenOut(transferEvent.getContractAddress());
+                    }
+                }
                 uniswapEvents.add(uniswapEvent);
             }
         }

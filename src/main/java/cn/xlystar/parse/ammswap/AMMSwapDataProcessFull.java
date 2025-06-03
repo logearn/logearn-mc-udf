@@ -25,11 +25,11 @@ public class AMMSwapDataProcessFull {
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs) throws IOException {
+    public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs, String price) throws IOException {
         // 解析
         List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs);
         // 后缀处理
-        return processSwap(uniswapEvents, new ArrayList<>(), conf, "");
+        return processSwap(uniswapEvents, new ArrayList<>(), conf, price);
     }
 
     /**
@@ -45,8 +45,12 @@ public class AMMSwapDataProcessFull {
     private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price) {
         swapEvents.forEach(t -> {
                     // 非 wcoin 币对处理
-                    if (conf.getChainId().equals("3") && !CollectionUtils.isEmpty(t.getRawSwapLog())) {
-                        t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
+                    if (!CollectionUtils.isEmpty(t.getRawSwapLog()) && !StringUtils.isEmpty(price)) {
+                        if (conf.getChainId().equals("3")) {
+                            t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
+                        } else {
+                            t.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
+                        }
                     }
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
                         switch (conf.getChainId()) {
@@ -146,6 +150,68 @@ public class AMMSwapDataProcessFull {
             }
         }
         return finalSwap;
+    }
+
+    private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price) {
+        String wcoin = conf.getChainConf().get("wcoin").asText();
+        String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
+        String wcoinAddress = conf.getTokens().get(wcoin).get("address").asText();
+        if (t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress)) return false;
+        JsonNode usdc = conf.getTokens().get("USDC");
+        JsonNode usdt = conf.getTokens().get("USDT");
+        JsonNode usd1 = conf.getTokens().get("USD1");
+        boolean hasUsdc = false;
+        boolean hasUsdt = false;
+        boolean hasUsd1 = false;
+        String usdcDecimals = "";
+        String usdcAddress = "";
+        String usdtDecimals = "";
+        String usdtAddress = "";
+        String usd1Decimals = "";
+        String usd1Address = "";
+        if (usdc != null) {
+            usdcAddress = usdc.get("address").asText();
+            usdcDecimals = usdc.get("scale").asText();
+            hasUsdc = usdcAddress.equals(t.getTokenIn()) || usdcAddress.equals(t.getTokenOut());
+        }
+        if (usd1 != null) {
+            usd1Address = usd1.get("address").asText();
+            usd1Decimals = usd1.get("scale").asText();
+            hasUsd1 = usd1Address.equals(t.getTokenIn()) || usd1Address.equals(t.getTokenOut());
+        }
+        if (usdt != null) {
+            usdtAddress = usdt.get("address").asText();
+            usdtDecimals = usdt.get("scale").asText();
+            hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
+        }
+
+        String tokenAddress = "";
+        String decimals = "";
+
+        if (hasUsdc) {
+            tokenAddress = usdcAddress;
+            decimals = usdcDecimals;
+        } else if (hasUsdt) {
+            tokenAddress = usdtAddress;
+            decimals = usdtDecimals;
+        } else if (hasUsd1) {
+            tokenAddress = usd1Address;
+            decimals = usd1Decimals;
+        }
+
+        if (StringUtils.isEmpty(tokenAddress)) return false;
+
+        BigInteger tokenAmount = t.getTokenIn().equals(tokenAddress) ? t.getAmountIn() : t.getAmountOut();
+        BigInteger wcoinAmount = new BigDecimal(tokenAmount).divide(price, 20, RoundingMode.HALF_UP).multiply(new BigDecimal(wcoinDecimals)).divide(new BigDecimal(decimals)).toBigInteger();
+        if (t.getTokenIn().equals(tokenAddress)) {
+            t.setTokenIn(conf.getWCoinAddress());
+            t.setAmountIn(wcoinAmount);
+        } else {
+            t.setTokenOut(conf.getWCoinAddress());
+            t.setAmountOut(wcoinAmount);
+        }
+
+        return true;
     }
 
     private static boolean convertToSol(ChainConfig conf, UniswapEvent t, BigDecimal price) {

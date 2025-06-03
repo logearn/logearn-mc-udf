@@ -13,14 +13,14 @@ import java.util.Map;
 public class AMMSwapDataProcess {
     public static String ZEROADDR = "0x0000000000000000000000000000000000000000".toLowerCase();
 
-    public static List<Map<String, String>> decodeInputData(ChainConfig conf, String inputData, String from, String to, String value, String logs, String internalTxs, String hash) throws IOException {
+    public static List<Map<String, String>> decodeInputData(ChainConfig conf, String inputData, String from, String to, String value, String logs, String internalTxs, String hash, String price) throws IOException {
 
         // 从内部交易中找到有效的交易，即：value>0的交易，且type = call
         List<TransferEvent> validInternalTxs = InternalTx.parseTx(internalTxs, conf.getWCoinAddress());
         log.debug("******* Log 中找到符合条件(value > 0 且 callType == call)的 InnelTx： {} 条", validInternalTxs.size());
 
         // 从logs中解析swap
-        List<Map<String, String>> maps = AMMSwapDataProcessFull.parseFullUniswap(from, conf, logs, hash, validInternalTxs);
+        List<Map<String, String>> maps = AMMSwapDataProcessFull.parseFullUniswap(from, conf, logs, hash, validInternalTxs, price);
         return maps;
     }
 
