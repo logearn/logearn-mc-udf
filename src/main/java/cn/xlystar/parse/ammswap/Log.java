@@ -839,11 +839,12 @@ public class Log {
                 }
                 for (TransferEvent transferEvent : transferEvents) {
                     // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(token).abs().compareTo(new BigDecimal(fee).multiply(new BigDecimal("0.001")).toBigInteger()) <= 0
+                    if (transferEvent.getAmount().subtract(amountIn).abs().compareTo(BigInteger.ZERO) == 0
                             && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-                            && transferEvent.getSender().equals("0x01edcd07559250e38d0b3166850c5b2b6fe816dd")
+                            && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
                     ) {
                         uniswapEvent.setTokenIn(transferEvent.getContractAddress());
+                        break;
                     }
                 }
 
@@ -884,11 +885,12 @@ public class Log {
                 }
                 for (TransferEvent transferEvent : transferEvents) {
                     // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(token).abs().compareTo(new BigDecimal(fee).multiply(new BigDecimal("0.001")).toBigInteger()) <= 0
+                    if (transferEvent.getAmount().subtract(fee).abs().compareTo(BigInteger.ZERO) == 0
                             && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-                            && transferEvent.getReceiver().equals("0x01edcd07559250e38d0b3166850c5b2b6fe816dd")
+                            && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
                     ) {
                         uniswapEvent.setTokenOut(transferEvent.getContractAddress());
+                        break;
                     }
                 }
                 uniswapEvents.add(uniswapEvent);

@@ -5,7 +5,9 @@
     "coin": "ETH",
     "wcoin": "WETH",
     "tokens": {
-      "WETH": {"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "scale": "1e18", "name": "WETH" }
+      "WETH": {"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "scale": "1e18", "decimals": "18", "name": "WETH" },
+      "USDC": {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "scale": "1e6", "decimals": "6", "name": "USDC" },
+      "USDT": {"address": "0xdac17f958d2ee523a2206206994597c13d831ec7", "scale": "1e6", "decimals": "6", "name": "USDT" }
     },
     "protocols": {
       "uniswap": {
@@ -25,7 +27,10 @@
     "coin": "BNB",
     "wcoin": "WBNB",
     "tokens": {
-      "WBNB": {"address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "scale": "1e18", "name": "WBNB" }
+      "WBNB": {"address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "scale": "1e18", "decimals": "18", "name": "WBNB" },
+      "USD1": {"address": "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d", "scale": "1e18", "decimals": "18", "name": "USD1" },
+      "USDC": {"address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", "scale": "1e18", "decimals": "18", "name": "USDC" },
+      "USDT": {"address": "0x55d398326f99059ff775485246999027b3197955", "scale": "1e18", "decimals": "18", "name": "USDT" }
     },
     "protocols": {
       "pancake": {
@@ -45,7 +50,8 @@
     "coin": "ETH",
     "wcoin": "WETH",
     "tokens": {
-      "WETH": {"address": "0x4200000000000000000000000000000000000006", "scale": "1e18", "name": "WETH" }
+      "WETH": {"address": "0x4200000000000000000000000000000000000006", "scale": "1e18", "decimals": "18", "name": "WETH" },
+      "USDC": {"address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "scale": "1e6", "decimals": "6", "name": "USDC" }
     },
     "protocols": {
       "uniswap": {
@@ -65,9 +71,9 @@
     "coin": "SOL",
     "wcoin": "WSOL",
     "tokens": {
-      "WSOL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "name": "WSOL" },
-      "USDC": {"address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "scale": "1e6", "name": "USDC" },
-      "USDT": {"address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "scale": "1e6", "name": "USDT" }
+      "WSOL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "decimals": "9", "name": "WSOL" },
+      "USDC": {"address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "scale": "1e6", "decimals": "6", "name": "USDC" },
+      "USDT": {"address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "scale": "1e6", "decimals": "6", "name": "USDT" }
     },
     "protocols": {
       "swap": {
