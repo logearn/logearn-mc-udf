@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -790,7 +791,7 @@ public class Log {
     /**
      * 解析 fourMemeSwap V2事件
      */
-    public static List<UniswapEvent> findFourMemeSwapV2(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents) {
+    public static List<UniswapEvent> findFourMemeSwapV2(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents, String price) {
         JsonNode logLists = logJson.get("logs");
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
         for (JsonNode tmp : logLists) {
@@ -839,11 +840,12 @@ public class Log {
                 }
                 for (TransferEvent transferEvent : transferEvents) {
                     // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(amountIn).abs().compareTo(BigInteger.ZERO) == 0
+                    if (transferEvent.getAmount().subtract(amountIn).abs().compareTo(new BigDecimal(amountIn).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
                             && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
                             && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
                     ) {
-                        uniswapEvent.setTokenIn(transferEvent.getContractAddress());
+                        BigInteger wcoinAmount = new BigDecimal(amountIn).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        uniswapEvent.setAmountIn(wcoinAmount);
                         break;
                     }
                 }
@@ -854,7 +856,6 @@ public class Log {
                 String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
                 String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
 
-//                BigInteger price = web3HexToBigInteger(data.substring(128, 192));
                 BigInteger token = web3HexToBigInteger(data.substring(192, 256));
                 BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
                 BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
@@ -885,11 +886,12 @@ public class Log {
                 }
                 for (TransferEvent transferEvent : transferEvents) {
                     // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(fee).abs().compareTo(BigInteger.ZERO) == 0
+                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
                             && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
                             && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
                     ) {
-                        uniswapEvent.setTokenOut(transferEvent.getContractAddress());
+                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee)).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        uniswapEvent.setAmountOut(wcoinAmount);
                         break;
                     }
                 }

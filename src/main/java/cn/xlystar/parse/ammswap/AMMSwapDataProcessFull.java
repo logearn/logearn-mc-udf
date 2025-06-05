@@ -27,7 +27,7 @@ public class AMMSwapDataProcessFull {
      */
     public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs, String price) throws IOException {
         // 解析
-        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs);
+        List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs, price);
         // 后缀处理
         return processSwap(uniswapEvents, new ArrayList<>(), conf, price);
     }
@@ -337,7 +337,7 @@ public class AMMSwapDataProcessFull {
     /**
      * 解析所有的swap
      */
-    public static List<UniswapEvent> parseAllUniSwapLogs(String originSender, ChainConfig conf, String logs, String hash, List<TransferEvent> validInternalTxs) throws IOException {
+    public static List<UniswapEvent> parseAllUniSwapLogs(String originSender, ChainConfig conf, String logs, String hash, List<TransferEvent> validInternalTxs, String price) throws IOException {
         if (logs.isEmpty()) {
             return new ArrayList<>();
         }
@@ -355,7 +355,7 @@ public class AMMSwapDataProcessFull {
         log.debug("******* InnerTx 和 Transfer 合并, 当前 总共 transferEvents： {} 条。", transferEvents.size());
 
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
-        Result resultEvent = getUniswapEvents(conf, transferEvents, txLog, hash);
+        Result resultEvent = getUniswapEvents(conf, transferEvents, txLog, hash, price);
         // 3、将构建好的所有 swapEven t的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
         List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents());
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
@@ -417,7 +417,7 @@ public class AMMSwapDataProcessFull {
         return fullUniswapEvents;
     }
 
-    public static Result getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash) {
+    public static Result getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash, String price) {
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
 
         // 1、解析 swap v2\v3
@@ -425,7 +425,7 @@ public class AMMSwapDataProcessFull {
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
-        List<UniswapEvent> fourMemeSwapV2 = Log.findFourMemeSwapV2(conf, txLog, transferEvents);
+        List<UniswapEvent> fourMemeSwapV2 = Log.findFourMemeSwapV2(conf, txLog, transferEvents, price);
         List<UniswapEvent> fourMemeSwapV1 = Log.findFourMemeSwapV1(conf, txLog, transferEvents);
 
         log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条，uniswapStableCoinEvents： {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size(), uniswapStableCoinEvents.size());
