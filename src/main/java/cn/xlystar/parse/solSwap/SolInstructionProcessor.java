@@ -327,7 +327,9 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "dex_amm");
             return result;
         } else if (programId.equals(MeteoraDlmmInstructionParser.PROGRAM_ID)
-                && parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP.getValue())) {
+                && (parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP.getValue())
+                || parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP2.getValue()))
+        ) {
             result.put("pool_id", info.get("lb_pair"));
             result.put("input_vault", info.get("reserve_x"));
             result.put("input_vault_mint", info.get("token_x_mint"));

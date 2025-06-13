@@ -46,6 +46,7 @@ public class MeteoraDlmmInstructionParser extends InstructionParser {
                 info = parseInitializePosition(buffer, accounts);
                 break;
             case SWAP:
+            case SWAP2:
                 info = parseSwap(buffer, accounts);
                 break;
 

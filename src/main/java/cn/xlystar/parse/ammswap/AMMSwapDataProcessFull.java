@@ -50,6 +50,8 @@ public class AMMSwapDataProcessFull {
                             t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
                         } else {
                             t.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
+                            // 非稳定币对处理
+                            convertPlatformToNative(t.getRawSwapLog(), conf);
                         }
                     }
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
@@ -151,6 +153,61 @@ public class AMMSwapDataProcessFull {
         }
         return finalSwap;
     }
+    public static Map<String, BigDecimal> computePlatformPrice(ChainConfig conf, List<UniswapEvent> list) {
+        Map<String, BigDecimal> platformPrice = new HashMap<>();
+        list.forEach(t -> {
+            String wcoinAddress = conf.getWCoinAddress();
+            if (t.getTokenIn() == null || t.getTokenOut() == null || wcoinAddress.equals(t.getTokenIn()) || wcoinAddress.equals(t.getTokenOut()))
+                return;
+            if (!conf.getPlatformAddressLists().contains(t.getTokenIn()) && !conf.getPlatformAddressLists().contains(t.getTokenOut()))
+                return;
+
+            String tokenAddress = conf.getPlatformAddressLists().contains(t.getTokenOut()) ? t.getTokenOut() : t.getTokenIn();
+            platformPrice.put(tokenAddress, conf.getPlatformAddressLists().contains(t.getTokenOut()) ? new BigDecimal(t.getAmountIn()).divide(new BigDecimal(t.getAmountOut()), 20, RoundingMode.HALF_UP) : new BigDecimal(t.getAmountOut()).divide(new BigDecimal(t.getAmountIn()), 20, RoundingMode.HALF_UP));
+        });
+        return platformPrice;
+    }
+
+    public static void convertPlatformToNative(List<UniswapEvent> list, ChainConfig conf) {
+        Map<String, BigDecimal> platformPrice = computePlatformPrice(conf, list);
+        String wcoin = conf.getChainConf().get("wcoin").asText();
+        String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
+        String wcoinAddress = conf.getWCoinAddress();
+        if (platformPrice.isEmpty()) return ;
+        list.forEach(t -> {
+            if (t.getTokenIn() == null || t.getTokenOut() == null || wcoinAddress.equals(t.getTokenIn()) || wcoinAddress.equals(t.getTokenOut()))
+                return;
+            if (!platformPrice.containsKey(t.getTokenIn()) && !platformPrice.containsKey(t.getTokenOut()))
+                return;
+            String tokenAddress = "";
+            String decimals = "";
+            BigDecimal price = null;
+            if (platformPrice.containsKey(t.getTokenIn())) {
+                tokenAddress = t.getTokenIn();
+                decimals = conf.getPlatformTokens().get(tokenAddress).get("scale").asText();
+                price = platformPrice.get(tokenAddress);
+            } else if (platformPrice.containsKey(t.getTokenOut())) {
+                tokenAddress = t.getTokenOut();
+                decimals = conf.getPlatformTokens().get(tokenAddress).get("scale").asText();
+                price = platformPrice.get(tokenAddress);
+            }
+
+            if (StringUtils.isEmpty(tokenAddress) || price == null) return;
+
+            BigInteger tokenAmount = t.getTokenIn().equals(tokenAddress) ? t.getAmountIn() : t.getAmountOut();
+            BigInteger wcoinAmount = new BigDecimal(tokenAmount).divide(price, 20, RoundingMode.HALF_UP).multiply(new BigDecimal(wcoinDecimals)).divide(new BigDecimal(decimals)).toBigInteger();
+            if (t.getTokenIn().equals(tokenAddress)) {
+                t.setTokenIn(conf.getWCoinAddress());
+                t.setAmountIn(wcoinAmount);
+            } else {
+                t.setTokenOut(conf.getWCoinAddress());
+                t.setAmountOut(wcoinAmount);
+            }
+
+        });
+
+    }
+
 
     private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price) {
         String wcoin = conf.getChainConf().get("wcoin").asText();

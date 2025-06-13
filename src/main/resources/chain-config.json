@@ -19,6 +19,8 @@
         "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0x5c5f69ce88ea25146bdc348b8078ba86b3dcfce2"
       }
+    },
+    "platform_tokens": {
     }
   },
   "56": {
@@ -42,6 +44,8 @@
         "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0xf0839b435d06a5dbad99d037a40d97251eb0d8bb"
       }
+    },
+    "platform_tokens": {
     }
   },
   "8453": {
@@ -63,6 +67,9 @@
         "sigma": "0xecb03b9a0e7f7b5e261d3ef752865af6621a54fe",
         "logearn": "0xf0839b435d06a5dbad99d037a40d97251eb0d8bb"
       }
+    },
+    "platform_tokens": {
+      "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b": {"address": "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b", "scale": "1e18", "decimals": "18", "name": "virtual" }
     }
   },
   "3": {
@@ -91,6 +98,8 @@
         "meteoraAlmm": "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB",
         "meteoraDlmm": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
       }
+    },
+    "platform_tokens": {
     }
   }
 }

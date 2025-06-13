@@ -6,6 +6,10 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author andy
@@ -43,7 +47,10 @@ public class ConfigHelper {
         	ChainConfig conf = new ChainConfig();
         	conf.setChainId(chainId);
         	conf.setTokens(configJson.get(chainId).get("tokens"));
-        	conf.setChainConf(configJson.get(chainId));
+            conf.setStableCoinLists(extractTokenAddresses(configJson.get(chainId).get("tokens")));
+            conf.setPlatformTokens(configJson.get(chainId).get("platform_tokens"));
+            conf.setPlatformAddressLists(getPlatformAddressLists(configJson.get(chainId).get("platform_tokens")));
+            conf.setChainConf(configJson.get(chainId));
         	if (!StringUtils.isEmpty(protocol)) {
         		conf.setProtocol(protocol);
             	conf.setProtocolConf(configJson.get(chainId).get("protocols").get(protocol));
@@ -53,6 +60,46 @@ public class ConfigHelper {
             System.out.println(String.format("[getProtocolConf] 无法加载对应的 protocol 配置信息：chain-{}, conf-{}", chainId, protocol));
             throw e;
         }
+    }
+
+    public Set<String> getPlatformAddressLists(JsonNode platformTokensNode) {
+        // 1. 提取所有代币地址（key）
+        Set<String> platformAddressList = new HashSet<>();
+        if (platformTokensNode == null || !platformTokensNode.isObject()) return platformAddressList;
+        Iterator<Map.Entry<String, JsonNode>> fields = platformTokensNode.fields();
+
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String tokenAddress = entry.getKey();
+
+            platformAddressList.add(tokenAddress);
+        }
+
+        return platformAddressList;
+    }
+
+    public Set<String> extractTokenAddresses(JsonNode tokensNode) {
+        Set<String> addresses = new HashSet<>();
+
+        if (tokensNode == null || !tokensNode.isObject()) {
+            return addresses; // 返回空列表
+        }
+
+        // 遍历 tokens 下的所有代币
+        Iterator<Map.Entry<String, JsonNode>> tokenFields = tokensNode.fields();
+
+        while (tokenFields.hasNext()) {
+            Map.Entry<String, JsonNode> tokenEntry = tokenFields.next();
+            JsonNode tokenInfo = tokenEntry.getValue();
+
+            // 获取 address 字段的值
+            if (tokenInfo != null && tokenInfo.has("address")) {
+                String address = tokenInfo.get("address").asText();
+                addresses.add(address);
+            }
+        }
+
+        return addresses;
     }
 
 }

@@ -3,12 +3,17 @@ package cn.xlystar.helpers;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 
+import java.util.Set;
+
 @Data
 public class ChainConfig {
     private String chainId;
     private String protocol;
     private JsonNode chainConf;
     private JsonNode protocolConf;
+    private JsonNode platformTokens;
+    private Set<String> platformAddressLists;
+    private Set<String> stableCoinLists;
     private JsonNode tokens;
     
     public String getWCoinAddress() {

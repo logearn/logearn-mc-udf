@@ -17,6 +17,7 @@ public enum MeteoraDlmmInstruction {
     ADD_LIQUIDITY_ONE_SIDE("2ae50ae7bd3ec1ae"),           // 单边添加流动性    
     INITIALIZE_POSITION("dbc0ea47bebf6650"),                 // 初始化仓位
     SWAP("f8c69e91e17587c8"),                                             // 交换
+    SWAP2("414b3f4ceb5b5b88"),                                          // 交换
 
     WITHDRAW_PROTOCOL_FEE("502564d88528759f1"),             // 提取协议费用
     FUND_REWARD("bc32f9a55d97263f"),                               // 注资奖励
