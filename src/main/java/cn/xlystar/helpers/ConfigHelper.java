@@ -45,15 +45,16 @@ public class ConfigHelper {
     public ChainConfig getConfig(String chainId, String protocol) {
         try {
         	ChainConfig conf = new ChainConfig();
-        	conf.setChainId(chainId);
-        	conf.setTokens(configJson.get(chainId).get("tokens"));
-            conf.setStableCoinLists(extractTokenAddresses(configJson.get(chainId).get("tokens")));
-            conf.setPlatformTokens(configJson.get(chainId).get("platform_tokens"));
-            conf.setPlatformAddressLists(getPlatformAddressLists(configJson.get(chainId).get("platform_tokens")));
-            conf.setChainConf(configJson.get(chainId));
+            JsonNode chainNode = configJson.get(chainId);
+            conf.setChainId(chainId);
+        	conf.setTokens(chainNode.get("tokens"));
+            conf.setStableCoinLists(extractTokenAddresses(chainNode.get("tokens")));
+            conf.setPlatformTokens(chainNode.get("platform_tokens"));
+            conf.setPlatformAddressLists(getPlatformAddressLists(chainNode.get("platform_tokens")));
+            conf.setChainConf(chainNode);
         	if (!StringUtils.isEmpty(protocol)) {
         		conf.setProtocol(protocol);
-            	conf.setProtocolConf(configJson.get(chainId).get("protocols").get(protocol));
+            	conf.setProtocolConf(chainNode.get("protocols").get(protocol));
         	}
         	return conf;
         } catch (Exception e) {
