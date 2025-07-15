@@ -1,12 +1,14 @@
 package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
+import cn.xlystar.parse.solSwap.jupiter.JupiterInstructionParser;
 import cn.xlystar.parse.solSwap.metaplex.MetadataInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dbc.MeteoraDbcInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2InstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
+import cn.xlystar.parse.solSwap.okx.OkxInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
 import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
@@ -56,6 +58,12 @@ public class SolInstructionParserFactory {
         configMap.put(MeteoraDbcInstructionParser.PROGRAM_ID, new MeteoraDbcInstructionParser());
         // boop 协议
         configMap.put(BoopInstructionParser.PROGRAM_ID, new BoopInstructionParser());
+        
+        // OKX v2 协议
+        configMap.put(OkxInstructionParser.PROGRAM_ID, new OkxInstructionParser());
+        
+        // Jupiter v6 协议
+        configMap.put(JupiterInstructionParser.PROGRAM_ID, new JupiterInstructionParser());
     }
 
     public static InstructionParser getParser(String key) {
