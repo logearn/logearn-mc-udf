@@ -2,6 +2,8 @@ package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.boop.BoopInstruction;
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
+import cn.xlystar.parse.solSwap.jupiter.JupiterInstruction;
+import cn.xlystar.parse.solSwap.jupiter.JupiterInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstruction;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dbc.MeteoraDbcInstruction;
@@ -12,6 +14,7 @@ import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2Instruction;
 import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2InstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstruction;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
+import cn.xlystar.parse.solSwap.okx.OkxInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstruction;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
 import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstruction;
@@ -290,6 +293,24 @@ public class SolInstructionProcessor {
             result.put("output_vault_mint", "So11111111111111111111111111111111111111112");
             result.put("output_token_account", info.get("recipient"));
             result.put("instruction_type", "dex_amm");
+            return result;
+        } else if (programId.equals(OkxInstructionParser.PROGRAM_ID)) {
+            result.put("input_vault_mint", info.get("source_mint"));
+            result.put("input_token_account", info.get("source_token_account"));
+            result.put("output_vault_mint", info.get("destination_mint"));
+            result.put("output_token_account", info.get("destination_token_account"));
+            result.put("instruction_type", "aggregator_amm");
+            return result;
+        } else if (programId.equals(JupiterInstructionParser.PROGRAM_ID)) {
+            boolean isShare =!(parsed.get("method_id").equals(JupiterInstruction.ROUTE)
+                    || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER)
+                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE))
+                    ;
+            result.put("input_vault_mint", info.get("source_mint"));
+            result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_destination_token_account"));
+            result.put("output_vault_mint", info.get("destination_mint"));
+            result.put("output_token_account",isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
+            result.put("instruction_type", "aggregator_amm");
             return result;
         } else if (programId.equals(PumpSwapInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(PumpSwapInstruction.CREATE_POOL.getValue()))
