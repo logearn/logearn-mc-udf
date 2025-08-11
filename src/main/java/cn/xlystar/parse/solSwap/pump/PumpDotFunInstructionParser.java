@@ -18,6 +18,10 @@ public class PumpDotFunInstructionParser extends InstructionParser {
     private static final String COMPLETE_DISCRIMINATOR = "619296439455019615";
     private static final String SET_PARAMS_DISCRIMINATOR = "9479848787621954527";
 
+    public static boolean isMigrated(String methodId) {
+        return methodId.equals(PumpDotFunInstruction.MIGRATION.getValue());
+    }
+
     @Override
     public String getMethodId(ByteBuffer buffer) {
         byte[] discriminatorBytes = new byte[8];
@@ -34,6 +38,9 @@ public class PumpDotFunInstructionParser extends InstructionParser {
                 break;
             case SET_PARAMS:
                 info = parseSetParams(buffer, accounts);
+                break;
+            case MIGRATION:
+                info = parseMigrated(buffer, accounts);
                 break;
             case CREATE:
                 info = parseCreate(buffer, accounts);
@@ -61,6 +68,26 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         info.put("global", accounts[0]);
         info.put("user", accounts[1]);
         info.put("systemProgram", accounts[2]);
+        return info;
+    }
+
+    private static Map<String, Object> parseMigrated(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("global", accounts[0]);
+        info.put("withdraw_authority", accounts[1]);
+        info.put("base_mint", accounts[2]);
+        info.put("bondingCurve", accounts[3]);
+        info.put("associatedBondingCurve", accounts[4]);
+        info.put("user", accounts[5]);
+        info.put("systemProgram", accounts[6]);
+        info.put("tokenProgram", accounts[7]);
+        info.put("pumpAmm", accounts[8]);
+        info.put("pumpAmmPool", accounts[9]);
+        info.put("poolAuthority", accounts[10]);
+        info.put("poolAuthorityMintAccount", accounts[11]);
+        info.put("poolAuthorityWsolAccount", accounts[12]);
+        info.put("ammGlobalConfig", accounts[13]);
+        info.put("wsolMint", accounts[14]);
         return info;
     }
 

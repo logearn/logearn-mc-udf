@@ -76,7 +76,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseInitializePermissionedPool(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 CurveType 参数
         int curveTypeVariant = buffer.getInt();
         if (curveTypeVariant == 0) {
@@ -87,25 +87,27 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
             Map<String, Object> stableParams = new HashMap<>();
             // 解析 amp
             stableParams.put("amp", Long.toUnsignedString(buffer.getLong()));
-            
+
             // 解析 token_multiplier
             Map<String, Object> tokenMultiplier = new HashMap<>();
             tokenMultiplier.put("token_a_multiplier", Long.toUnsignedString(buffer.getLong()));
             tokenMultiplier.put("token_b_multiplier", Long.toUnsignedString(buffer.getLong()));
             tokenMultiplier.put("precision_factor", buffer.get());
             stableParams.put("token_multiplier", tokenMultiplier);
-            
+
             // 解析 depeg
             Map<String, Object> depeg = new HashMap<>();
             depeg.put("base_virtual_price", Long.toUnsignedString(buffer.getLong()));
             depeg.put("base_cache_updated", Long.toUnsignedString(buffer.getLong()));
             depeg.put("depeg_type", buffer.getInt()); // 0=None, 1=Marinade, 2=Lido, 3=SplStake
             stableParams.put("depeg", depeg);
-            
+
             // 解析 last_amp_updated_timestamp
             stableParams.put("last_amp_updated_timestamp", Long.toUnsignedString(buffer.getLong()));
-            
-            info.put("curve_type", Map.of("Stable", stableParams));
+
+            info.put("curve_type", new HashMap<String, Object>() {{
+                put("Stable", stableParams);
+            }});
         }
 
         // 账户信息 - 按照IDL定义的顺序
@@ -139,7 +141,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseInitializePermissionlessPool(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 正确,需要curveType和两个amount参数
         info.put("curve_type", buffer.getInt());
         info.put("token_a_amount", Long.toUnsignedString(buffer.getLong()));
@@ -178,7 +180,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseInitializePermissionlessPoolWithFeeTier(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 CurveType 参数
         int curveTypeVariant = buffer.getInt();
         if (curveTypeVariant == 0) {
@@ -189,25 +191,27 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
             Map<String, Object> stableParams = new HashMap<>();
             // 解析 amp
             stableParams.put("amp", Long.toUnsignedString(buffer.getLong()));
-            
+
             // 解析 token_multiplier
             Map<String, Object> tokenMultiplier = new HashMap<>();
             tokenMultiplier.put("token_a_multiplier", Long.toUnsignedString(buffer.getLong()));
             tokenMultiplier.put("token_b_multiplier", Long.toUnsignedString(buffer.getLong()));
             tokenMultiplier.put("precision_factor", buffer.get());
             stableParams.put("token_multiplier", tokenMultiplier);
-            
+
             // 解析 depeg
             Map<String, Object> depeg = new HashMap<>();
             depeg.put("base_virtual_price", Long.toUnsignedString(buffer.getLong()));
             depeg.put("base_cache_updated", Long.toUnsignedString(buffer.getLong()));
             depeg.put("depeg_type", buffer.getInt()); // 0=None, 1=Marinade, 2=Lido, 3=SplStake
             stableParams.put("depeg", depeg);
-            
+
             // 解析 last_amp_updated_timestamp
             stableParams.put("last_amp_updated_timestamp", Long.toUnsignedString(buffer.getLong()));
-            
-            info.put("curve_type", Map.of("Stable", stableParams));
+
+            info.put("curve_type", new HashMap<String, Object>() {{
+                put("Stable", stableParams);
+            }});
         }
 
         // 解析其他参数
@@ -248,7 +252,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseLock(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - maxAmount
         info.put("max_amount", Long.toUnsignedString(buffer.getLong()));
 
@@ -272,14 +276,14 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseSwap(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 参数解析正确,不需要修改
         info.put("amount_in", Long.toUnsignedString(buffer.getLong()));
         info.put("minimum_amount_out", Long.toUnsignedString(buffer.getLong()));
 
         // 账户顺序需要修改为IDL中定义的顺序
         info.put("pool", accounts[0]);
-        info.put("user_source_token", accounts[1]); 
+        info.put("user_source_token", accounts[1]);
         info.put("user_destination_token", accounts[2]);
         info.put("a_vault", accounts[3]);
         info.put("b_vault", accounts[4]);
@@ -299,7 +303,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseClaimFee(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 只需要maxAmount一个参数
         info.put("max_amount", Long.toUnsignedString(buffer.getLong()));
 
@@ -328,7 +332,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseAddLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 正确,需要两个amount和minLpAmount三个参数
         info.put("token_a_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("token_b_amount", Long.toUnsignedString(buffer.getLong()));
@@ -336,7 +340,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
         // 账户信息
         info.put("pool", accounts[0]);
-        info.put("lp_mint", accounts[1]); 
+        info.put("lp_mint", accounts[1]);
         info.put("user", accounts[2]);
         info.put("user_token_a", accounts[3]);
         info.put("user_token_b", accounts[4]);
@@ -357,7 +361,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseRemoveLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 正确,需要lpAmount和两个minAmount三个参数
         info.put("lp_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("min_token_a_amount", Long.toUnsignedString(buffer.getLong()));
@@ -380,7 +384,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseBootstrapLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 按照IDL定义的顺序
         info.put("token_a_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("token_b_amount", Long.toUnsignedString(buffer.getLong()));
@@ -408,7 +412,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseAddBalanceLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 按照IDL定义的顺序
         info.put("pool_token_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("maximum_token_a_amount", Long.toUnsignedString(buffer.getLong()));
@@ -437,7 +441,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseRemoveBalanceLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 按照IDL定义的顺序
         info.put("pool_token_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("minimum_a_token_out", Long.toUnsignedString(buffer.getLong()));
@@ -466,7 +470,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseRemoveLiquiditySingleSide(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 按照IDL定义的顺序
         info.put("pool_token_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("minimum_out_amount", Long.toUnsignedString(buffer.getLong()));
@@ -493,7 +497,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseAddImbalanceLiquidity(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析参数 - 按照IDL定义的顺序
         info.put("minimum_pool_token_amount", Long.toUnsignedString(buffer.getLong()));
         info.put("token_a_amount", Long.toUnsignedString(buffer.getLong()));
@@ -522,7 +526,7 @@ public class MeteoraAlmmInstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseSetPoolFees(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        
+
         // 解析 PoolFees 结构体参数
         Map<String, Object> fees = new HashMap<>();
         fees.put("trade_fee_numerator", Long.toUnsignedString(buffer.getLong()));

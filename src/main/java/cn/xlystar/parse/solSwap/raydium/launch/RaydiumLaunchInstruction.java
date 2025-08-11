@@ -2,7 +2,7 @@ package cn.xlystar.parse.solSwap.raydium.launch;
 
 public enum RaydiumLaunchInstruction {
     BUY_EXACT_IN("faea0d7bd59c13ec"),
-    BUY_EXACT_OUT("18d3742869039838"),
+    BUY_EXACT_OUT("18d3742869039938"),
     INITIALIZE("afaf6d1f0d989bed"),
     SELL_EXACT_OUT("5fc8472208090ba6"),
     SELL_EXACT_IN("9527de9bd37c981a"),

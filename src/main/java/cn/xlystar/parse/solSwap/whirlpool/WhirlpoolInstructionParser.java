@@ -188,9 +188,9 @@ public class WhirlpoolInstructionParser extends InstructionParser {
         info.put("aToB", buffer.get());
 
         // 解析账户
-        info.put("whirlpool", accounts[0]);          // 池子账户
-        info.put("tokenProgram", accounts[1]);       // SPL Token程序
-        info.put("tokenAuthority", accounts[2]);     // 代币授权账户
+        info.put("tokenProgram", accounts[0]);       // SPL Token程序
+        info.put("tokenAuthority", accounts[1]);     // 代币授权账户
+        info.put("whirlpool", accounts[2]);          // 池子账户
         info.put("tokenOwnerAccountA", accounts[3]); // A代币所有者账户
         info.put("tokenVaultA", accounts[4]);        // A代币金库
         info.put("tokenOwnerAccountB", accounts[5]); // B代币所有者账户

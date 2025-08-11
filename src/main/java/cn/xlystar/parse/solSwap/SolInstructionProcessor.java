@@ -37,6 +37,7 @@ import cn.xlystar.parse.solSwap.system_program.SystemInstruction;
 import cn.xlystar.parse.solSwap.system_program.SystemInstructionParser;
 import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstruction;
 import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstructionParser;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.bitcoinj.core.Base58;
 
@@ -81,7 +82,10 @@ public class SolInstructionProcessor {
         Map<String, Object> info = (Map<String, Object>) parsed.get("info");
         boolean isTokenProgram = programId.equals(SplTokenInstructionParser.PROGRAM_ID) || programId.equals(SplToken2022InstructionParser.PROGRAM_ID);
         if (isTokenProgram
-                && (parsed.get("method_id").toString().equals(SplTokenInstruction.Transfer.getValue() + "") || parsed.get("method_id").equals(SplTokenInstruction.TransferChecked.getValue() + ""))
+                && (
+                (parsed.get("method_id").toString().equals(SplTokenInstruction.Transfer.getValue() + "") || parsed.get("method_id").equals(SplTokenInstruction.TransferChecked.getValue() + ""))
+                        || (parsed.get("method_id").toString().equals(SplToken2022Instruction.Transfer.getValue() + "") || parsed.get("method_id").equals(SplToken2022Instruction.TransferChecked.getValue() + ""))
+        )
         ) {
             result.put("sender", info.get("source"));
             result.put("receiver", info.get("destination"));
@@ -90,6 +94,18 @@ public class SolInstructionProcessor {
             result.put("mint", info.get("mint"));
             result.put("instruction_type", "transfer");
             return result;
+        } else if (isTokenProgram
+                && ( parsed.get("method_id").toString().equals(SplTokenInstruction.SetAuthority.getValue() + "")
+                || parsed.get("method_id").toString().equals(SplToken2022Instruction.SetAuthority.getValue() + "")
+        )
+        ) {
+            if (info.containsKey("newAuthority") && info.get("newAuthority") != null) {
+                result.put("account", info.get("account"));
+                result.put("authority", info.get("authority"));
+                result.put("newAuthority", info.get("newAuthority"));
+                result.put("instruction_type", "transfer_owner");
+                return result;
+            }
         } else if (programId.equals(SystemInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(SystemInstruction.Transfer.getValue() + "")
 //                || parsed.get("method_id").equals(SystemInstruction.TransferWithSeed.getValue())
@@ -203,6 +219,7 @@ public class SolInstructionProcessor {
             result.put("output_vault", info.get("base_vault"));
             result.put("output_vault_mint", info.get("base_mint"));
             result.put("output_token_account", info.get("user_base_token"));
+            result.put("platform_config", info.get("platform_config"));
             result.put("instruction_type", "dex_amm");
             return result;
         } else if ((programId.equals(MoonshotInstructionParser.PROGRAM_ID) && MoonshotInstructionParser.isMigrated(parsed.get("method_id").toString()))
@@ -214,6 +231,7 @@ public class SolInstructionProcessor {
         } else if (
                 (programId.equals(RaydiumLaunchInstructionParser.PROGRAM_ID) && RaydiumLaunchInstructionParser.isMigrated(parsed.get("method_id").toString()))
                         || (programId.equals(MeteoraDbcInstructionParser.PROGRAM_ID) && MeteoraDbcInstructionParser.isMigrated(parsed.get("method_id").toString()))
+                        || (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID) && PumpDotFunInstructionParser.isMigrated(parsed.get("method_id").toString()))
         ) {
             result.put("mint", info.get("base_mint"));
             result.put("instruction_type", "dex_migrate");
@@ -230,6 +248,7 @@ public class SolInstructionProcessor {
             result.put("output_vault", info.get("quote_vault"));
             result.put("output_vault_mint", info.get("quote_mint"));
             result.put("output_token_account", info.get("user_quote_token"));
+            result.put("platform_config", info.get("platform_config"));
             result.put("instruction_type", "dex_amm");
             return result;
         } else if (programId.equals(MeteoraDbcInstructionParser.PROGRAM_ID)
@@ -294,24 +313,6 @@ public class SolInstructionProcessor {
             result.put("output_token_account", info.get("recipient"));
             result.put("instruction_type", "dex_amm");
             return result;
-        } else if (programId.equals(OkxInstructionParser.PROGRAM_ID)) {
-            result.put("input_vault_mint", info.get("source_mint"));
-            result.put("input_token_account", info.get("source_token_account"));
-            result.put("output_vault_mint", info.get("destination_mint"));
-            result.put("output_token_account", info.get("destination_token_account"));
-            result.put("instruction_type", "aggregator_amm");
-            return result;
-        } else if (programId.equals(JupiterInstructionParser.PROGRAM_ID)) {
-            boolean isShare =!(parsed.get("method_id").equals(JupiterInstruction.ROUTE)
-                    || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER)
-                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE))
-                    ;
-            result.put("input_vault_mint", info.get("source_mint"));
-            result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_destination_token_account"));
-            result.put("output_vault_mint", info.get("destination_mint"));
-            result.put("output_token_account",isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
-            result.put("instruction_type", "aggregator_amm");
-            return result;
         } else if (programId.equals(PumpSwapInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(PumpSwapInstruction.CREATE_POOL.getValue()))
         ) {
@@ -370,6 +371,26 @@ public class SolInstructionProcessor {
             result.put("output_vault_mint", info.get("token_b_mint"));
             result.put("output_token_account", info.get("output_token_account"));
             result.put("instruction_type", "dex_amm");
+            return result;
+        } else if (programId.equals(OkxInstructionParser.PROGRAM_ID)) {
+            if (MapUtils.isEmpty(info)) return null;
+            result.put("input_vault_mint", info.getOrDefault("source_mint", null));
+            result.put("input_token_account", info.getOrDefault("source_token_account", null));
+            result.put("output_vault_mint", info.getOrDefault("destination_mint", null));
+            result.put("output_token_account", info.getOrDefault("destination_token_account", null));
+            result.put("instruction_type", "aggregator_amm");
+            return result;
+        } else if (programId.equals(JupiterInstructionParser.PROGRAM_ID) && !parsed.get("method_id").equals(JupiterInstruction.LOG.getValue())) {
+            if (MapUtils.isEmpty(info)) return null;
+            boolean isShare = !(parsed.get("method_id").equals(JupiterInstruction.ROUTE)
+                    || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER)
+                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE))
+                    ;
+            result.put("input_vault_mint", info.getOrDefault("source_mint", null));
+            result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_destination_token_account"));
+            result.put("output_vault_mint", info.getOrDefault("destination_mint", null));
+            result.put("output_token_account",isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
+            result.put("instruction_type", "aggregator_amm");
             return result;
         } else if (programId.equals(MeteoraAlmmInstructionParser.PROGRAM_ID)
                 && parsed.get("method_id").equals(MeteoraAlmmInstruction.SWAP.getValue())) {

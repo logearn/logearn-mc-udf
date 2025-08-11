@@ -4,6 +4,7 @@ import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
@@ -93,7 +94,7 @@ public class AddressTagProcess {
         });
 
         // 7、套利合约交易者 tag
-        uniswapEvents = UniswapEvent.merge(uniswapEvents);
+        uniswapEvents = UniswapEvent.merge(uniswapEvents, Lists.newArrayList());
         uniswapEvents.forEach(uniswapEvent -> {
             if (StringUtils.isEmpty(uniswapEvent.getTokenIn()) || StringUtils.isEmpty(uniswapEvent.getTokenOut()))
                 return;

@@ -4,7 +4,8 @@ import cn.xlystar.parse.solSwap.InstructionParser;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class OkxInstructionParser extends InstructionParser {
@@ -71,6 +72,12 @@ public class OkxInstructionParser extends InstructionParser {
                 break;
             case SWAP2:
                 info = parseSwap2(buffer, accounts);
+                break;
+           case SWAP3:
+                info = parseSwap3(buffer, accounts);
+                break;
+           case SWAP_TOB_3:
+                info = parseSwapBot3(buffer, accounts);
                 break;
 
             case US_PLATFORM_FEE_SPL_PROXY_SWAP:
@@ -351,6 +358,36 @@ public class OkxInstructionParser extends InstructionParser {
     }
 
     private Map<String, Object> parseSwap(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 1. 映射账户
+        info.put("payer", accounts[0]);
+        info.put("source_token_account", accounts[1]);
+        info.put("destination_token_account", accounts[2]);
+        info.put("source_mint", accounts[3]);
+        info.put("destination_mint", accounts[4]);
+
+        // 2. 解析 SwapArgs 结构体
+        Map<String, Object> swapArgs = parseSwapArgs(buffer);
+        info.putAll(swapArgs);
+        return info;
+    }
+    private Map<String, Object> parseSwap3(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 1. 映射账户
+        info.put("payer", accounts[0]);
+        info.put("source_token_account", accounts[1]);
+        info.put("destination_token_account", accounts[2]);
+        info.put("source_mint", accounts[3]);
+        info.put("destination_mint", accounts[4]);
+
+        // 2. 解析 SwapArgs 结构体
+        Map<String, Object> swapArgs = parseSwapArgs(buffer);
+        info.putAll(swapArgs);
+        return info;
+    }
+    private Map<String, Object> parseSwapBot3(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
 
         // 1. 映射账户

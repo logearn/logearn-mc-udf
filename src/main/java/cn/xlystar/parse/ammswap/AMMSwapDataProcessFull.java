@@ -1,23 +1,27 @@
 package cn.xlystar.parse.ammswap;
 
-import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.entity.TransferEvent;
+import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class AMMSwapDataProcessFull {
@@ -35,11 +39,115 @@ public class AMMSwapDataProcessFull {
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price) {
-        // 解析 solana swap
-        List<UniswapEvent> uniswapEvents = getSolanaSwapEvents(conf, originSender, hash, swapEvents, transferEvents);
+    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance) {
+        String wCoinAddress = conf.getWCoinAddress();
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        boolean hasTokenTransfer = transferEvents != null && transferEvents.stream().anyMatch(t -> !t.getContractAddress().equals(wCoinAddress));
+        if (!hasTokenTransfer && CollectionUtils.isEmpty(swapEvents) && !CollectionUtils.isEmpty(transferOwnerEvents)) {
+            uniswapEvents = getTranferOwnerEvents(conf, transferOwnerEvents, postTokenBalance, preTokenBalance);
+        } else {
+            // 解析 solana swap
+            uniswapEvents = getSolanaSwapEvents(conf, originSender, hash, swapEvents, transferEvents);
+//            uniswapEvents = updateSwapEventsFromTransferOwner(conf, transferOwnerEvents, postTokenBalance, preTokenBalance, uniswapEvents);
+        }
+
         // 后缀处理
         return processSwap(uniswapEvents, new ArrayList<>(), conf, price);
+    }
+
+    private static List<UniswapEvent> updateSwapEventsFromTransferOwner(ChainConfig conf, List<TransferEvent> transferOwnerEvents, List<Map<String, Object>> postTokenBalance, List<Map<String, Object>> preTokenBalance, List<UniswapEvent> uniswapEvents) {
+        if (CollectionUtils.isEmpty(transferOwnerEvents) || CollectionUtils.isEmpty(uniswapEvents))
+            return uniswapEvents;
+
+        // 创建映射: (accountIndex, mint) -> TokenBalance
+        List<TokenBalance> preBalanceList = new ArrayList<>();
+        for (Map<String, Object> balance : preTokenBalance) {
+            preBalanceList.add(TokenBalance.builder()
+                    .account(balance.get("account").toString())
+                    .mint(balance.get("mint").toString())
+                    .owner(balance.get("owner").toString())
+                    .programId(balance.get("programId").toString())
+                    .uiTokenAmount(
+                            UiTokenAmount.builder()
+                                    .amount(balance.get("amount").toString())
+                                    .decimals(Integer.parseInt(balance.get("decimals").toString()))
+                                    .build())
+                    .build());
+        }
+        List<TokenBalance> postBalanceList = new ArrayList<>();
+        for (Map<String, Object> balance : postTokenBalance) {
+            postBalanceList.add(TokenBalance.builder()
+                    .account(balance.get("account").toString())
+                    .mint(balance.get("mint").toString())
+                    .owner(balance.get("owner").toString())
+                    .programId(balance.get("programId").toString())
+                    .uiTokenAmount(
+                            UiTokenAmount.builder()
+                                    .amount(balance.get("amount").toString())
+                                    .decimals(Integer.parseInt(balance.get("decimals").toString()))
+                                    .build())
+                    .build());
+        }
+
+        List<UniswapEvent> finalUniswapEvents = new ArrayList<>();
+        postBalanceList.forEach(pre -> {
+            preBalanceList.stream().filter(post ->
+                    post.getAccount().equals(pre.getAccount())
+                            && post.getMint().equals(pre.getMint())
+                            && !post.getOwner().equals(pre.getOwner())
+                            && transferOwnerEvents.stream().anyMatch(t -> t.getReceiverOrigin().equals(post.getAccount()))
+                            && transferOwnerEvents.stream().anyMatch(t -> t.getReceiver().equals(post.getOwner()))
+            ).findFirst().ifPresent(post -> {
+                finalUniswapEvents.add(UniswapEvent.builder()
+                        .sender(pre.getOwner())
+                        .oriSender(pre.getOwner())
+                        .to(post.getOwner())
+                        .tokenIn(post.getMint())
+                        .tokenOut(conf.getWCoinAddress())
+                        .amountIn(new BigInteger(post.getUiTokenAmount().getAmount()))
+                        .amountOut(BigInteger.ZERO)
+                        .programId(post.getProgramId())
+                        .logIndex(new BigInteger(String.valueOf(10_100)))
+                        .innerIndex(100)
+                        .outerIndex(10_000)
+                        .build());
+            });
+        });
+        if (CollectionUtils.isEmpty(finalUniswapEvents)) return finalUniswapEvents;
+
+        return finalUniswapEvents;
+    }
+
+    private static List<UniswapEvent> getTranferOwnerEvents(ChainConfig conf, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance) {
+        // 创建映射: (accountIndex, mint) -> TokenBalance
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        postTokenBalance.forEach(post -> {
+            if (post.getMint().equals(conf.getWCoinAddress())) return;
+            preTokenBalance.stream().filter(pre ->
+                    post.getAccount().equals(pre.getAccount())
+                            && post.getMint().equals(pre.getMint())
+                            && !post.getOwner().equals(pre.getOwner())
+                            && transferOwnerEvents.stream().anyMatch(t -> t.getReceiverOrigin().equals(post.getAccount()))
+                            && transferOwnerEvents.stream().anyMatch(t -> t.getReceiver().equals(post.getOwner()))
+            ).findFirst().ifPresent(pre -> {
+                uniswapEvents.add(UniswapEvent.builder()
+                        .sender(pre.getOwner())
+                        .oriSender(pre.getOwner())
+                        .to(post.getOwner())
+                        .tokenIn(post.getMint())
+                        .tokenOut(conf.getWCoinAddress())
+                        .amountIn(new BigInteger(post.getUiTokenAmount().getAmount()))
+                        .amountOut(BigInteger.ZERO)
+                        .programId(post.getProgramId())
+                        .logIndex(new BigInteger(String.valueOf(10_100)))
+                        .pair(Lists.newArrayList())
+                        .rawSwapLog(Lists.newArrayList())
+                        .innerIndex(100)
+                        .outerIndex(10_000)
+                        .build());
+            });
+        });
+        return uniswapEvents;
     }
 
     private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price) {
@@ -49,6 +157,7 @@ public class AMMSwapDataProcessFull {
                         if (conf.getChainId().equals("3")) {
                             t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
                         } else {
+                            // 稳定币对处理
                             t.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
                             // 非稳定币对处理
                             convertPlatformToNative(t.getRawSwapLog(), conf);
@@ -60,7 +169,44 @@ public class AMMSwapDataProcessFull {
                                 if (convertToSol(conf, t, new BigDecimal(price))) break;
                             default:
                                 List<UniswapEvent> connectedPools = t.getConnectedPools();
-                                if (connectedPools != null && connectedPools.size() > 0) {
+                                if (conf.getChainId().equals("3") && connectedPools != null && connectedPools.size() > 2) {
+                                    UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
+                                    UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
+                                    ethSellUniswap = UniswapEvent.builder()
+                                            .sender(t.getSender())
+                                            .to("0x0")
+                                            .tokenIn(t.getTokenIn())
+                                            .amountIn(t.getAmountIn())
+                                            .tokenOut(conf.getWCoinAddress())
+                                            .amountOut(BigInteger.ZERO)
+                                            .pair(t.getPair())
+                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                            .connectedPools(t.getConnectedPools())
+                                            .rawSwapLog(t.getRawSwapLog())
+                                            .version(t.getVersion())
+                                            .errorMsg(t.getErrorMsg());
+                                    finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
+
+                                    // buy eth币对
+                                    ethBuyUniswap = UniswapEvent.builder()
+                                            .sender("0x0")
+                                            .to(t.getTo())
+                                            .tokenIn(t.getTokenOut())
+                                            .amountIn(t.getAmountOut())
+                                            .tokenOut(conf.getWCoinAddress())
+                                            .amountOut(BigInteger.ZERO)
+                                            .pair(t.getPair())
+                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                            .connectedPools(t.getConnectedPools())
+                                            .rawSwapLog(t.getRawSwapLog())
+                                            .version(t.getVersion())
+                                            .errorMsg(t.getErrorMsg());
+
+                                    finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
+                                    return;
+                                } else if (connectedPools != null && connectedPools.size() > 0) {
                                     UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
                                     UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
                                     for (int i = 0; i < connectedPools.size(); i++) {
@@ -153,6 +299,45 @@ public class AMMSwapDataProcessFull {
         }
         return finalSwap;
     }
+
+    private static boolean convertToSol(ChainConfig conf, UniswapEvent t, BigDecimal price) {
+        String wcoinDecimals = conf.getTokens().get(conf.getChainConf().get("wcoin").asText()).get("scale").asText();
+        String wcoinAddress = conf.getTokens().get(conf.getChainConf().get("wcoin").asText()).get("address").asText();
+        if (t.getTokenIn() == null || t.getTokenOut() == null || t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress))
+            return false;
+        String usdcAddress = conf.getTokens().get("USDC").get("address").asText();
+        String usdcDecimals = conf.getTokens().get("USDC").get("scale").asText();
+        String usdtAddress = conf.getTokens().get("USDT").get("address").asText();
+        String usdtDecimals = conf.getTokens().get("USDT").get("scale").asText();
+        boolean hasUsdc = usdcAddress.equals(t.getTokenIn()) || usdcAddress.equals(t.getTokenOut());
+        boolean hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
+
+        String tokenAddress = "";
+        String decimals = "";
+
+        if (hasUsdc) {
+            tokenAddress = usdcAddress;
+            decimals = usdcDecimals;
+        } else if (hasUsdt) {
+            tokenAddress = usdtAddress;
+            decimals = usdtDecimals;
+        }
+
+        if (StringUtils.isEmpty(tokenAddress)) return false;
+
+        BigInteger tokenAmount = t.getTokenIn().equals(tokenAddress) ? t.getAmountIn() : t.getAmountOut();
+        BigInteger wcoinAmount = new BigDecimal(tokenAmount).divide(price, 20, RoundingMode.HALF_UP).multiply(new BigDecimal(wcoinDecimals)).divide(new BigDecimal(decimals)).toBigInteger();
+        if (t.getTokenIn().equals(tokenAddress)) {
+            t.setTokenIn(conf.getWCoinAddress());
+            t.setAmountIn(wcoinAmount);
+        } else {
+            t.setTokenOut(conf.getWCoinAddress());
+            t.setAmountOut(wcoinAmount);
+        }
+
+        return true;
+    }
+
     public static Map<String, BigDecimal> computePlatformPrice(ChainConfig conf, List<UniswapEvent> list) {
         Map<String, BigDecimal> platformPrice = new HashMap<>();
         list.forEach(t -> {
@@ -173,7 +358,7 @@ public class AMMSwapDataProcessFull {
         String wcoin = conf.getChainConf().get("wcoin").asText();
         String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
         String wcoinAddress = conf.getWCoinAddress();
-        if (platformPrice.isEmpty()) return ;
+        if (platformPrice.isEmpty()) return;
         list.forEach(t -> {
             if (t.getTokenIn() == null || t.getTokenOut() == null || wcoinAddress.equals(t.getTokenIn()) || wcoinAddress.equals(t.getTokenOut()))
                 return;
@@ -208,12 +393,12 @@ public class AMMSwapDataProcessFull {
 
     }
 
-
     private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price) {
         String wcoin = conf.getChainConf().get("wcoin").asText();
         String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
         String wcoinAddress = conf.getTokens().get(wcoin).get("address").asText();
-        if (t.getTokenIn() == null || t.getTokenOut() == null || t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress)) return false;
+        if (t.getTokenIn() == null || t.getTokenOut() == null || t.getTokenIn().equals(wcoinAddress) || t.getTokenOut().equals(wcoinAddress))
+            return false;
         JsonNode usdc = conf.getTokens().get("USDC");
         JsonNode usdt = conf.getTokens().get("USDT");
         JsonNode usd1 = conf.getTokens().get("USD1");
@@ -271,40 +456,6 @@ public class AMMSwapDataProcessFull {
         return true;
     }
 
-    private static boolean convertToSol(ChainConfig conf, UniswapEvent t, BigDecimal price) {
-        String wcoinDecimals = conf.getTokens().get(conf.getChainConf().get("wcoin").asText()).get("scale").asText();
-        String usdcAddress = conf.getTokens().get("USDC").get("address").asText();
-        String usdcDecimals = conf.getTokens().get("USDC").get("scale").asText();
-        String usdtAddress = conf.getTokens().get("USDT").get("address").asText();
-        String usdtDecimals = conf.getTokens().get("USDT").get("scale").asText();
-        boolean hasUsdc = usdcAddress.equals(t.getTokenIn()) || usdcAddress.equals(t.getTokenOut());
-        boolean hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
-
-        String tokenAddress = "";
-        String decimals = "";
-
-        if (hasUsdc) {
-            tokenAddress = usdcAddress;
-            decimals = usdcDecimals;
-        } else if (hasUsdt) {
-            tokenAddress = usdtAddress;
-            decimals = usdtDecimals;
-        }
-
-        if (StringUtils.isEmpty(tokenAddress)) return false;
-
-        BigInteger tokenAmount = t.getTokenIn().equals(tokenAddress) ? t.getAmountIn() : t.getAmountOut();
-        BigInteger wcoinAmount = new BigDecimal(tokenAmount).divide(price, 20, RoundingMode.HALF_UP).multiply(new BigDecimal(wcoinDecimals)).divide(new BigDecimal(decimals)).toBigInteger();
-        if (t.getTokenIn().equals(tokenAddress)) {
-            t.setTokenIn(conf.getWCoinAddress());
-            t.setAmountIn(wcoinAmount);
-        } else {
-            t.setTokenOut(conf.getWCoinAddress());
-            t.setAmountOut(wcoinAmount);
-        }
-
-        return true;
-    }
 
     private static HashMap<String, String> swapResultStruct(ChainConfig conf, UniswapEvent swap) {
         HashMap<String, String> map = new HashMap<>();
@@ -319,7 +470,7 @@ public class AMMSwapDataProcessFull {
         map.put("logIndex", swap.getLogIndex() == null ? null : swap.getLogIndex().toString());
         map.put("fromMergedTransferEvent", swap.getFromMergedTransferEvent() == null ? null : swap.getFromMergedTransferEvent().toString());
         map.put("toMergedTransferEvent", swap.getToMergedTransferEvent() == null ? null : swap.getToMergedTransferEvent().toString());
-        map.put("connectedPools", JSONObject.parseObject(JSON.toJSONString(swap.getConnectedPools()), List.class).toString());
+        map.put("connectedPools", JSONObject.parseObject(JSON.toJSONString(swap.getRawSwapLog().stream().map(UniswapEvent::getContractAddress).collect(Collectors.toList())), List.class).toString());
         map.put("protocol", conf.getProtocol());
         map.put("raw_swap_log", JSONObject.parseObject(JSON.toJSONString(swap.getRawSwapLog()), List.class).toString());
         map.put("version", swap.getVersion());
@@ -328,7 +479,10 @@ public class AMMSwapDataProcessFull {
         if (conf.getWCoinAddress().equals(swap.getTokenIn())) {
             map.put("eventType", "buy");
         } else {
-            map.put("eventType", "sell");
+            if (swap.getAmountOut() != null && swap.getAmountOut().compareTo(BigInteger.ZERO) == 0) {
+                map.put("version", "transferOut");
+                map.put("eventType", "transferOut");
+            } else map.put("eventType", "sell");
         }
         return map;
     }
@@ -341,10 +495,14 @@ public class AMMSwapDataProcessFull {
 //            }
 //            return true;
 //        }).collect(Collectors.toList());
+
         // 2、将构建好的所有 swapEvent 的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
         List<UniswapEvent> rawSwapEvents = new ArrayList<>();
+        // 去除 aggregator 的 dex
+        List<UniswapEvent> aggList = uniswapEvents.stream().filter(UniswapEvent::isAggregator).collect(Collectors.toList());
         uniswapEvents.forEach(t -> {
             try {
+                if (t.isAggregator()) return;
                 UniswapEvent temp = UniswapEvent.builder().build();
                 BeanUtils.copyProperties(temp, t);
                 rawSwapEvents.add(temp);
@@ -352,7 +510,13 @@ public class AMMSwapDataProcessFull {
                 e.printStackTrace();
             }
         });
-        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(uniswapEvents);
+
+
+//        uniswapEvents = uniswapEvents.stream().filter(t -> {
+//            return t.isAggregator() || !aggOuterIndex.contains(t.getOuterIndex());
+//        }).collect(Collectors.toList());
+
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(uniswapEvents, aggList);
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
 
         // 2、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
@@ -381,8 +545,8 @@ public class AMMSwapDataProcessFull {
             }
         });
         // 3、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
-        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
-        transferToUniswapSell(conf, getFinalTransferOutEvent, fullUniswapEvents);
+//        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
+        transferToUniswapSell(conf, transferEvents, fullUniswapEvents);
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
 
         // 4、保存原始 swap
@@ -414,14 +578,13 @@ public class AMMSwapDataProcessFull {
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
         Result resultEvent = getUniswapEvents(conf, transferEvents, txLog, hash, price);
         // 3、将构建好的所有 swapEven t的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
-        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents());
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents(), Lists.newArrayList());
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
         fullUniswapEvents.forEach(ut -> {
-            TransferEvent _tmpPreTf = null;
             try {
-                _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, resultEvent.getPoolAddressLists(), ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
+                TransferEvent _tmpPreTf = TransferEvent.findPreTx(originSender, transferEvents, resultEvent.getPoolAddressLists(), ut.getAmountIn(), ut.getSender(), ut.getTo(), ut.getTokenIn(), ut);
                 if (_tmpPreTf == null || _tmpPreTf.getSender() == null) {
                     log.debug("******* ❌  not fond any pre transfer to merge \n");
                     ut.setErrorMsg(ut.getErrorMsg() + " | " + "multity from :" + hash);
@@ -470,7 +633,7 @@ public class AMMSwapDataProcessFull {
 //                log.info("非正常买卖，忽略价格！");
 //            }
 //        }
-        fullUniswapEvents.forEach(t -> t.setRawSwapLog(resultEvent.getRawUniswapEvents()));
+        fullUniswapEvents.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
         return fullUniswapEvents;
     }
 
@@ -483,7 +646,7 @@ public class AMMSwapDataProcessFull {
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
         List<UniswapEvent> fourMemeSwapV2 = Log.findFourMemeSwapV2(conf, txLog, transferEvents, price);
-        List<UniswapEvent> fourMemeSwapV1 = Log.findFourMemeSwapV1(conf, txLog, transferEvents);
+        List<UniswapEvent> findFourMemeV1 = Log.findFourMemeSwapV1(conf, txLog, transferEvents);
 
         log.debug("******* log 中 找到 uniswapV2Events：{} 条，uniswapV3Events： {} 条。uniswapMMEvents: {} 条，uniswapStableCoinEvents： {} 条\n", uniswapV2Events.size(), uniswapV3Events.size(), uniswapMMEvents.size(), uniswapStableCoinEvents.size());
 
@@ -491,8 +654,8 @@ public class AMMSwapDataProcessFull {
         uniswapEvents.addAll(uniswapV3Events);
         uniswapEvents.addAll(uniswapMMEvents);
         uniswapEvents.addAll(uniswapStableCoinEvents);
-        uniswapEvents.addAll(fourMemeSwapV1);
         uniswapEvents.addAll(fourMemeSwapV2);
+        uniswapEvents.addAll(findFourMemeV1);
         Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
 
         // 2、 结合 TransferEvent 将v2和v3构建为标准的 SwapEvent事件，构建完成以后并且删除构建中使用的 TransferEvent
@@ -544,6 +707,26 @@ public class AMMSwapDataProcessFull {
             count.getAndIncrement();
         });
         log.debug("******* 将 {} 条 transferOut 中的转化为 Swap 事件", count.get());
+    }
+
+    @Data
+    @Builder
+    public static class TokenBalance {
+        private String account;
+        private String mint;
+        private String owner;
+        private String programId;
+        private UiTokenAmount uiTokenAmount;
+
+
+    }
+
+    @Data
+    @Builder
+    public static class UiTokenAmount {
+        private String amount;
+        private int decimals;
+
     }
 }
 

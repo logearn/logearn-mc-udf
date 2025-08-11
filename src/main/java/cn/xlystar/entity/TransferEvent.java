@@ -17,9 +17,15 @@ import java.util.stream.Collectors;
 public class TransferEvent extends Event implements Serializable {
 
     private String sender;
+    private String senderOrigin;
     private String receiver;
+    private String receiverOrigin;
     private BigInteger logIndex;
+    private int outerIndex;
+    private int innerIndex;
     private Integer blockTime;
+    private String txHash;
+    private String eventType;
     private String contractAddress;
     private String assetType;
     private BigInteger amount;
@@ -48,6 +54,7 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
+            if (elem.getSender().equals(elem.getReceiver())) continue;
             //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
             //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
             // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
@@ -148,8 +155,16 @@ public class TransferEvent extends Event implements Serializable {
                     .build();
         }
         boolean matchOriginSender = false;
-        if (from.equals(ut.getTo()) && from.equals(originSender)) {
-            matchOriginSender = true;
+        // 新增逻辑：from.equals(originSender)
+        // 案例：https://app.blocksec.com/explorer/tx/eth/0xc5ac09df66a4c891991dc4f298843e01503cff2fbce25293e5e606383ae3e3c3
+        // 解决发起人，通过一层代理合约进行 真实交易
+        try {
+            if (from.equals(ut.getTo()) && from.equals(originSender)) {
+                matchOriginSender = true;
+            }
+        } catch (Exception e) {
+            System.out.println("uniswpa" + ut);
+            System.out.println("uniswpa from" + from);
         }
 
         List<TransferEvent> _tmpList = new ArrayList<>();
@@ -157,6 +172,8 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
+            // solana 中，会有一个 pdaA 给 pdaB 转账，但同属于一个 owner 的情况
+            if (elem.getSender().equals(elem.getReceiver())) continue;
             //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
             //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
             // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
@@ -229,46 +246,25 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 统计所有transferEvents的 用户-token-余额
      */
-    public static List<TransferEvent> calculateBalances(List<TransferEvent> transactions) {
-        // 使用 Map<String, BigInteger> 来保存分组后的累计值，key 为 "sender_receiver_contractAddress"
-        Map<String, BigInteger> aggregatedTransfers = new HashMap<>();
-        Map<String, BigInteger> aggregatedTransfersIndex = new HashMap<>();
+    public static Map<String, Map<String, BigInteger>> calculateBalances(List<TransferEvent> transactions) {
+        Map<String, Map<String, BigInteger>> balances = new HashMap<>();
 
         for (TransferEvent transaction : transactions) {
-            String sender = transaction.getSender();
             String receiver = transaction.getReceiver();
-            String contractAddress = transaction.getContractAddress();
+            String sender = transaction.getSender();
             BigInteger amount = transaction.getAmount();
+            String contractAddress = transaction.getContractAddress();
 
-            // 构建唯一的分组键，sender_receiver_contractAddress
-            String key = sender + "_" + receiver + "_" + contractAddress;
+            balances.putIfAbsent(receiver, new HashMap<>());
+            balances.putIfAbsent(sender, new HashMap<>());
 
-            // 累加每个分组的交易金额
-            aggregatedTransfers.put(key,
-                    aggregatedTransfers.getOrDefault(key, BigInteger.ZERO).add(amount));
-            if (transaction.getLogIndex() != null) aggregatedTransfersIndex.put(key, transaction.getLogIndex());
+            balances.get(receiver).put(contractAddress,
+                    balances.get(receiver).getOrDefault(contractAddress, BigInteger.ZERO).add(amount));
+            balances.get(sender).put(contractAddress,
+                    balances.get(sender).getOrDefault(contractAddress, BigInteger.ZERO).subtract(amount));
         }
 
-        List<TransferEvent> list = new ArrayList<>();
-        for (Map.Entry<String, BigInteger> entry : aggregatedTransfers.entrySet()) {
-            String[] key = entry.getKey().split("_");
-            String sender = key[0];
-            String receiver = key[1];
-            String tokenAddress = key[2];
-            BigInteger amount = entry.getValue();
-
-            BigInteger index = aggregatedTransfersIndex.getOrDefault(entry.getKey(), BigInteger.ZERO);
-            if (amount.compareTo(BigInteger.ZERO) != 0) {
-                list.add(TransferEvent.builder()
-                        .amount(amount)
-                        .sender(sender)
-                        .receiver(receiver)
-                        .logIndex(index)
-                        .contractAddress(tokenAddress)
-                        .build());
-            }
-        }
-        return list;
+        return balances;
     }
 
     /**

@@ -369,7 +369,7 @@ public class SplTokenInstructionParser extends InstructionParser {
             buffer.get(newAuthority);
         }
 
-        info.put("mint", accounts[0]);         // 要修改权限的账户
+        info.put("account", accounts[0]);         // 要修改权限的账户
         info.put("authority", accounts[1]); // 当前权限账户
         info.put("authorityType", authorityType);
         if (hasNewAuthority) {

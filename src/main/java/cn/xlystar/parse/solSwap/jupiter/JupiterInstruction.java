@@ -6,6 +6,7 @@ package cn.xlystar.parse.solSwap.jupiter;
 public enum JupiterInstruction {
  // 路由指令
     SWAP_EVENT("40c6cde8260871e2"),
+    LOG("e445a52e51cb9a1d"),
 
     ROUTE("e517cb977ae3ad2a"),
     ROUTE_WITH_TOKEN_LEDGER("96564774a75d0e68"),

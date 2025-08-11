@@ -1,4 +1,3 @@
-// OkxInstruction.java
 package cn.xlystar.parse.solSwap.okx;
 
 import java.util.HashMap;
@@ -20,6 +19,7 @@ public enum OkxInstruction {
     COMMISSION_SPL_SWAP("eb47d3c472c78f5c"),       // commission_spl_swap
     COMMISSION_SPL_SWAP2("ad834e2696a57b0f"),      // [无交易] commission_spl_swap2
 
+
     // 平台手续费相关 swap 指令
     PLATFORM_FEE_SOL_PROXY_SWAP("9a9ccc0ca0c04f50"),           // [无交易] platform_fee_sol_proxy_swap
     PLATFORM_FEE_SOL_PROXY_SWAP2("45c8fef7283476ca"),                // platform_fee_sol_swap2
@@ -32,7 +32,9 @@ public enum OkxInstruction {
     // 直接 swap 指令
     PROXY_SWAP("132c829448382cee"),               // proxy_swap
     SWAP("f8c69e91e17587c8"),                    // swap
-    SWAP2("414b3f4ceb5b5b88");                   // swap2
+    SWAP2("414b3f4ceb5b5b88"),                   // swap2
+    SWAP3("f0e02621b01ff1af"),      // [无交易] SWAP_V#
+    SWAP_TOB_3("0ebf2cf68ee1e09d");      // [无交易] SWAP_V#
 
 
     private final String value;

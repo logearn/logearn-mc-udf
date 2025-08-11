@@ -208,7 +208,7 @@ public class SplToken2022InstructionParser extends InstructionParser {
 
     private static Map<String, Object> parseSetAuthorityInstruction(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
-        info.put("mint", accounts[0]);
+        info.put("account", accounts[0]);
         info.put("authority", accounts[1]);
 
         info.put("authorityType", buffer.get() & 0xFF);

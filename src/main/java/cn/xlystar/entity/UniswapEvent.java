@@ -13,17 +13,24 @@ public class UniswapEvent extends Event implements Serializable {
 
     private String sender;
     private String to;
+    private String oriSender;
 
     private String tokenIn;
+    private String vaultIn;
     private String tokenOut;
+    private String vaultOut;
     private BigInteger amountIn;
     private BigInteger amountOut;
-    private BigInteger v3Liquidity;
 
     private BigInteger logIndex;
+    private Integer txIndex;
+    private int outerIndex;
+    private int innerIndex;
     private String contractAddress;
     private String protocol;
     private String version;
+    private BigInteger v3Liquidity;
+    private String programId;
 
     // swap 串联之前的 池子地址
     // swap 串联之后的池子地址
@@ -33,6 +40,7 @@ public class UniswapEvent extends Event implements Serializable {
     // 扩展边都合并都 transfer, 记录一下，好排查bug, 但是不需要条到数据仓库
     private List<TransferEvent> fromMergedTransferEvent;
     private List<TransferEvent> toMergedTransferEvent;
+    private boolean isAggregator;
 
     private String errorMsg;
 
@@ -46,15 +54,59 @@ public class UniswapEvent extends Event implements Serializable {
         this.rawSwapLog = swapLog;
     }
 
+    private static List<UniswapEvent> mergeAggEvent(UniswapEvent anchorEvent,
+                                                    List<UniswapEvent> aggMergeList) {
+        // 步骤1: 筛选需要合并的事件 - 与锚点事件相同sender的事件
+        List<UniswapEvent> finalMergeEvents = new ArrayList<>();
+        Iterator<UniswapEvent> iter = aggMergeList.iterator();
+
+        UniswapEvent finalMerge = iter.next();
+        iter.remove();
+        while (iter.hasNext()) {
+            UniswapEvent candidate = iter.next();
+            if (candidate.getTokenIn().equals(anchorEvent.getTokenIn())) {
+                finalMerge.setAmountIn(finalMerge.getAmountIn().add(candidate.getAmountIn()));
+                iter.remove();  // 从原始列表移除已被选中的事件
+            }
+        }
+        finalMergeEvents.add(finalMerge);  // 添加锚点事件本身
+
+
+        iter = aggMergeList.iterator();
+        finalMerge = iter.next();
+        iter.remove();
+        while (iter.hasNext()) {
+            UniswapEvent candidate = iter.next();
+            if (candidate.getTokenOut().equals(anchorEvent.getTokenOut())) {
+                finalMerge.setAmountOut(finalMerge.getAmountOut().add(candidate.getAmountOut()));
+                iter.remove();  // 从原始列表移除已被选中的事件
+            }
+        }
+        finalMergeEvents.add(finalMerge);
+        return finalMergeEvents;
+    }
+
     /**
      * 将多个events，串联起来，形成完整的uniswapEvents事件， 串联规则：前一个swap的to是后一个sender
      */
-    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents) {
+    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents, List<UniswapEvent> aggList) {
         ArrayList<UniswapEvent> fullUniswapEvents = new ArrayList<>();
+        for (UniswapEvent t : aggList) {
+            List<UniswapEvent> aggMergeList = new ArrayList<>();
+            for (UniswapEvent u : uniswapEvents) {
+                if (t != u && u.getOuterIndex() == t.getOuterIndex()) {
+                    aggMergeList.add(u);
+                }
+            }
+            uniswapEvents.removeAll(aggMergeList);
+//            if (aggMergeList.size() > 2) t.setConnectedPools(mergeAggEvent(t, aggMergeList));
+//            else
+            t.setConnectedPools(aggMergeList);
+        }
 
         uniswapEvents.forEach(u -> {
             ArrayList<UniswapEvent> tmpUniswapEvents = new ArrayList<>(uniswapEvents);
-            List<UniswapEvent> mergedPools = new ArrayList<>(Collections.singleton(u));
+            List<UniswapEvent> mergedPools = new ArrayList<>(u.isAggregator ? u.getConnectedPools() : Collections.singleton(u));
 
             UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
             List<String> originPair = new ArrayList<>(2);
@@ -62,6 +114,7 @@ public class UniswapEvent extends Event implements Serializable {
             builder.logIndex(u.getLogIndex());
             builder.pair(originPair);
             builder.errorMsg(u.getErrorMsg());
+            builder.isAggregator(u.isAggregator);
 
             // 向前找最早1个swap事件
             UniswapEvent _tpre = findPreEvent(tmpUniswapEvents, u, mergedPools);
@@ -109,6 +162,8 @@ public class UniswapEvent extends Event implements Serializable {
         Iterator<UniswapEvent> iterator = events.iterator();
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
+            // solana 处理夹子乱序问题
+            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) > 0) continue;
             if (elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn()) && elem.getAmountOut().equals(target.getAmountIn())
@@ -135,6 +190,7 @@ public class UniswapEvent extends Event implements Serializable {
         Iterator<UniswapEvent> iterator = events.iterator();
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
+            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) < 0) continue;
             if (elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut()) && elem.getAmountIn().equals(target.getAmountOut())
@@ -154,7 +210,8 @@ public class UniswapEvent extends Event implements Serializable {
     public static Boolean isExistMergedTransferEventList(List<TransferEvent> targetLists, TransferEvent event) {
         for (int i = 0; i < targetLists.size(); i++) {
             TransferEvent transferEvent = targetLists.get(i);
-            if (transferEvent.getSender().equals(event.getSender()) && transferEvent.getReceiver().equals(event.getReceiver())) return true;
+            if (transferEvent.getSender().equals(event.getSender()) && transferEvent.getReceiver().equals(event.getReceiver()))
+                return true;
         }
         return false;
     }
