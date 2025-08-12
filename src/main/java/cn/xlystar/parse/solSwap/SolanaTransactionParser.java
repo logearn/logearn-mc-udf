@@ -564,6 +564,8 @@ public class SolanaTransactionParser {
                             .senderOrigin((String) event.get("account"))
                             .receiverOrigin((String) event.get("account"))
                             .receiver((String) event.get("newAuthority"))
+                            .amount(event.containsKey("amount") ? new BigInteger(event.get("amount").toString()) : BigInteger.ZERO)
+                            .contractAddress(event.containsKey("mint") ? event.get("mint").toString() : null)
                             .outerIndex(outerInstructionIndex)
                             .innerIndex(innerInstructionIndex)
                             .logIndex(new BigInteger(String.valueOf(logIndex)))

@@ -63,6 +63,7 @@ public class SplToken2022InstructionParser extends InstructionParser {
                 info = parseCreateNativeMintInstruction(accounts);
                 break;
             case TransferChecked:
+            case ApproveChecked:
             case MintToChecked:
             case BurnChecked:
                 info = parseCheckedInstruction(buffer, accounts, splToken2022Instruction);
@@ -283,6 +284,12 @@ public class SplToken2022InstructionParser extends InstructionParser {
                  info.put("mint", accounts[1]);
                  info.put("destination", accounts[2]);
                  info.put("authority", accounts[3]);
+                 break;
+             case ApproveChecked:
+                 info.put("source", accounts[0]);          // 源代币账户
+                 info.put("mint", accounts[1]);           // 代币铸造账户
+                 info.put("delegate", accounts[2]);        // 被授权账户
+                 info.put("owner", accounts[3]);       // 源账户所有者
                  break;
              case MintToChecked:
                  info.put("mint", accounts[0]);

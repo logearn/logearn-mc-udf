@@ -106,6 +106,18 @@ public class SolInstructionProcessor {
                 result.put("instruction_type", "transfer_owner");
                 return result;
             }
+        } else if (isTokenProgram
+                && (parsed.get("method_id").toString().equals(SplTokenInstruction.ApproveChecked.getValue() + "")
+                || parsed.get("method_id").toString().equals(SplToken2022Instruction.ApproveChecked.getValue() + "")
+        )
+        ) {
+            result.put("account", info.get("source"));
+            result.put("mint", info.get("mint"));
+            result.put("authority", info.get("owner"));
+            result.put("newAuthority", info.get("delegate"));
+            result.put("amount", info.get("amount"));
+            result.put("instruction_type", "transfer_owner");
+            return result;
         } else if (programId.equals(SystemInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(SystemInstruction.Transfer.getValue() + "")
 //                || parsed.get("method_id").equals(SystemInstruction.TransferWithSeed.getValue())

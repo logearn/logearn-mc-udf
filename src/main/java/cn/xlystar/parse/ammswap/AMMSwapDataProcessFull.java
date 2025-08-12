@@ -42,6 +42,12 @@ public class AMMSwapDataProcessFull {
     public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance) {
         String wCoinAddress = conf.getWCoinAddress();
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(transferOwnerEvents)) {
+            List<TransferEvent> list = transferOwnerEvents.stream().filter(t -> t.getAmount().compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
+            transferOwnerEvents.removeAll(list);
+            transferEvents.addAll(list);
+        }
+
         boolean hasTokenTransfer = transferEvents != null && transferEvents.stream().anyMatch(t -> !t.getContractAddress().equals(wCoinAddress));
         if (!hasTokenTransfer && CollectionUtils.isEmpty(swapEvents) && !CollectionUtils.isEmpty(transferOwnerEvents)) {
             uniswapEvents = getTranferOwnerEvents(conf, transferOwnerEvents, postTokenBalance, preTokenBalance);
@@ -151,59 +157,113 @@ public class AMMSwapDataProcessFull {
     }
 
     private static List<Map<String, String>> processSwap(List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price) {
+        String wCoinAddress = conf.getWCoinAddress();
+        if (CollectionUtils.isEmpty(swapEvents)) return finalSwap;
+        Map<String, BigDecimal> tokenPriceList = new HashMap<>();
+        UniswapEvent swap = swapEvents.get(0);
+        if (!CollectionUtils.isEmpty(swap.getRawSwapLog()) && !StringUtils.isEmpty(price)) {
+            if (conf.getChainId().equals("3")) {
+                swap.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
+            } else {
+                // 稳定币对处理
+                swap.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
+                // 非稳定币对处理
+                convertPlatformToNative(swap.getRawSwapLog(), conf);
+            }
+        }
+        swap.getRawSwapLog().forEach(t -> {
+            if (t.getTokenIn() == null || t.getTokenOut() == null) return;
+            if (t.getAmountIn().compareTo(BigInteger.ZERO) <= 0 || t.getAmountOut().compareTo(BigInteger.ZERO) <= 0)
+                return;
+            if ((!t.getTokenIn().equals(wCoinAddress) && !t.getTokenOut().equals(wCoinAddress))) return;
+            BigInteger wcoinAmount = t.getTokenIn().equals(wCoinAddress) ? t.getAmountIn() : t.getAmountOut();
+            BigInteger tokenAmount = t.getTokenIn().equals(wCoinAddress) ? t.getAmountOut() : t.getAmountIn();
+            String tokenAddress = t.getTokenIn().equals(wCoinAddress) ? t.getTokenOut() : t.getTokenIn();
+            BigDecimal tokenPrice = new BigDecimal(wcoinAmount).divide(new BigDecimal(tokenAmount.toString()), 20, RoundingMode.HALF_UP);
+            tokenPriceList.put(tokenAddress, tokenPrice);
+        });
+
         swapEvents.forEach(t -> {
-                    // 非 wcoin 币对处理
-                    if (!CollectionUtils.isEmpty(t.getRawSwapLog()) && !StringUtils.isEmpty(price)) {
-                        if (conf.getChainId().equals("3")) {
-                            t.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
-                        } else {
-                            // 稳定币对处理
-                            t.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
-                            // 非稳定币对处理
-                            convertPlatformToNative(t.getRawSwapLog(), conf);
-                        }
-                    }
                     if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
                         switch (conf.getChainId()) {
                             case "3":
                                 if (convertToSol(conf, t, new BigDecimal(price))) break;
                             default:
                                 List<UniswapEvent> connectedPools = t.getConnectedPools();
-                                if (conf.getChainId().equals("3") && connectedPools != null && connectedPools.size() > 2) {
+                                if (conf.getChainId().equals("3") && t.isAggregator()) {
                                     UniswapEvent.UniswapEventBuilder ethBuyUniswap = null;
                                     UniswapEvent.UniswapEventBuilder ethSellUniswap = null;
-                                    ethSellUniswap = UniswapEvent.builder()
-                                            .sender(t.getSender())
-                                            .to("0x0")
-                                            .tokenIn(t.getTokenIn())
-                                            .amountIn(t.getAmountIn())
-                                            .tokenOut(conf.getWCoinAddress())
-                                            .amountOut(BigInteger.ZERO)
-                                            .pair(t.getPair())
-                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
-                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
-                                            .connectedPools(t.getConnectedPools())
-                                            .rawSwapLog(t.getRawSwapLog())
-                                            .version(t.getVersion())
-                                            .errorMsg(t.getErrorMsg());
+                                    String sellToken = t.getTokenIn();
+                                    BigDecimal sellPrice = tokenPriceList.getOrDefault(sellToken, BigDecimal.ZERO);
+                                    BigInteger receiveCoin = new BigDecimal(t.getAmountIn()).multiply(sellPrice).toBigInteger();
+                                    if (receiveCoin.compareTo(BigInteger.ZERO) > 0) {
+                                        ethSellUniswap = UniswapEvent.builder()
+                                                .sender(t.getSender())
+                                                .to(t.getSender())
+                                                .tokenIn(t.getTokenIn())
+                                                .amountIn(t.getAmountIn())
+                                                .tokenOut(conf.getWCoinAddress())
+                                                .amountOut(receiveCoin)
+                                                .pair(t.getPair())
+                                                .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                .connectedPools(t.getConnectedPools())
+                                                .rawSwapLog(t.getRawSwapLog())
+                                                .version(t.getVersion())
+                                                .errorMsg(t.getErrorMsg());
+                                    } else {
+                                        ethSellUniswap = UniswapEvent.builder()
+                                                .sender(t.getSender())
+                                                .to("0x0")
+                                                .tokenIn(t.getTokenIn())
+                                                .amountIn(t.getAmountIn())
+                                                .tokenOut(conf.getWCoinAddress())
+                                                .amountOut(BigInteger.ZERO)
+                                                .pair(t.getPair())
+                                                .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                .connectedPools(t.getConnectedPools())
+                                                .rawSwapLog(t.getRawSwapLog())
+                                                .version(t.getVersion())
+                                                .errorMsg(t.getErrorMsg());
+                                    }
                                     finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
 
                                     // buy eth币对
-                                    ethBuyUniswap = UniswapEvent.builder()
-                                            .sender("0x0")
-                                            .to(t.getTo())
-                                            .tokenIn(t.getTokenOut())
-                                            .amountIn(t.getAmountOut())
-                                            .tokenOut(conf.getWCoinAddress())
-                                            .amountOut(BigInteger.ZERO)
-                                            .pair(t.getPair())
-                                            .fromMergedTransferEvent(t.getFromMergedTransferEvent())
-                                            .toMergedTransferEvent(t.getToMergedTransferEvent())
-                                            .connectedPools(t.getConnectedPools())
-                                            .rawSwapLog(t.getRawSwapLog())
-                                            .version(t.getVersion())
-                                            .errorMsg(t.getErrorMsg());
-
+                                    String buyToken = t.getTokenOut();
+                                    BigDecimal buyPrice = tokenPriceList.getOrDefault(buyToken, BigDecimal.ZERO);
+                                    BigInteger costCoin = new BigDecimal(t.getAmountOut()).multiply(buyPrice).toBigInteger();
+                                    if (costCoin.compareTo(BigInteger.ZERO) > 0) {
+                                        ethBuyUniswap = UniswapEvent.builder()
+                                                .sender(t.getTo())
+                                                .to(t.getTo())
+                                                .tokenIn(conf.getWCoinAddress())
+                                                .amountIn(costCoin)
+                                                .tokenOut(t.getTokenOut())
+                                                .amountOut(t.getAmountOut())
+                                                .pair(t.getPair())
+                                                .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                .connectedPools(t.getConnectedPools())
+                                                .rawSwapLog(t.getRawSwapLog())
+                                                .version(t.getVersion())
+                                                .errorMsg(t.getErrorMsg());
+                                    } else {
+                                        ethBuyUniswap = UniswapEvent.builder()
+                                                .sender("0x0")
+                                                .to(t.getTo())
+                                                .tokenIn(t.getTokenOut())
+                                                .amountIn(t.getAmountOut())
+                                                .tokenOut(conf.getWCoinAddress())
+                                                .amountOut(BigInteger.ZERO)
+                                                .pair(t.getPair())
+                                                .fromMergedTransferEvent(t.getFromMergedTransferEvent())
+                                                .toMergedTransferEvent(t.getToMergedTransferEvent())
+                                                .connectedPools(t.getConnectedPools())
+                                                .rawSwapLog(t.getRawSwapLog())
+                                                .version(t.getVersion())
+                                                .errorMsg(t.getErrorMsg());
+                                    }
                                     finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
                                     return;
                                 } else if (connectedPools != null && connectedPools.size() > 0) {
