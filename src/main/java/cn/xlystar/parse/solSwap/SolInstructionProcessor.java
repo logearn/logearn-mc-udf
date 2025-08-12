@@ -109,6 +109,8 @@ public class SolInstructionProcessor {
         } else if (isTokenProgram
                 && (parsed.get("method_id").toString().equals(SplTokenInstruction.ApproveChecked.getValue() + "")
                 || parsed.get("method_id").toString().equals(SplToken2022Instruction.ApproveChecked.getValue() + "")
+                || parsed.get("method_id").toString().equals(SplTokenInstruction.Approve.getValue() + "")
+                || parsed.get("method_id").toString().equals(SplToken2022Instruction.Approve.getValue() + "")
         )
         ) {
             result.put("account", info.get("source"));

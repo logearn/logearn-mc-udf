@@ -101,45 +101,57 @@ public class AMMSwapDataProcess {
                     && CollectionUtils.isEmpty(allBurnTransferEvents)
             ) return null;
 
-            Set<String> allReceivers = allTransferEvents.stream().map(TransferEvent::getReceiverOrigin).collect(Collectors.toSet());
-            allReceivers.addAll(allTransferEvents.stream().peek(t -> {
-                if (t.getContractAddress() != null && !allCreatePDA.containsKey(t.getSenderOrigin())) {
-                    Map<String, Object> pda = new HashMap<>();
-                    pda.put("mint", t.getContractAddress());
-                    pda.put("account", t.getSenderOrigin());
-                    pda.put("owner", t.getSender());
-                    allCreatePDA.put(t.getSenderOrigin(), pda);
+            allTransferEvents.forEach(t -> {
+                if (allCreatePDA.containsKey(t.getSenderOrigin())) {
+                    t.setSender(allCreatePDA.get(t.getSenderOrigin()).get("owner").toString());
+                    t.setContractAddress(allCreatePDA.get(t.getSenderOrigin()).get("mint").toString());
                 }
-            }).map(TransferEvent::getSenderOrigin).collect(Collectors.toSet()));
-            allReceivers.addAll(allBurnTransferEvents.stream().peek(t -> {
-                if (t.getContractAddress() != null && !allCreatePDA.containsKey(t.getSenderOrigin())) {
-                    Map<String, Object> pda = new HashMap<>();
-                    pda.put("mint", t.getContractAddress());
-                    pda.put("account", t.getSenderOrigin());
-                    pda.put("owner", t.getSender());
-                    allCreatePDA.put(t.getSenderOrigin(), pda);
-                }
-            }).map(TransferEvent::getSenderOrigin).collect(Collectors.toSet()));
 
-            // 3.2. 从数据库获取已存在的 aToken account
-            List<Map<String, Object>> receiversInfoFromDb = allReceivers.stream()
-                    .map(t -> {
-                        if (allCreatePDA.containsKey(t)) {
-                            return allCreatePDA.get(t);
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            //3.3. 过滤出需要查询的地址（token accounts），且获取账户信息
-            Set<String> existingReceiversDb = receiversInfoFromDb.stream().map(entry -> entry.get("account").toString()).collect(Collectors.toSet());
-            allClosePDA.forEach((key, value) -> {
-                if (!existingReceiversDb.contains(key)) {
-                    existingReceiversDb.add(key);
-                    receiversInfoFromDb.add(value);
+                if (allCreatePDA.containsKey(t.getReceiverOrigin())) {
+                    t.setReceiver(allCreatePDA.get(t.getReceiverOrigin()).get("owner").toString());
+                    t.setContractAddress(allCreatePDA.get(t.getReceiverOrigin()).get("mint").toString());
                 }
             });
+
+//            Set<String> allReceivers = allTransferEvents.stream().map(TransferEvent::getReceiverOrigin).collect(Collectors.toSet());
+//            allReceivers.addAll(allTransferEvents.stream().peek(t -> {
+//                if (t.getContractAddress() != null && !allCreatePDA.containsKey(t.getSenderOrigin())) {
+//                    Map<String, Object> pda = new HashMap<>();
+//                    pda.put("mint", t.getContractAddress());
+//                    pda.put("account", t.getSenderOrigin());
+//                    pda.put("owner", t.getSender());
+//                    allCreatePDA.put(t.getSenderOrigin(), pda);
+//                }
+//            }).map(TransferEvent::getSenderOrigin).collect(Collectors.toSet()));
+//            allReceivers.addAll(allBurnTransferEvents.stream().peek(t -> {
+//                if (t.getContractAddress() != null && !allCreatePDA.containsKey(t.getSenderOrigin())) {
+//                    Map<String, Object> pda = new HashMap<>();
+//                    pda.put("mint", t.getContractAddress());
+//                    pda.put("account", t.getSenderOrigin());
+//                    pda.put("owner", t.getSender());
+//                    allCreatePDA.put(t.getSenderOrigin(), pda);
+//                }
+//            }).map(TransferEvent::getSenderOrigin).collect(Collectors.toSet()));
+
+            // 3.2. 从数据库获取已存在的 aToken account
+//            List<Map<String, Object>> receiversInfoFromDb = allReceivers.stream()
+//                    .map(t -> {
+//                        if (allCreatePDA.containsKey(t)) {
+//                            return allCreatePDA.get(t);
+//                        }
+//                        return null;
+//                    })
+//                    .filter(Objects::nonNull)
+//                    .collect(Collectors.toList());
+
+            //3.3. 过滤出需要查询的地址（token accounts），且获取账户信息
+//            Set<String> existingReceiversDb = receiversInfoFromDb.stream().map(entry -> entry.get("account").toString()).collect(Collectors.toSet());
+//            allClosePDA.forEach((key, value) -> {
+//                if (!existingReceiversDb.contains(key)) {
+//                    existingReceiversDb.add(key);
+//                    receiversInfoFromDb.add(value);
+//                }
+//            });
 //            List<String> receiversToQuery = allReceivers.stream()
 //                    .filter(r -> !existingReceiversDb.contains(r))
 //                    .collect(Collectors.toList());
@@ -154,29 +166,29 @@ public class AMMSwapDataProcess {
 //                receiversInfoFromDb.addAll(pdaAccountInfo);
 
             // 3.4. 移除请求失败的 transfer
-            Map<String, Map<String, Object>> validReceivers = receiversInfoFromDb.stream()
-                    .collect(Collectors.toMap(
-                            t -> t.get("account").toString(),  // key是account
-                            t -> t,                            // value是完整的Map
-                            (existing, replacement) -> replacement // 如果有重复key，保留第一个
-                    ));
-            allSolTransferEvents.forEach(t -> {
-                validReceivers.put(t.getSenderOrigin(),
-                        new HashMap<String, Object>() {{
-                            put("account", t.getSenderOrigin());
-                            put("owner", t.getSender());
-                            put("mint", t.getContractAddress());
-                        }}
-                );
-            });
+//            Map<String, Map<String, Object>> validReceivers = receiversInfoFromDb.stream()
+//                    .collect(Collectors.toMap(
+//                            t -> t.get("account").toString(),  // key是account
+//                            t -> t,                            // value是完整的Map
+//                            (existing, replacement) -> replacement // 如果有重复key，保留第一个
+//                    ));
+//            allSolTransferEvents.forEach(t -> {
+//                validReceivers.put(t.getSenderOrigin(),
+//                        new HashMap<String, Object>() {{
+//                            put("account", t.getSenderOrigin());
+//                            put("owner", t.getSender());
+//                            put("mint", t.getContractAddress());
+//                        }}
+//                );
+//            });
 
             if (CollectionUtils.isEmpty(allTransferEvents))
                 if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)) return null;
             if (CollectionUtils.isEmpty(allBurnTransferEvents))
                 allTransferEvents.addAll(allBurnTransferEvents);
-            SolanaTransactionParser.processTransferEvents(hash, Integer.valueOf(blockTime), allTransferEvents, validReceivers);
+            SolanaTransactionParser.processTransferEvents(hash, Integer.valueOf(blockTime), allTransferEvents, allCreatePDA);
             if (!CollectionUtils.isEmpty(allSwapEvents) || !CollectionUtils.isEmpty(allAggregatorSwapEvents)) {
-                SolanaTransactionParser.processSwapEvents(allSwapEvents, allTransferEvents, validReceivers, allPoolLiquidity, allSolTransferEvents, logMessages, allAggregatorSwapEvents);
+                SolanaTransactionParser.processSwapEvents(allSwapEvents, allTransferEvents, allCreatePDA, allPoolLiquidity, allSolTransferEvents, logMessages, allAggregatorSwapEvents);
             }
             // 串联 swap
             return new ArrayList<>(AMMSwapDataProcess.decodeSwap(conf, originSender, hash, allSwapEvents, allTransferEvents, price, allTxTransferOwnerEvents, postTokenBalance, preTokenBalance));

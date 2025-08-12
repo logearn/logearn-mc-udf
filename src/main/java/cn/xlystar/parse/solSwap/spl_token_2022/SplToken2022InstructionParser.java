@@ -38,6 +38,7 @@ public class SplToken2022InstructionParser extends InstructionParser {
 
             // 基础代币操作
             case Transfer:
+            case Approve:
             case MintTo:
             case Burn:
                 info = parseAmountInstruction(buffer, accounts, splToken2022Instruction);
@@ -228,6 +229,11 @@ public class SplToken2022InstructionParser extends InstructionParser {
                 info.put("source", accounts[0]);
                 info.put("destination", accounts[1]);
                 info.put("authority", accounts[2]);
+                break;
+            case Approve:
+                info.put("source", accounts[0]);
+                info.put("delegate", accounts[1]);
+                info.put("owner", accounts[2]);
                 break;
             case MintTo:
                 info.put("mint", accounts[0]);

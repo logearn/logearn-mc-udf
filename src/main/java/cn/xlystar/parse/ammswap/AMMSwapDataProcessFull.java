@@ -42,11 +42,11 @@ public class AMMSwapDataProcessFull {
     public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance) {
         String wCoinAddress = conf.getWCoinAddress();
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
-        if (!CollectionUtils.isEmpty(transferOwnerEvents)) {
-            List<TransferEvent> list = transferOwnerEvents.stream().filter(t -> t.getAmount().compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
-            transferOwnerEvents.removeAll(list);
-            transferEvents.addAll(list);
-        }
+//        if (!CollectionUtils.isEmpty(transferOwnerEvents)) {
+//            List<TransferEvent> list = transferOwnerEvents.stream().filter(t -> t.getAmount().compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
+//            transferOwnerEvents.removeAll(list);
+//            transferEvents.addAll(list);
+//        }
 
         boolean hasTokenTransfer = transferEvents != null && transferEvents.stream().anyMatch(t -> !t.getContractAddress().equals(wCoinAddress));
         if (!hasTokenTransfer && CollectionUtils.isEmpty(swapEvents) && !CollectionUtils.isEmpty(transferOwnerEvents)) {

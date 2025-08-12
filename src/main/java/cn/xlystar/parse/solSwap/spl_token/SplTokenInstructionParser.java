@@ -308,7 +308,7 @@ public class SplTokenInstructionParser extends InstructionParser {
 
         info.put("source", accounts[0]);          // 源代币账户
         info.put("delegate", accounts[1]);        // 被授权账户
-        info.put("authority", accounts[2]);       // 源账户所有者
+        info.put("owner", accounts[2]);       // 源账户所有者
         info.put("amount", amount);
 
         return info;
