@@ -564,8 +564,8 @@ public class SolanaTransactionParser {
                             .senderOrigin((String) event.get("account"))
                             .receiverOrigin((String) event.get("account"))
                             .receiver((String) event.get("newAuthority"))
-                            .amount(event.containsKey("amount") ? new BigInteger(event.get("amount").toString()) : BigInteger.ZERO)
-                            .contractAddress(event.containsKey("mint") ? event.get("mint").toString() : null)
+//                            .amount(event.containsKey("amount") ? new BigInteger(event.get("amount").toString()) : BigInteger.ZERO)
+//                            .contractAddress(event.containsKey("mint") ? event.get("mint").toString() : null)
                             .outerIndex(outerInstructionIndex)
                             .innerIndex(innerInstructionIndex)
                             .logIndex(new BigInteger(String.valueOf(logIndex)))
@@ -761,6 +761,7 @@ public class SolanaTransactionParser {
             } else if (isPumpFun(event)) {
                 // 其他协议使用确定的规则
                 processPumpSwapEvent(event, txTransferEvents, allPoolLiquidity);
+                if (event.getAmountOut() == null || event.getAmountIn() == null) swapIterator.remove();
                 continue;
             } else if (isBoopFun(event)) {
                 processBoopfunEvent(event, txTransferEvents, solTransferEvents);
@@ -857,13 +858,14 @@ public class SolanaTransactionParser {
 
             }
 
+            List<TransferEvent> swapEventsTransfer = new ArrayList<>();
             for (int i = 0; i < txTransferEvents.size(); i++) {
                 TransferEvent transferEvent = txTransferEvents.get(i);
                 if (transferEvent.getContractAddress().equals(event.getTokenOut())
                         && transferEvent.getAmount().equals(event.getAmountOut())
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
-                    txTransferEvents.remove(transferEvent);
+                    swapEventsTransfer.add(transferEvent);
                     event.setSender(transferEvent.getReceiver());
                     event.setTo(transferEvent.getReceiver());
                     break;
@@ -872,12 +874,16 @@ public class SolanaTransactionParser {
                         && transferEvent.getAmount().equals(event.getAmountIn())
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
-                    txTransferEvents.remove(transferEvent);
+                    swapEventsTransfer.add(transferEvent);
                     event.setSender(transferEvent.getSender());
                     event.setTo(transferEvent.getSender());
                     break;
                 }
             }
+            if (event.getAmountOut() == null || event.getAmountIn() == null) return;
+            // swap 0 的情况：https://solscan.io/tx/3nQ5QKSx31rKLcHpqgq63YuHURd3kuCz6Ae9UwDRgzpVLceAAYRQGRWbywUtzVFnDfb6tcinMP2f3YofHfMVTZyF
+
+            txTransferEvents.removeAll(swapEventsTransfer);
             // 针对 A 给 B 买的情况： https://solscan.io/tx/4orfsnT7XjfZX9E6fK8oxZSXN59Nbo44eyASophn3UkCnp1fAgpBCJWnuENpFGJZq8fJabcwQuLQBsuR9jCoZThA?utm_source=https%3A%2F%2Flogearn.com
             // Sell 的 case 没有找到, 且识别了 Buy，暂不考虑 Sell 的情况。
             if (event.getTokenIn().equals("So11111111111111111111111111111111111111112"))
