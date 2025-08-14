@@ -101,17 +101,39 @@ public class AMMSwapDataProcess {
                     && CollectionUtils.isEmpty(allBurnTransferEvents)
             ) return null;
 
+            Map<String, Map<String, Object>> transferSenderPda = new HashMap<>();
             allTransferEvents.forEach(t -> {
+                if (t.getContractAddress() == null) return;
+                Map<String, Object> pda = new HashMap<>();
+                pda.put("mint", t.getContractAddress());
+                pda.put("account", t.getSenderOrigin());
+                pda.put("owner", t.getSender());
+                transferSenderPda.put(t.getSenderOrigin(), pda);
                 if (allCreatePDA.containsKey(t.getSenderOrigin())) {
-                    t.setSender(allCreatePDA.get(t.getSenderOrigin()).get("owner").toString());
-                    t.setContractAddress(allCreatePDA.get(t.getSenderOrigin()).get("mint").toString());
-                }
-
-                if (allCreatePDA.containsKey(t.getReceiverOrigin())) {
-                    t.setReceiver(allCreatePDA.get(t.getReceiverOrigin()).get("owner").toString());
-                    t.setContractAddress(allCreatePDA.get(t.getReceiverOrigin()).get("mint").toString());
+                    Map<String, Object> pdaNow = allCreatePDA.get(t.getSenderOrigin());
+                    pdaNow.put("mint", t.getContractAddress());
+                    pdaNow.put("owner", t.getSender());
+                } else {
+                    allCreatePDA.put(t.getSenderOrigin(), pda);
                 }
             });
+            processPDA(allTransferEvents, allCreatePDA, transferSenderPda);
+            allTransferEvents.forEach(t -> {
+                if (t.getReceiver() == null) return;
+                Map<String, Object> pda = new HashMap<>();
+                pda.put("mint", t.getContractAddress());
+                pda.put("account", t.getReceiverOrigin());
+                pda.put("owner", t.getReceiver());
+                transferSenderPda.put(t.getReceiverOrigin(), pda);
+                if (allCreatePDA.containsKey(t.getReceiverOrigin())) {
+                    Map<String, Object> pdaNow = allCreatePDA.get(t.getReceiverOrigin());
+                    pdaNow.put("mint", t.getContractAddress());
+                    pdaNow.put("owner", t.getReceiver());
+                } else {
+                    allCreatePDA.put(t.getReceiverOrigin(), pda);
+                }
+            });
+            processPDA(allTransferEvents, allCreatePDA, transferSenderPda);
 
 //            Set<String> allReceivers = allTransferEvents.stream().map(TransferEvent::getReceiverOrigin).collect(Collectors.toSet());
 //            allReceivers.addAll(allTransferEvents.stream().peek(t -> {
@@ -182,10 +204,9 @@ public class AMMSwapDataProcess {
 //                );
 //            });
 
+            if (!CollectionUtils.isEmpty(allBurnTransferEvents)) allTransferEvents.addAll(allBurnTransferEvents);
             if (CollectionUtils.isEmpty(allTransferEvents))
                 if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)) return null;
-            if (CollectionUtils.isEmpty(allBurnTransferEvents))
-                allTransferEvents.addAll(allBurnTransferEvents);
             SolanaTransactionParser.processTransferEvents(hash, Integer.valueOf(blockTime), allTransferEvents, allCreatePDA);
             if (!CollectionUtils.isEmpty(allSwapEvents) || !CollectionUtils.isEmpty(allAggregatorSwapEvents)) {
                 SolanaTransactionParser.processSwapEvents(allSwapEvents, allTransferEvents, allCreatePDA, allPoolLiquidity, allSolTransferEvents, logMessages, allAggregatorSwapEvents);
@@ -197,6 +218,38 @@ public class AMMSwapDataProcess {
             log.error("[processAmm] Error processing transaction {}: {}", hash, e.getMessage(), e);
         }
         return null;
+    }
+
+    public static void processPDA(List<TransferEvent> allTransferEvents, Map<String, Map<String, Object>> allCreatePDA, Map<String, Map<String, Object>> transferSenderPda) {
+        allTransferEvents.forEach(t -> {
+            if (allCreatePDA.containsKey(t.getSenderOrigin())) {
+                Map<String, Object> sendrMap = allCreatePDA.get(t.getSenderOrigin());
+
+                if (t.getSender() == null) {
+                    if (!sendrMap.get("owner").equals(sendrMap.get("account"))) {
+                        t.setSender(sendrMap.get("owner").toString());
+                        t.setContractAddress(sendrMap.get("mint").toString());
+                    } else if (transferSenderPda.containsKey(t.getSenderOrigin())) {
+                        t.setSender(transferSenderPda.get(t.getSenderOrigin()).get("owner").toString());
+                        t.setContractAddress(transferSenderPda.get(t.getSenderOrigin()).get("mint").toString());
+                    }
+                }
+            }
+
+            if (allCreatePDA.containsKey(t.getReceiverOrigin())) {
+                if (t.getReceiver() == null) {
+                    Map<String, Object> receiverMap = allCreatePDA.get(t.getReceiverOrigin());
+                    if (!receiverMap.get("owner").equals(receiverMap.get("account"))) {
+                        t.setReceiver(receiverMap.get("owner").toString());
+                        t.setContractAddress(receiverMap.get("mint").toString());
+                    } else if (transferSenderPda.containsKey(t.getReceiverOrigin())) {
+                        t.setReceiver(transferSenderPda.get(t.getReceiverOrigin()).get("owner").toString());
+                        t.setContractAddress(transferSenderPda.get(t.getReceiverOrigin()).get("mint").toString());
+                    }
+                }
+            }
+        });
+
     }
 }
 

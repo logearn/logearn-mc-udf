@@ -71,8 +71,8 @@ public class SolanaTransactionParser {
                 allTransferEvents.addAll((List<TransferEvent>) allEvents.get(0));
             if (((List<UniswapEvent>) allEvents.get(1)).size() > 0)
                 allSwapEvents.addAll((List<UniswapEvent>) allEvents.get(1));
-            if (((Map<String, Map<String, Object>>) allEvents.get(2)).size() > 0)
-                allCreatePDA.putAll((Map<String, Map<String, Object>>) allEvents.get(2));
+//            if (((Map<String, Map<String, Object>>) allEvents.get(2)).size() > 0)
+//                allCreatePDA.putAll((Map<String, Map<String, Object>>) allEvents.get(2));
             if (((Map<String, Map<String, Object>>) allEvents.get(3)).size() > 0)
                 allClosePDA.putAll((Map<String, Map<String, Object>>) allEvents.get(3));
             if (((List<PumpFunTokenPool>) allEvents.get(4)).size() > 0)
@@ -88,7 +88,7 @@ public class SolanaTransactionParser {
             if (((List<TransferEvent>) allEvents.get(9)).size() > 0)
                 txTransferOwnerEvents.addAll((List<TransferEvent>) allEvents.get(9));
 
-            Map<String, Map<String, Object>> pdaInfo = processATokenAccount(blockTime, preTokenBalances, preBalances, postTokenBalances, postBalances, mergedKeys);
+            Map<String, Map<String, Object>> pdaInfo = processATokenAccount(blockTime, preTokenBalances, preBalances, postTokenBalances, postBalances, mergedKeys, (Map<String, Map<String, Object>>) allEvents.get(2));
             if (!MapUtils.isEmpty(pdaInfo)) allCreatePDA.putAll(pdaInfo);
         } catch (Exception e) {
             log.error("Error processing transaction {}", e.getMessage(), e);
@@ -1051,7 +1051,7 @@ public class SolanaTransactionParser {
         return MeteoraDlmmInstructionParser.PROGRAM_ID.equals(event.getProgramId());
     }
 
-    public static Map<String, Map<String, Object>> processATokenAccount(String blockTime, List<Map<String, Object>> preTokenBalances, List<String> preBalances, List<Map<String, Object>> postTokenBalances, List<String> postBalances, List<String> accountKeys) {
+    public static Map<String, Map<String, Object>> processATokenAccount(String blockTime, List<Map<String, Object>> preTokenBalances, List<String> preBalances, List<Map<String, Object>> postTokenBalances, List<String> postBalances, List<String> accountKeys,Map<String, Map<String, Object>> createTokenAccountMap) {
         if (CollectionUtils.isEmpty(postTokenBalances)) {
             return Collections.emptyMap();
         }
@@ -1087,6 +1087,15 @@ public class SolanaTransactionParser {
 //            // 使用 mint 作为键存储账户信息
 //            tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
 //        });
+        if (!CollectionUtils.isEmpty(createTokenAccountMap)) {
+            createTokenAccountMap.forEach((k, v) -> {
+                if (tokenAccountMap.containsKey(k)) {
+                    Map<String, Object> pda = tokenAccountMap.get(k);
+                    pda.put("mint", v.get("mint"));
+                    pda.put("owner", v.get("owner"));
+                }
+            });
+        }
 
         postTokenBalances.forEach(balance -> {
             String solBalance = String.valueOf(postBalances.get((Integer) balance.get("accountIndex")));

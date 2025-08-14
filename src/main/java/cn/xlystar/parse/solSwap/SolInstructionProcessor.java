@@ -270,7 +270,7 @@ public class SolInstructionProcessor {
                 || parsed.get("method_id").equals(MeteoraDbcInstruction.INITIALIZE_VIRTUAL_POOL_WITH_TOKEN2022.getValue())
         )
         ) {
-            result.put("pool", info.get("pool_state"));
+            result.put("pool_id", info.get("pool"));
             result.put("vault_0", info.get("base_vault"));
             result.put("vault_mint_0", info.get("base_mint"));
             result.put("vault_1", info.get("quote_vault"));
