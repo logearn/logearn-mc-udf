@@ -59,9 +59,6 @@ public class SolanaTransactionParser {
             mergedKeys.addAll(writableAddresses);
             mergedKeys.addAll(readonlyAddresses);
 
-            Map<String, Map<String, Object>> pdaInfo = processATokenAccount(blockTime, preTokenBalances, preBalances, postTokenBalances, postBalances, mergedKeys);
-            if (!MapUtils.isEmpty(pdaInfo)) allCreatePDA.putAll(pdaInfo);
-
             if (CollectionUtils.isEmpty(outerInstructions)) return;
             List<Map<String, Object>> instructions = processInstructions(outerInstructions, innerInstructions, mergedKeys);
 
@@ -90,6 +87,9 @@ public class SolanaTransactionParser {
                 allAggregatorSwapEvents.addAll((List<UniswapEvent>) allEvents.get(8));
             if (((List<TransferEvent>) allEvents.get(9)).size() > 0)
                 txTransferOwnerEvents.addAll((List<TransferEvent>) allEvents.get(9));
+
+            Map<String, Map<String, Object>> pdaInfo = processATokenAccount(blockTime, preTokenBalances, preBalances, postTokenBalances, postBalances, mergedKeys);
+            if (!MapUtils.isEmpty(pdaInfo)) allCreatePDA.putAll(pdaInfo);
         } catch (Exception e) {
             log.error("Error processing transaction {}", e.getMessage(), e);
         }
@@ -1074,8 +1074,22 @@ public class SolanaTransactionParser {
             tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
         }
 
-        preTokenBalances.forEach(balance -> {
-            String solBalance = String.valueOf(preBalances.get((Integer) balance.get("accountIndex")));
+//        preTokenBalances.forEach(balance -> {
+//            String solBalance = String.valueOf(preBalances.get((Integer) balance.get("accountIndex")));
+//            // 构建账户信息映射
+//            Map<String, Object> accountInfo = new HashMap<>();
+//            accountInfo.put("account", accountKeys.get((Integer) balance.get("accountIndex")));
+//            accountInfo.put("mint", balance.get("mint"));
+//            accountInfo.put("owner", balance.get("owner"));
+//            accountInfo.put("amount", ((Map<String, Object>) balance.get("uiTokenAmount")).get("amount"));
+//            accountInfo.put("sol", solBalance);
+//
+//            // 使用 mint 作为键存储账户信息
+//            tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
+//        });
+
+        postTokenBalances.forEach(balance -> {
+            String solBalance = String.valueOf(postBalances.get((Integer) balance.get("accountIndex")));
             // 构建账户信息映射
             Map<String, Object> accountInfo = new HashMap<>();
             accountInfo.put("account", accountKeys.get((Integer) balance.get("accountIndex")));
@@ -1088,16 +1102,16 @@ public class SolanaTransactionParser {
             tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
         });
 
-        postTokenBalances.forEach(balance -> {
-            String solBalance = String.valueOf(postBalances.get((Integer) balance.get("accountIndex")));
-            // 构建账户信息映射
+        preTokenBalances.forEach(balance -> {
+            Optional<Map<String, Object>> first = postTokenBalances.stream().filter(t -> balance.get("accountIndex").equals(t.get("accountIndex"))).findFirst();
+            if (first.isPresent()) return;
             Map<String, Object> accountInfo = new HashMap<>();
             accountInfo.put("account", accountKeys.get((Integer) balance.get("accountIndex")));
             accountInfo.put("mint", balance.get("mint"));
             accountInfo.put("owner", balance.get("owner"));
-            accountInfo.put("amount", ((Map<String, Object>) balance.get("uiTokenAmount")).get("amount"));
-            accountInfo.put("sol", solBalance);
-
+            accountInfo.put("sol", "0");
+            accountInfo.put("amount", "0");
+            accountInfo.put("sol_balance", "0");
             // 使用 mint 作为键存储账户信息
             tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
         });
