@@ -2,6 +2,8 @@ package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.boop.BoopInstruction;
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
+import cn.xlystar.parse.solSwap.heaven.HeavenInstruction;
+import cn.xlystar.parse.solSwap.heaven.HeavenInstructionParser;
 import cn.xlystar.parse.solSwap.jupiter.JupiterInstruction;
 import cn.xlystar.parse.solSwap.jupiter.JupiterInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstruction;
@@ -95,7 +97,7 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "transfer");
             return result;
         } else if (isTokenProgram
-                && ( parsed.get("method_id").toString().equals(SplTokenInstruction.SetAuthority.getValue() + "")
+                && (parsed.get("method_id").toString().equals(SplTokenInstruction.SetAuthority.getValue() + "")
                 || parsed.get("method_id").toString().equals(SplToken2022Instruction.SetAuthority.getValue() + "")
         )
         ) {
@@ -193,6 +195,19 @@ public class SolInstructionProcessor {
             result.put("output_token_account", info.get("userDestinationTokenAccount"));
             result.put("input_vault", info.get("ammPcVaultAccount"));
             result.put("output_vault", info.get("ammCoinVaultAccount"));
+            result.put("instruction_type", "dex_amm");
+            return result;
+        } else if (programId.equals(HeavenInstructionParser.PROGRAM_ID)
+                && (parsed.get("method_id").equals(HeavenInstruction.BUY.getValue())
+                || parsed.get("method_id").equals(HeavenInstruction.SELL.getValue()))
+        ) {
+            result.put("pool_id", info.get("pool_state"));
+            result.put("input_vault", info.get("token_a_vault"));
+            result.put("input_vault_mint", info.get("token_a_mint"));
+            result.put("input_token_account", info.get("user_token_a_vault"));
+            result.put("output_vault", info.get("token_b_vault"));
+            result.put("output_vault_mint", info.get("token_b_mint"));
+            result.put("output_token_account", info.get("user_token_b_vault"));
             result.put("instruction_type", "dex_amm");
             return result;
         } else if (programId.equals(RaydiumAmmInstructionParser.PROGRAM_ID)
@@ -398,12 +413,11 @@ public class SolInstructionProcessor {
             if (MapUtils.isEmpty(info)) return null;
             boolean isShare = !(parsed.get("method_id").equals(JupiterInstruction.ROUTE)
                     || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER)
-                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE))
-                    ;
+                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE));
             result.put("input_vault_mint", info.getOrDefault("source_mint", null));
             result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_destination_token_account"));
             result.put("output_vault_mint", info.getOrDefault("destination_mint", null));
-            result.put("output_token_account",isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
+            result.put("output_token_account", isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
             result.put("instruction_type", "aggregator_amm");
             return result;
         } else if (programId.equals(MeteoraAlmmInstructionParser.PROGRAM_ID)
@@ -517,5 +531,6 @@ public class SolInstructionProcessor {
         }
         return null;
     }
+
 
 }

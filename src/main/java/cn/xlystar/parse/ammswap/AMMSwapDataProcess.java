@@ -10,7 +10,6 @@ import org.apache.commons.collections.CollectionUtils;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class AMMSwapDataProcess {
@@ -48,6 +47,70 @@ public class AMMSwapDataProcess {
                 hash, price);
     }
 
+    public static List<Map<String, String>> parsePdaBalance(String slot, String blockTime,
+                                                            List<String> accountKeys, List<String> logMessages,
+                                                            List<String> writableAddresses, List<String> readonlyAddresses, List<Map<String, Object>> postTokenBalances, List<Map<String, Object>> preTokenBalances, List<String> postBalances, List<String> preBalances, List<Map<String, Object>> innerInstructions, List<Map<String, Object>> outerInstructions) throws Exception {
+        List<Map<String, String>> accountBalance = new ArrayList<>(9);
+        try {
+            List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance = new ArrayList<>(8);
+            List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance = new ArrayList<>(8);
+            List<TransferEvent> allTransferEvents = new ArrayList<>(8);
+            List<TransferEvent> allTxTransferOwnerEvents = new ArrayList<>(4);
+            List<TransferEvent> allSolTransferEvents = new ArrayList<>(8);
+            List<TransferEvent> allBurnTransferEvents = new ArrayList<>(4);
+            List<UniswapEvent> allSwapEvents = new ArrayList<>(4);
+            List<UniswapEvent> allAggregatorSwapEvents = new ArrayList<>(4);
+            Map<String, Map<String, Object>> allCreatePDA = new HashMap<>(8);
+            Map<String, Map<String, Object>> allClosePDA = new HashMap<>(4);
+            List<PumpFunTokenPool> allPool = new ArrayList<>(4);
+            List<PumpFunTokenPool> allPoolLiquidity = new ArrayList<>(4);
+            Map<String, Map<String, Object>> poolVaultAddress = new HashMap<>();
+            // 处理单笔交易
+            SolanaTransactionParser.processTransactions(
+                    blockTime,
+                    accountKeys, logMessages,
+                    writableAddresses, readonlyAddresses,
+                    postTokenBalances, preTokenBalances,
+                    postBalances, preBalances,
+                    innerInstructions, outerInstructions,
+
+                    allTransferEvents,
+                    allSwapEvents,
+                    allAggregatorSwapEvents,
+                    allCreatePDA,
+                    allClosePDA,
+                    allPool,
+                    allBurnTransferEvents,
+                    allSolTransferEvents,
+                    allPoolLiquidity,
+                    allTxTransferOwnerEvents,
+                    postTokenBalance, preTokenBalance, poolVaultAddress);
+
+            allCreatePDA.forEach((key, pda) -> {
+                if (pda == null
+                        || pda.get("mint") == null || pda.get("account") == null
+                        || pda.get("sol") == null || pda.get("sol_balance") == null
+                        || pda.get("owner") == null
+                        || (!poolVaultAddress.containsKey(key) && pda.get("account").equals(pda.get("owner")))
+                ) return;
+
+                Map<String, String> map = new HashMap<>();
+                map.put("owner", pda.get("owner").toString());
+                map.put("account", key);
+                map.put("mint", pda.get("mint").toString());
+                map.put("solAmount", pda.get("sol").toString());
+                map.put("tokenAmount", pda.get("amount").toString());
+                map.put("solBalance", pda.get("sol_balance").toString());
+                map.put("lastTxTime", blockTime);
+                map.put("lastBlockId", slot);
+                accountBalance.add(map);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return accountBalance;
+    }
+
     public static List<Map<String, String>> processAmm(ChainConfig conf, String chain,
                                                        String slot, String blockTime,
                                                        List<String> accountKeys, List<String> logMessages,
@@ -69,7 +132,7 @@ public class AMMSwapDataProcess {
             Map<String, Map<String, Object>> allClosePDA = new HashMap<>(4);
             List<PumpFunTokenPool> allPool = new ArrayList<>(4);
             List<PumpFunTokenPool> allPoolLiquidity = new ArrayList<>(4);
-
+            Map<String, Map<String, Object>> poolVaultAddress = new HashMap<>();
 
             // 创建只包含目标交易的新数组
             String originSender = accountKeys.get(0);
@@ -93,7 +156,7 @@ public class AMMSwapDataProcess {
                     allSolTransferEvents,
                     allPoolLiquidity,
                     allTxTransferOwnerEvents,
-                    postTokenBalance, preTokenBalance);
+                    postTokenBalance, preTokenBalance,poolVaultAddress);
 
             // 处理 transfer 维度信息
             if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)

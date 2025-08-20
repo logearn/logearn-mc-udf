@@ -1,6 +1,7 @@
 package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
+import cn.xlystar.parse.solSwap.heaven.HeavenInstructionParser;
 import cn.xlystar.parse.solSwap.jupiter.JupiterInstructionParser;
 import cn.xlystar.parse.solSwap.metaplex.MetadataInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
@@ -58,7 +59,9 @@ public class SolInstructionParserFactory {
         configMap.put(MeteoraDbcInstructionParser.PROGRAM_ID, new MeteoraDbcInstructionParser());
         // boop 协议
         configMap.put(BoopInstructionParser.PROGRAM_ID, new BoopInstructionParser());
-        
+        // heaven 协议
+        configMap.put(HeavenInstructionParser.PROGRAM_ID, new HeavenInstructionParser());
+
         // OKX v2 协议
         configMap.put(OkxInstructionParser.PROGRAM_ID, new OkxInstructionParser());
         

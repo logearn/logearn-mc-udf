@@ -20,6 +20,7 @@ public enum SolDexTransferMatchRule {
     RAYDIUM_LAUNCH(2, 3),       // Raydium CPMM V2规则：tr1 = index+1, tr2 = index+2
     MOOTSHOT(1, 2),       // Raydium CPMM V2规则：tr1 = index+1, tr2 = index+2
     BOOPFUN(1, 2),       // Raydium CPMM V2规则：tr1 = index+1, tr2 = index+2
+    HEAVEN(3, 4),
     PUPMFUN(1, 2); // Pumpfun 规则：tr1 = index+1, tr2 = index+2
 
     private final int transfer1Offset;
