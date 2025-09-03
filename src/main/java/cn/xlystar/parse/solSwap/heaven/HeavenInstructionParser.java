@@ -22,6 +22,9 @@ public class HeavenInstructionParser extends InstructionParser {
     public Map<String, Object> matchInstruction(String methodId, ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info;
         switch (HeavenInstruction.fromValue(methodId)) {
+            case CREATE_STANDARD_LIQUIDITY_POOL:
+                info = parseCreateStandardLiquidityPool(buffer, accounts);
+                break;
             case BUY:
                 info = parseBuy(buffer, accounts);
                 break;
@@ -31,6 +34,33 @@ public class HeavenInstructionParser extends InstructionParser {
             default:
                 return new HashMap<>();
         }
+        return info;
+    }
+
+    /**
+     * 解析 Buy 指令
+     * @param buffer 数据缓冲区
+     * @param accounts 账户列表
+     * @return 指令信息
+     */
+    private static Map<String, Object> parseCreateStandardLiquidityPool(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 解析账户（根据IDL定义的14个账户）
+        info.put("token_program", accounts[0]);
+        info.put("associated_token_program", accounts[1]);
+        info.put("system_program", accounts[2]);
+        info.put("user", accounts[3]);
+        info.put("payer", accounts[4]);
+
+        info.put("token_a_mint", accounts[5]);
+        info.put("token_b_mint", accounts[6]);
+        info.put("user_token_a_vault", accounts[7]);
+        info.put("user_token_b_vault", accounts[4]);
+        info.put("token_a_vault", accounts[8]);
+        info.put("token_b_vault", accounts[9]);
+        info.put("pool_state", accounts[10]);
+        info.put("protocol_config", accounts[11]);
         return info;
     }
 

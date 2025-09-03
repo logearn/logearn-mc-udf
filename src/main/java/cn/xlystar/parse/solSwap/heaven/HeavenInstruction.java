@@ -5,7 +5,7 @@ package cn.xlystar.parse.solSwap.heaven;
  */
 public enum HeavenInstruction {
 
-
+    CREATE_STANDARD_LIQUIDITY_POOL("2a2b7e38e70ad035"),
     // Trading instructions
     BUY("66063d1201daebea"),
     SELL("33e685a4017f83ad")

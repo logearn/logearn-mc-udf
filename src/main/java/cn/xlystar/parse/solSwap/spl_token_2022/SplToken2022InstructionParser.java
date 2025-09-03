@@ -35,7 +35,9 @@ public class SplToken2022InstructionParser extends InstructionParser {
             case InitializeAccount3:
                 info = parseInitializeAccount3(buffer, accounts);
                 break;
-
+            case Revoke: // 5
+                info = parseRevoke(accounts);
+                break;
             // 基础代币操作
             case Transfer:
             case Approve:
@@ -176,6 +178,14 @@ public class SplToken2022InstructionParser extends InstructionParser {
         byte[] mintAuthority = new byte[32];
         buffer.get(mintAuthority);
         info.put("owner", Base58.encode(mintAuthority));
+        return info;
+    }
+
+    private static Map<String, Object> parseRevoke(String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("source", accounts[0]);          // 源代币账户
+        info.put("owner", accounts[1]);       // 源账户所有者
         return info;
     }
 
