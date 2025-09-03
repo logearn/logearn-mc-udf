@@ -8,6 +8,7 @@ public enum MeteoraDbcInstruction {
     MIGRATE_METEORA_DAMM("1b013016b43f76d9"),
     MIGRATION_DAMM_V2_CREATE_METADATA("6dbd1324c3b7de52"),
     MIGRATION_METEORA_DAMM_CREATE_METADATA("2f5e7e73dde2c285"),
+    SWAP2("414b3f4ceb5b5b88"),
     SWAP("f8c69e91e17587c8");
 
     private final String value;

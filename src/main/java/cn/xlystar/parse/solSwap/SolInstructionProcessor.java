@@ -1,30 +1,32 @@
 package cn.xlystar.parse.solSwap;
 
 import cn.xlystar.parse.solSwap.boop.BoopInstruction;
+import cn.xlystar.parse.solSwap.okx.OkxInstructionParser;
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
 import cn.xlystar.parse.solSwap.heaven.HeavenInstruction;
-import cn.xlystar.parse.solSwap.heaven.HeavenInstructionParser;
 import cn.xlystar.parse.solSwap.jupiter.JupiterInstruction;
 import cn.xlystar.parse.solSwap.jupiter.JupiterInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstruction;
 import cn.xlystar.parse.solSwap.meteora.almm.MeteoraAlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dbc.MeteoraDbcInstruction;
 import cn.xlystar.parse.solSwap.meteora.dbc.MeteoraDbcInstructionParser;
-import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstruction;
-import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
 import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2Instruction;
 import cn.xlystar.parse.solSwap.meteora.dlmm_v2.MeteoraDlmmV2InstructionParser;
+import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstruction;
+import cn.xlystar.parse.solSwap.meteora.dlmm.MeteoraDlmmInstructionParser;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstruction;
 import cn.xlystar.parse.solSwap.moonshot.MoonshotInstructionParser;
-import cn.xlystar.parse.solSwap.okx.OkxInstructionParser;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstruction;
 import cn.xlystar.parse.solSwap.pump.PumpDotFunInstructionParser;
+import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstructionParser;
+import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstruction;
 import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstruction;
 import cn.xlystar.parse.solSwap.pump_swap.PumpSwapInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstruction;
 import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstruction;
 import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstructionParser;
+import cn.xlystar.parse.solSwap.heaven.HeavenInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.cpmm.RaydiumCpmmInstruction;
 import cn.xlystar.parse.solSwap.raydium.cpmm.RaydiumCpmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.launch.RaydiumLaunchInstruction;
@@ -37,14 +39,10 @@ import cn.xlystar.parse.solSwap.spl_token_2022.SplToken2022Instruction;
 import cn.xlystar.parse.solSwap.spl_token_2022.SplToken2022InstructionParser;
 import cn.xlystar.parse.solSwap.system_program.SystemInstruction;
 import cn.xlystar.parse.solSwap.system_program.SystemInstructionParser;
-import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstruction;
-import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstructionParser;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.bitcoinj.core.Base58;
 
 import java.math.BigInteger;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,16 +56,6 @@ public class SolInstructionProcessor {
         }
         // 2、解析
         return parser.parseInstruction(Base58.decode(instructionData), inputAccount);
-    }
-
-    public static Map<String, Object> processLogs(String programId, String logs) {
-        // 1、获取解析器
-        InstructionParser parser = SolInstructionParserFactory.getParser(programId);
-        if (parser == null) {
-            return null;
-        }
-        // 2、解析
-        return parser.parseLogs(Base64.getDecoder().decode(logs));
     }
 
     public static Map<String, Object> processInstructionRt(String programId, String[] inputAccount, String instructionData) {
@@ -122,6 +110,16 @@ public class SolInstructionProcessor {
             result.put("amount", info.get("amount"));
             result.put("instruction_type", "transfer_owner");
             return result;
+        } else if (isTokenProgram
+                && (parsed.get("method_id").toString().equals(SplTokenInstruction.Revoke.getValue() + "")
+                || parsed.get("method_id").toString().equals(SplToken2022Instruction.Revoke.getValue() + "")
+        )
+        ) {
+            result.put("account", info.get("source"));
+            result.put("authority", info.get("owner"));
+            result.put("newAuthority", info.get("owner"));
+            result.put("instruction_type", "remove_owner");
+            return result;
         } else if (programId.equals(SystemInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(SystemInstruction.Transfer.getValue() + "")
 //                || parsed.get("method_id").equals(SystemInstruction.TransferWithSeed.getValue())
@@ -141,6 +139,19 @@ public class SolInstructionProcessor {
             result.put("mint", info.get("mint"));
             result.put("amount", info.get("amount"));
             result.put("instruction_type", "burn");
+            return result;
+        } else if (isTokenProgram
+                && (parsed.get("method_id").equals(SplTokenInstruction.MintTo.getValue() + "") || parsed.get("method_id").equals(SplTokenInstruction.MintToChecked.getValue() + ""))
+        ) {
+            // Pump Mint 影响筹码，暂时忽律
+            if (info.get("mintAuthority").equals("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM")) return result;
+            result.put("amount", info.get("amount"));
+            result.put("mint", info.get("mint"));
+            result.put("sender", "0x0");
+            result.put("sender_owner", "0x0");
+            result.put("receiver", info.get("destination"));
+            result.put("receiver_owner", info.get("mintAuthority"));
+            result.put("instruction_type", "transfer");
             return result;
         } else if (programId.equals(SplAssociatedTokenInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(SplAssociatedTokenInstruction.Create.getValue() + "") || parsed.get("method_id").equals(SplAssociatedTokenInstruction.CreateIdempotent.getValue() + ""))
@@ -295,7 +306,9 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "meteora_dbc_create_token_instruction");
             return result;
         } else if (programId.equals(MeteoraDbcInstructionParser.PROGRAM_ID)
-                && parsed.get("method_id").equals(MeteoraDbcInstruction.SWAP.getValue())
+                && (parsed.get("method_id").equals(MeteoraDbcInstruction.SWAP.getValue())
+                || parsed.get("method_id").equals(MeteoraDbcInstruction.SWAP2.getValue())
+        )
         ) {
             result.put("pool_id", info.get("pool"));
             result.put("input_vault", info.get("base_vault"));
@@ -411,11 +424,11 @@ public class SolInstructionProcessor {
             return result;
         } else if (programId.equals(JupiterInstructionParser.PROGRAM_ID) && !parsed.get("method_id").equals(JupiterInstruction.LOG.getValue())) {
             if (MapUtils.isEmpty(info)) return null;
-            boolean isShare = !(parsed.get("method_id").equals(JupiterInstruction.ROUTE)
-                    || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER)
-                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE));
+            boolean isShare = !(parsed.get("method_id").equals(JupiterInstruction.ROUTE.getValue())
+                    || parsed.get("method_id").equals(JupiterInstruction.ROUTE_WITH_TOKEN_LEDGER.getValue())
+                    || parsed.get("method_id").equals(JupiterInstruction.EXACT_OUT_ROUTE.getValue()));
             result.put("input_vault_mint", info.getOrDefault("source_mint", null));
-            result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_destination_token_account"));
+            result.put("input_token_account", isShare ? info.get("source_token_account") : info.get("user_source_token_account"));
             result.put("output_vault_mint", info.getOrDefault("destination_mint", null));
             result.put("output_token_account", isShare ? info.get("destination_token_account") : info.get("user_destination_token_account"));
             result.put("instruction_type", "aggregator_amm");
@@ -531,6 +544,5 @@ public class SolInstructionProcessor {
         }
         return null;
     }
-
 
 }

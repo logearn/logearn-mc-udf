@@ -28,6 +28,9 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
             case SWAP:
                 info = parseSwap(buffer, accounts);
                 break;
+            case SWAP2:
+                info = parseSwap2(buffer, accounts);
+                break;
             case CREATE_VIRTUAL_POOL_METADATA:
                 info = parseCreateVirtualPoolMetadata(buffer, accounts);
                 break;
@@ -96,6 +99,40 @@ public class MeteoraDbcInstructionParser extends InstructionParser {
             info.put("program", accounts[14]);
         }
         
+        return info;
+    }
+
+
+    private static Map<String, Object> parseSwap2(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 解析账户
+        info.put("pool_authority", accounts[0]);
+        info.put("config", accounts[1]);
+        info.put("pool", accounts[2]);
+        info.put("input_token_account", accounts[3]);
+        info.put("output_token_account", accounts[4]);
+        info.put("base_vault", accounts[5]);
+        info.put("quote_vault", accounts[6]);
+        info.put("base_mint", accounts[7]);
+        info.put("quote_mint", accounts[8]);
+        info.put("payer", accounts[9]);
+        info.put("token_base_program", accounts[10]);
+        info.put("token_quote_program", accounts[11]);
+
+        // 可选账户
+        if (accounts.length > 12) {
+            info.put("referral_token_account", accounts[12]);
+        }
+
+        if (accounts.length > 13) {
+            info.put("event_authority", accounts[13]);
+        }
+
+        if (accounts.length > 14) {
+            info.put("program", accounts[14]);
+        }
+
         return info;
     }
 

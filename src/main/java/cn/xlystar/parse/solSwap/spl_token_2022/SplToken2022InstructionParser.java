@@ -237,8 +237,8 @@ public class SplToken2022InstructionParser extends InstructionParser {
                 break;
             case MintTo:
                 info.put("mint", accounts[0]);
-                info.put("account", accounts[1]);
-                info.put("authority", accounts[2]);
+                info.put("destination", accounts[1]);
+                info.put("mintAuthority", accounts[2]);
                 break;
             case Burn:
                 info.put("account", accounts[0]);
@@ -299,8 +299,8 @@ public class SplToken2022InstructionParser extends InstructionParser {
                  break;
              case MintToChecked:
                  info.put("mint", accounts[0]);
-                 info.put("account", accounts[1]);
-                 info.put("authority", accounts[2]);
+                 info.put("destination", accounts[1]);
+                 info.put("mintAuthority", accounts[2]);
                  break;
              case BurnChecked:
                  info.put("account", accounts[0]);

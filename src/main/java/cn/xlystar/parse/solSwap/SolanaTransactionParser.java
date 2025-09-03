@@ -523,6 +523,9 @@ public class SolanaTransactionParser {
     public static boolean isPumpFun(UniswapEvent event) {
         return PumpDotFunInstructionParser.PROGRAM_ID.equals(event.getProgramId());
     }
+    public static boolean isPumpAMM(UniswapEvent event) {
+        return PumpSwapInstructionParser.PROGRAM_ID.equals(event.getProgramId());
+    }
 
     public static List<Object> processInstructionEvents(List<Map<String, Object>> instructions) {
         List<TransferEvent> txTransferEvents = new ArrayList<>();
@@ -536,7 +539,6 @@ public class SolanaTransactionParser {
         Map<String, Map<String, Object>> createPDA = new HashMap<>();
         Map<String, Map<String, Object>> closePDA = new HashMap<>();
         Map<String, Map<String, Object>> vaultAddress = new HashMap<>();
-
         instructions.forEach(t -> {
             String executeProgramId = (String) t.get("execute_program_id");
             int outerInstructionIndex = t.get("outer_instruction_index") == null ? 0 : Integer.parseInt(t.get("outer_instruction_index").toString());
@@ -563,6 +565,22 @@ public class SolanaTransactionParser {
                             .innerIndex(innerInstructionIndex)
                             .logIndex(new BigInteger(String.valueOf(logIndex)))
                             .eventType("transfer")
+                            .build());
+                    break;
+                case "remove_owner":
+                    if (txTransferOwnerEvents.isEmpty()) break;
+                    txTransferOwnerEvents.removeIf(tempRemove -> tempRemove.getSenderOrigin().equals(event.get("account")));
+                    txTransferOwnerEvents.add(TransferEvent.builder()
+                            .sender((String) event.get("authority"))
+                            .senderOrigin((String) event.get("account"))
+                            .receiverOrigin((String) event.get("account"))
+                            .receiver((String) event.get("newAuthority"))
+//                            .amount(event.containsKey("amount") ? new BigInteger(event.get("amount").toString()) : BigInteger.ZERO)
+//                            .contractAddress(event.containsKey("mint") ? event.get("mint").toString() : null)
+                            .outerIndex(outerInstructionIndex)
+                            .innerIndex(innerInstructionIndex)
+                            .logIndex(new BigInteger(String.valueOf(logIndex)))
+                            .eventType("transfer_owner")
                             .build());
                     break;
                 case "transfer_owner":
@@ -814,14 +832,18 @@ public class SolanaTransactionParser {
                 // 查找符合条件的transfer pair
                 processMeteoraAlmmEvent(event, txTransferEvents);
                 continue;
-            } else if (isHeavenAmm(event)) {
-                // 查找符合条件的transfer pair
-                processHeavenAmmEvent(event, txTransferEvents);
-                continue;
             } else if (isPumpFun(event)) {
                 // 其他协议使用确定的规则
                 processPumpSwapEvent(event, txTransferEvents, allPoolLiquidity);
                 if (event.getAmountOut() == null || event.getAmountIn() == null) swapIterator.remove();
+                continue;
+            } else if (isPumpAMM(event)) {
+                // 其他协议使用确定的规则
+                processHeavenAmmEvent(event, txTransferEvents);
+                continue;
+            } else if (isHeavenAmm(event)) {
+                // 查找符合条件的transfer pair
+                processHeavenAmmEvent(event, txTransferEvents);
                 continue;
             } else if (isBoopFun(event)) {
                 processBoopfunEvent(event, txTransferEvents, solTransferEvents);
@@ -849,63 +871,6 @@ public class SolanaTransactionParser {
 
         txTransferEvents.removeAll(aggSwapTransfers);
         txSwapEvents.addAll(txValidAggSwapEvents);
-    }
-
-    public static boolean isHeavenAmm(UniswapEvent event) {
-        return HeavenInstructionParser.PROGRAM_ID.equals(event.getProgramId());
-    }
-
-    private static void processHeavenAmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
-        // 找到所有可能的transfer1
-        for (int i = 0; i < transfers.size(); i++) {
-            TransferEvent tempT = transfers.get(i);
-            for (int j = i + 1; j < transfers.size(); j++) {
-                TransferEvent tempS = transfers.get(j);
-                if (tempS.getOuterIndex() != tempT.getOuterIndex()) continue;
-                if (tempS.getContractAddress().equals(tempT.getContractAddress())) continue;
-
-                if (tempS.getInnerIndex() < tempT.getInnerIndex()
-                        && ((
-                        tempT.getSenderOrigin().equals(swapEvent.getSender()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultIn())
-                                && tempS.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempS.getReceiverOrigin().equals(swapEvent.getTo())
-                ) || (
-                        tempT.getSenderOrigin().equals(swapEvent.getTo()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultOut())
-                                && tempS.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempS.getReceiverOrigin().equals(swapEvent.getSender())
-                )
-                )
-                ) {
-                    transfers.remove(tempT);
-                    transfers.remove(tempS);
-                    swapEvent.setSender(tempT.getSender());
-                    swapEvent.setTokenIn(tempT.getContractAddress());
-                    swapEvent.setAmountIn(tempT.getAmount());
-                    swapEvent.setTo(tempS.getReceiver());
-                    swapEvent.setTokenOut(tempS.getContractAddress());
-                    swapEvent.setAmountOut(tempS.getAmount());
-                    return;
-                } else if (tempS.getInnerIndex() > tempT.getInnerIndex()
-                        && ((
-                        tempS.getSenderOrigin().equals(swapEvent.getSender()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultIn())
-                                && tempT.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempT.getReceiverOrigin().equals(swapEvent.getTo())
-                ) || (
-                        tempS.getSenderOrigin().equals(swapEvent.getTo()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultOut())
-                                && tempT.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempT.getReceiverOrigin().equals(swapEvent.getSender())
-                )
-                )
-                ) {
-                    transfers.remove(tempT);
-                    transfers.remove(tempS);
-                    swapEvent.setSender(tempS.getSender());
-                    swapEvent.setTokenIn(tempS.getContractAddress());
-                    swapEvent.setAmountIn(tempS.getAmount());
-                    swapEvent.setTo(tempT.getReceiver());
-                    swapEvent.setTokenOut(tempT.getContractAddress());
-                    swapEvent.setAmountOut(tempT.getAmount());
-                    return;
-                }
-            }
-        }
-
     }
 
     private static void findAggregatorSwapTransfers(List<UniswapEvent> txValidAggSwapEvents, List<TransferEvent> transfers, UniswapEvent swapEvent, List<TransferEvent> txTransferEvents) {
@@ -980,6 +945,7 @@ public class SolanaTransactionParser {
                 TransferEvent transferEvent = txTransferEvents.get(i);
                 if (transferEvent.getContractAddress().equals(event.getTokenOut())
                         && transferEvent.getAmount().equals(event.getAmountOut())
+                        && transferEvent.getSenderOrigin().equals(event.getVaultOut())
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
                     swapEventsTransfer.add(transferEvent);
@@ -989,6 +955,7 @@ public class SolanaTransactionParser {
                 }
                 if (transferEvent.getContractAddress().equals(event.getTokenIn())
                         && transferEvent.getAmount().equals(event.getAmountIn())
+                        && transferEvent.getReceiverOrigin().equals(event.getVaultIn())
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
                     swapEventsTransfer.add(transferEvent);
@@ -1044,6 +1011,59 @@ public class SolanaTransactionParser {
                 }
             }
         }
+    }
+
+    private static void processHeavenAmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
+        // 找到所有可能的transfer1
+        for (int i = 0; i < transfers.size(); i++) {
+            TransferEvent tempT = transfers.get(i);
+            for (int j = i + 1; j < transfers.size(); j++) {
+                TransferEvent tempS = transfers.get(j);
+                if (tempS.getOuterIndex() != tempT.getOuterIndex()) continue;
+                if (tempS.getContractAddress().equals(tempT.getContractAddress())) continue;
+
+                if (tempS.getInnerIndex() < tempT.getInnerIndex()
+                        && ((
+                        tempT.getSenderOrigin().equals(swapEvent.getSender()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultIn())
+                                && tempS.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempS.getReceiverOrigin().equals(swapEvent.getTo())
+                ) || (
+                        tempT.getSenderOrigin().equals(swapEvent.getTo()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultOut())
+                                && tempS.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempS.getReceiverOrigin().equals(swapEvent.getSender())
+                )
+                )
+                ) {
+                    transfers.remove(tempT);
+                    transfers.remove(tempS);
+                    swapEvent.setSender(tempT.getSender());
+                    swapEvent.setTokenIn(tempT.getContractAddress());
+                    swapEvent.setAmountIn(tempT.getAmount());
+                    swapEvent.setTo(tempS.getReceiver());
+                    swapEvent.setTokenOut(tempS.getContractAddress());
+                    swapEvent.setAmountOut(tempS.getAmount());
+                    return;
+                } else if (tempS.getInnerIndex() > tempT.getInnerIndex()
+                        && ((
+                        tempS.getSenderOrigin().equals(swapEvent.getSender()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultIn())
+                                && tempT.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempT.getReceiverOrigin().equals(swapEvent.getTo())
+                ) || (
+                        tempS.getSenderOrigin().equals(swapEvent.getTo()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultOut())
+                                && tempT.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempT.getReceiverOrigin().equals(swapEvent.getSender())
+                )
+                )
+                ) {
+                    transfers.remove(tempT);
+                    transfers.remove(tempS);
+                    swapEvent.setSender(tempS.getSender());
+                    swapEvent.setTokenIn(tempS.getContractAddress());
+                    swapEvent.setAmountIn(tempS.getAmount());
+                    swapEvent.setTo(tempT.getReceiver());
+                    swapEvent.setTokenOut(tempT.getContractAddress());
+                    swapEvent.setAmountOut(tempT.getAmount());
+                    return;
+                }
+            }
+        }
+
     }
 
     private static void processMeteoraAlmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
@@ -1164,11 +1184,15 @@ public class SolanaTransactionParser {
         return MeteoraAlmmInstructionParser.PROGRAM_ID.equals(event.getProgramId());
     }
 
+    public static boolean isHeavenAmm(UniswapEvent event) {
+        return HeavenInstructionParser.PROGRAM_ID.equals(event.getProgramId());
+    }
+
     public static boolean isMeteoralDlmm(UniswapEvent event) {
         return MeteoraDlmmInstructionParser.PROGRAM_ID.equals(event.getProgramId());
     }
 
-    public static Map<String, Map<String, Object>> processATokenAccount(String blockTime, List<Map<String, Object>> preTokenBalances, List<String> preBalances, List<Map<String, Object>> postTokenBalances, List<String> postBalances, List<String> accountKeys,Map<String, Map<String, Object>> createTokenAccountMap) {
+    public static Map<String, Map<String, Object>> processATokenAccount(String blockTime, List<Map<String, Object>> preTokenBalances, List<String> preBalances, List<Map<String, Object>> postTokenBalances, List<String> postBalances, List<String> accountKeys, Map<String, Map<String, Object>> createTokenAccountMap) {
         if (CollectionUtils.isEmpty(postTokenBalances)) {
             return Collections.emptyMap();
         }
@@ -1186,10 +1210,26 @@ public class SolanaTransactionParser {
             accountInfo.put("owner", account);
             accountInfo.put("amount", solBalance);
             accountInfo.put("sol", solBalance);
+            accountInfo.put("sol_balance", solBalance);
 
             // 使用 mint 作为键存储账户信息
             tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
         }
+
+//        preTokenBalances.forEach(balance -> {
+//            String solBalance = String.valueOf(preBalances.get((Integer) balance.get("accountIndex")));
+//            // 构建账户信息映射
+//            Map<String, Object> accountInfo = new HashMap<>();
+//            accountInfo.put("account", accountKeys.get((Integer) balance.get("accountIndex")));
+//            accountInfo.put("mint", balance.get("mint"));
+//            accountInfo.put("owner", balance.get("owner"));
+//            accountInfo.put("amount", ((Map<String, Object>) balance.get("uiTokenAmount")).get("amount"));
+//            accountInfo.put("sol", solBalance);
+//            accountInfo.put("sol_balance", tokenAccountMap.containsKey(balance.get("owner").toString()) ? tokenAccountMap.get(balance.get("owner").toString()).get("sol") : "0");
+//
+//            // 使用 mint 作为键存储账户信息
+//            tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
+//        });
 
         if (!MapUtils.isEmpty(createTokenAccountMap)) {
             createTokenAccountMap.forEach((k, v) -> {
@@ -1229,6 +1269,22 @@ public class SolanaTransactionParser {
             // 使用 mint 作为键存储账户信息
             tokenAccountMap.put(accountInfo.get("account").toString(), accountInfo);
         });
+
+//        if (!CollectionUtils.isEmpty(tokenAccountMap)) {
+//            CompletableFuture.runAsync(() -> {
+//                List<DimAtokenAccount> atokenAccountLists = tokenAccountMap.entrySet().stream().map(account -> {
+//                    return DimAtokenAccount.builder()
+//                            .account(account.getKey())
+//                            .owner(account.getValue().get("owner").toString())
+//                            .mint(account.getValue().get("mint").toString())
+//                            .amount(new BigInteger(account.getValue().get("amount").toString()))
+//                            .lastTxTime(Integer.valueOf(blockTime))
+//                            .earliestTxTime(Integer.valueOf(blockTime))
+//                            .build();
+//                }).collect(Collectors.toList());
+//                dimAtokenAccountMapper.batchInsert(atokenAccountLists);
+//            }, holoPersisThreadPool);
+//        }
         return tokenAccountMap;
     }
 

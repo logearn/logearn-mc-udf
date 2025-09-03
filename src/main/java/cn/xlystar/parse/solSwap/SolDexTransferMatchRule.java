@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum SolDexTransferMatchRule {
     RAYDIUM_CLMM(1, 2),           // Raydium CLMM规则：tr1 = index+1, tr2 = index+2
     ORCA_WHIRLPOOL(1, 2),         // Orca Whirlpool规则：tr1 = index+2, tr2 = index+3
-    PUPMFUN_AMM(1, 2),         // Orca Whirlpool规则：tr1 = index+2, tr2 = index+3
+    PUPMFUN_AMM(2, 3),            // Orca Whirlpool规则：tr1 = index+2, tr2 = index+3
     METEORA_DLMM(1, 2),
     METEORA_DLMM_V2(1, 2),
     METEORA_ALMM(0, 0),

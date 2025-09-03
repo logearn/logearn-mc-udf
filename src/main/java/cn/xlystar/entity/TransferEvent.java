@@ -34,7 +34,7 @@ public class TransferEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个transferEvent
      */
-    public static TransferEvent findAfterTx(String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
+    public static TransferEvent findAfterTx(String chainId, String originSender, List<TransferEvent> internalTxs, List<String> poolAddressLists, BigInteger value, String from, String to, String token, UniswapEvent ut) throws InvocationTargetException, IllegalAccessException {
         if (internalTxs.isEmpty()) {
             return TransferEvent.builder()
                     .amount(value)
@@ -70,13 +70,14 @@ public class TransferEvent extends Event implements Serializable {
                 // 这是正常情况
                 // 1、条件：elem.getReceiver().equals(originSender)
                 // 问题：https://app.blocksec.com/explorer/tx/eth/0x7febc10d8302b775a1dfb11f1656534359adc9068fa7a2458e4356523750cb3d
-                // 解决 token 超过百分之50的 稅问题
+                // 解决 token 超过百分之50的 稅问题只作用：eth
+                // SOL case: https://solscan.io/tx/3zTCFqi4caRxLDx8NAVwDRTe2fyZituPWmEjca4vkxoFrjLrfbkLXiLS5bBdpQHT6MLyzX5brTA8FLNKNB23sHYj?utm_source=https%3A%2F%2Flogearn.com
                 // 解决：
                 // 2、elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
                 //                                && !elem.getReceiver().equals(elem.contractAddress)
                 // 解决 token 低于百分之50的 稅问题
                 if (value.compareTo(elem.getAmount()) >= 0
-                        && (elem.getReceiver().equals(originSender)
+                        && ((!chainId.equals("3") &&  elem.getReceiver().equals(originSender))
                         || (elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
                         && !elem.getReceiver().equals(elem.contractAddress)
                 )
@@ -139,7 +140,7 @@ public class TransferEvent extends Event implements Serializable {
             internalTxs.remove(foundEvent.get());
         }
 
-        return findAfterTx(originSender, internalTxs, poolAddressLists, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
+        return findAfterTx(chainId, originSender, internalTxs, poolAddressLists, nextValue, foundEvent.get().getSender(), foundEvent.get().getReceiver(), foundEvent.get().getContractAddress(), ut);
     }
 
     /**

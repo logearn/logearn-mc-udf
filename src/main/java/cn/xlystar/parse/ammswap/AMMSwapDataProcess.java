@@ -16,7 +16,6 @@ public class AMMSwapDataProcess {
     public static String ZEROADDR = "0x0000000000000000000000000000000000000000".toLowerCase();
 
     public static List<Map<String, String>> decodeInputData(ChainConfig conf, String inputData, String from, String to, String value, String logs, String internalTxs, String hash, String price) throws IOException {
-
         // 从内部交易中找到有效的交易，即：value>0的交易，且type = call
         List<TransferEvent> validInternalTxs = InternalTx.parseTx(internalTxs, conf.getWCoinAddress());
         log.debug("******* Log 中找到符合条件(value > 0 且 callType == call)的 InnelTx： {} 条", validInternalTxs.size());
@@ -111,6 +110,7 @@ public class AMMSwapDataProcess {
         return accountBalance;
     }
 
+
     public static List<Map<String, String>> processAmm(ChainConfig conf, String chain,
                                                        String slot, String blockTime,
                                                        List<String> accountKeys, List<String> logMessages,
@@ -156,7 +156,7 @@ public class AMMSwapDataProcess {
                     allSolTransferEvents,
                     allPoolLiquidity,
                     allTxTransferOwnerEvents,
-                    postTokenBalance, preTokenBalance,poolVaultAddress);
+                    postTokenBalance, preTokenBalance, poolVaultAddress);
 
             // 处理 transfer 维度信息
             if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)
@@ -164,15 +164,22 @@ public class AMMSwapDataProcess {
                     && CollectionUtils.isEmpty(allBurnTransferEvents)
             ) return null;
 
+
             Map<String, Map<String, Object>> transferSenderPda = new HashMap<>();
             allTransferEvents.forEach(t -> {
+                Map<String, Object> pdaMap = allCreatePDA.get(t.getSenderOrigin());
+                if (pdaMap != null && pdaMap.get("owner") != null && pdaMap.get("mint") != null) {
+                    t.setSender(pdaMap.get("owner").toString());
+                    t.setContractAddress(pdaMap.get("mint").toString());
+                    return;
+                }
                 if (t.getContractAddress() == null) return;
                 Map<String, Object> pda = new HashMap<>();
                 pda.put("mint", t.getContractAddress());
                 pda.put("account", t.getSenderOrigin());
                 pda.put("owner", t.getSender());
                 transferSenderPda.put(t.getSenderOrigin(), pda);
-                if (allCreatePDA.containsKey(t.getSenderOrigin())) {
+                if (pdaMap != null) {
                     Map<String, Object> pdaNow = allCreatePDA.get(t.getSenderOrigin());
                     pdaNow.put("mint", t.getContractAddress());
                     pdaNow.put("owner", t.getSender());
@@ -182,13 +189,19 @@ public class AMMSwapDataProcess {
             });
             processPDA(allTransferEvents, allCreatePDA, transferSenderPda);
             allTransferEvents.forEach(t -> {
+                Map<String, Object> pdaMap = allCreatePDA.get(t.getReceiverOrigin());
+                if (pdaMap != null && pdaMap.get("owner") != null && pdaMap.get("mint") != null) {
+                    t.setReceiver(pdaMap.get("owner").toString());
+                    t.setContractAddress(pdaMap.get("mint").toString());
+                    return;
+                }
                 if (t.getReceiver() == null) return;
                 Map<String, Object> pda = new HashMap<>();
                 pda.put("mint", t.getContractAddress());
                 pda.put("account", t.getReceiverOrigin());
                 pda.put("owner", t.getReceiver());
                 transferSenderPda.put(t.getReceiverOrigin(), pda);
-                if (allCreatePDA.containsKey(t.getReceiverOrigin())) {
+                if (pdaMap != null) {
                     Map<String, Object> pdaNow = allCreatePDA.get(t.getReceiverOrigin());
                     pdaNow.put("mint", t.getContractAddress());
                     pdaNow.put("owner", t.getReceiver());
@@ -197,7 +210,6 @@ public class AMMSwapDataProcess {
                 }
             });
             processPDA(allTransferEvents, allCreatePDA, transferSenderPda);
-
 //            Set<String> allReceivers = allTransferEvents.stream().map(TransferEvent::getReceiverOrigin).collect(Collectors.toSet());
 //            allReceivers.addAll(allTransferEvents.stream().peek(t -> {
 //                if (t.getContractAddress() != null && !allCreatePDA.containsKey(t.getSenderOrigin())) {
@@ -217,8 +229,8 @@ public class AMMSwapDataProcess {
 //                    allCreatePDA.put(t.getSenderOrigin(), pda);
 //                }
 //            }).map(TransferEvent::getSenderOrigin).collect(Collectors.toSet()));
-
-            // 3.2. 从数据库获取已存在的 aToken account
+//
+//            // 3.2. 从数据库获取已存在的 aToken account
 //            List<Map<String, Object>> receiversInfoFromDb = allReceivers.stream()
 //                    .map(t -> {
 //                        if (allCreatePDA.containsKey(t)) {
@@ -228,8 +240,8 @@ public class AMMSwapDataProcess {
 //                    })
 //                    .filter(Objects::nonNull)
 //                    .collect(Collectors.toList());
-
-            //3.3. 过滤出需要查询的地址（token accounts），且获取账户信息
+//
+//            //3.3. 过滤出需要查询的地址（token accounts），且获取账户信息
 //            Set<String> existingReceiversDb = receiversInfoFromDb.stream().map(entry -> entry.get("account").toString()).collect(Collectors.toSet());
 //            allClosePDA.forEach((key, value) -> {
 //                if (!existingReceiversDb.contains(key)) {
@@ -259,15 +271,16 @@ public class AMMSwapDataProcess {
 //                    ));
 //            allSolTransferEvents.forEach(t -> {
 //                validReceivers.put(t.getSenderOrigin(),
-//                        new HashMap<String, Object>() {{
-//                            put("account", t.getSenderOrigin());
-//                            put("owner", t.getSender());
-//                            put("mint", t.getContractAddress());
-//                        }}
+//                        Map.of(
+//                                "account", t.getSenderOrigin(),
+//                                "owner", t.getSender(),
+//                                "mint", t.getContractAddress()
+//                        )
 //                );
 //            });
 
-            if (!CollectionUtils.isEmpty(allBurnTransferEvents)) allTransferEvents.addAll(allBurnTransferEvents);
+            if (!CollectionUtils.isEmpty(allBurnTransferEvents))
+                allTransferEvents.addAll(allBurnTransferEvents);
             if (CollectionUtils.isEmpty(allTransferEvents))
                 if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)) return null;
             SolanaTransactionParser.processTransferEvents(hash, Integer.valueOf(blockTime), allTransferEvents, allCreatePDA);
@@ -314,5 +327,6 @@ public class AMMSwapDataProcess {
         });
 
     }
+
 }
 

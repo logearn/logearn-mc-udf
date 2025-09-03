@@ -21,15 +21,12 @@ public class SolanaPdaBalance extends UDF {
     public SolanaPdaBalance() {
     }
 
-    public String evaluate(String chainId, String protocol,
-                           String slot, String blockTime,
+    public String evaluate(String slot, String blockTime,
                            String accountKeyString, String logMessageString,
                            String writableAddressString, String readonlyAddressString,
                            String postTokenBalanceString, String preTokenBalanceString,
                            String postBalanceString, String preBalanceString,
-                           String innerInstructionString, String outerInstructionString,
-                           String hash, String price) throws IOException {
-        ChainConfig conf = new ConfigHelper().getConfig(chainId, protocol);
+                           String innerInstructionString, String outerInstructionString) throws IOException {
         List<Map<String, String>> maps = new ArrayList<>();
         String res = "";
         try {
@@ -56,16 +53,14 @@ public class SolanaPdaBalance extends UDF {
             res = JSON.toJSONString(maps);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(String.format("price:%s, hash:%s, stack:%s, msg:%s", price, hash, Arrays.toString(e.getStackTrace()), e.getLocalizedMessage()));
+            throw new RuntimeException(String.format("block_id:%s, stack:%s, msg:%s", slot, Arrays.toString(e.getStackTrace()), e.getLocalizedMessage()));
         } catch (StackOverflowError | OutOfMemoryError e) {
             e.printStackTrace();
             maps = new ArrayList<>();
             HashMap<String, String> errorSwap = new HashMap<>();
             errorSwap.put("errorMsg", "oom");
-            errorSwap.put("chain", chainId);
-            errorSwap.put("protocol", protocol);
             maps.add(errorSwap);
-            throw new RuntimeException(String.format("hash:%s", hash));
+            throw new RuntimeException(String.format("block_id:%s", slot));
         }
         return res;
     }
@@ -101,17 +96,6 @@ public class SolanaPdaBalance extends UDF {
         String preBalanceString = "[49265701,0,2039280,71437440,2039280,71437440,70407360,2039280,744719890,1,2710760855,521498889,29252880,5324400,1044843162197,2039280,108524496,1343972842,2039280,2700917947496,60255177684,1617518306,7182722,2039280,71437440,23385600,738872938880,8358885139,0,70407360,70407360,2039280,884633300741,5435777,437629886,1,3592992,1000000,1112679684189,4534961825,0,11092923631,4455470,27896412607442,45791736,4000407,2533469,1219403231380,1000000,32941449,102172215,1141443]";
         String innerInstructionString = "[{\"index\":2,\"instructions\":[{\"accounts\":[34],\"data\":\"84eT\",\"programIdIndex\":39,\"stackHeight\":2},{\"accounts\":[0,1],\"data\":\"11119os1e9qSs2u7TsThXqkBSRVFxhmYaFKFZ1waB2X7armDmvK3p5GmLdUxYdg3h7QSrL\",\"programIdIndex\":35,\"stackHeight\":2},{\"accounts\":[1],\"data\":\"P\",\"programIdIndex\":39,\"stackHeight\":2},{\"accounts\":[1,34],\"data\":\"6PeYyvnG2DB8ZNv5bkFVXgvtM6hBHpbW8wdxejetRHKzs\",\"programIdIndex\":39,\"stackHeight\":2}]},{\"index\":3,\"instructions\":[{\"accounts\":[4,2,0],\"data\":\"3c5pDDnJcyR9\",\"programIdIndex\":39,\"stackHeight\":2},{\"accounts\":[36],\"data\":\"2qWhKzSZDTHhTkHUC1NYnTgQXCaMKMco9jaCBM7fc9TfbzpHcQBt8D99VmShfnzzEYZA3eWJpCgtGngAFkYmuMBqNQFyEbDyojbzkbSEuU6p47NNyNUhrJKC3\",\"programIdIndex\":10,\"stackHeight\":2},{\"accounts\":[4,2,0],\"data\":\"3v1N4iy4b9Cb\",\"programIdIndex\":39,\"stackHeight\":2},{\"accounts\":[21,16,42,41,38,2,17,18,19,43,32,39,39,35,8,48,50,20,40,0],\"data\":\"5jRcjdixRUDaxnUJq53o8b8UNZXv7zGP1\",\"programIdIndex\":50,\"stackHeight\":2},{\"accounts\":[2,41,18,16],\"data\":\"iFrxG4ajHdAcu\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[19,38,17,21],\"data\":\"gFSQ7UgDeVeZe\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[19,38,32,21],\"data\":\"i4o9bKCi7Nqrg\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[19,38,20,21],\"data\":\"i4o9bKCi7Nqrg\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[48],\"data\":\"9k6unfwB8yYie7YGjfXzMuhWxnxyYysRUi4BaJLp4nNo2XgLFUdLWT3sAkAMnC8TQK1yB9SHLJixES9gevaoht6UspjKo86jVbqQSi4hHKPPRHLP5Cg6oK72TcfkfsDEHHcRKCZXvS95ARGZ4Ush9MK2RqwX1WYbxQ7ENyWDxk374rbseBcusis4bfuZABYX7B1Y1j2pRBd8ZnFBWWnoYhzedQaEZpSw5YXsqGURnyNyWoQXwhxM9okhjfbkWdDGFNMfRJ8jG8zEHKMcac3baXcitjDBcgrq1ZG3KkCmVL9SGR3rEQxif3UhccFcmcEtiqCt5GX2T6eyVtSroPxVznoeDwa2RMKhLHjyqQFnMFZD9wNWViMoa7XQuz8EVXdLE7kzcWFtgie7ZM7vxkkNBdBd79tQY2UXGtMP3DeSJsqBztv96i8KLLEGAw71XP7EthjWyq4myCLVgrAV3SXXHq1sFCq2aaK5vbuCUUxkhhMjGcvpm3kpw3m\",\"programIdIndex\":50,\"stackHeight\":3},{\"accounts\":[36],\"data\":\"QMqFu4fYGGeUEysFnenhAvD9ejyXHFDBV5ALHaSWH79rCnwQxmC7PdnTewrGxr9Nty5g7pZkF9fLyP1RpkCBE5FXse913SZLrgA3SHuZSNe8cCFvWLjpYNxuscZ25EH1ukYrbPhES8qXEU23eYRCeNkT412evxgPCypKb56WJzAaX43\",\"programIdIndex\":10,\"stackHeight\":2},{\"accounts\":[39,39,11,16,33,38,41,17,27,2,31,6,29,30,28],\"data\":\"4AoQRYXBdnCTdfkZD1CabaQfTgavn3nWqRNyykhcN3CrwMNf6fE7v9WPhJ7\",\"programIdIndex\":51,\"stackHeight\":2},{\"accounts\":[2,41,31,16],\"data\":\"imwmHyQWrUt45\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[27,38,17,33],\"data\":\"g9ZzhvSdj5YUG\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[36],\"data\":\"QMqFu4fYGGeUEysFnenhAvDWgqp1W7DbrMv3z8JcyrP4Bu3Yyyj7irLW76wEzMiFqj42ZWFm8sSz8Ev6pUzHdasz4KirQfWz8VZJ8jFjfkeNGWfW8agbRiWtrQs5eQxaYkkQDdYs96xWzhewVwzFkNao9Lb2oFjH3hpdXhyEhVkMnJ3\",\"programIdIndex\":10,\"stackHeight\":2},{\"accounts\":[22,49,23,26,2,17,41,38,25,49,16,39,39,45,49,3,5,24],\"data\":\"PgQWtn8ozix5e79bEpKMR98gCPwHWXbUT\",\"programIdIndex\":49,\"stackHeight\":2},{\"accounts\":[2,41,23,16],\"data\":\"hdkFdVPBGHk4V\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[26,38,17,22],\"data\":\"gFcTmeoU8dwix\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[45],\"data\":\"yCGxBopjnVNQkNP5usq1PnuSogu2ep827YWLULzBigpJkhphX2aJb5vCctmTMsnMN5PL4WUEeHsV77Lngni5dQQv1Q4xaMoq3FxdFBM659EVqzX63TT78jrTUqpEq4jzZCKnTTAsGPsfPjXAVtGWcv4NXnjksmWfjysrKmn4Z886cMwpBH1bVVjTWSyFfbwhx5U215\",\"programIdIndex\":49,\"stackHeight\":3},{\"accounts\":[36],\"data\":\"QMqFu4fYGGeUEysFnenhAvBobXTzswhLdvQq6s8axxcbKUPRksm2543pJNNNHVd1VJsD1UUKZjJRMBNv8su6BqKZE1m3cYvUVUxgK5hPg4CJPobf5Umk3NQ5Wh1BLtvHNc8JzUsr8CUypXAuizrJrBnh4zVNNCgE3k5MWUKwsfH8eeK\",\"programIdIndex\":10,\"stackHeight\":2},{\"accounts\":[16,47,46,13,17,7,14,15,39,39,38,34,12],\"data\":\"E73fXHPWvSR3jP9oLaWGzuTkZsj2iNdqR\",\"programIdIndex\":44,\"stackHeight\":2},{\"accounts\":[17,38,14,16],\"data\":\"gRyxMWovb5zmn\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[15,34,7,47],\"data\":\"ibcgM8eGqhE4d\",\"programIdIndex\":39,\"stackHeight\":3},{\"accounts\":[36],\"data\":\"QMqFu4fYGGeUEysFnenhAvieDoLt3zKRm9fP7pFkmmkgJkj4ZfGEc2UovaZcCCUB6jRyfgkiUEs72YDS6ppWN3TKFRKzNJuQXC5TNPHifybPyMUQGBmJo5jjtJvBfQffwfH5wFeVhh69FXbY4incv3VNzx86fjKePmKngKjuFCAhPju\",\"programIdIndex\":10,\"stackHeight\":2},{\"accounts\":[7,1,16],\"data\":\"3nEavCVEq8zB\",\"programIdIndex\":39,\"stackHeight\":2}]}]";
         String outerInstructionString = "[{\"data\":\"JeWNaT\",\"programIdIndex\":9},{\"data\":\"3bovwuCNaPod\",\"programIdIndex\":9},{\"accounts\":[0,1,0,34,35,39],\"data\":\"2\",\"programIdIndex\":8},{\"accounts\":[39,16,0,4,2,7,1,41,34,2,10,36,10,50,21,16,42,41,38,2,17,18,19,43,32,39,39,35,8,48,50,20,40,0,51,39,39,11,16,33,38,41,17,27,2,31,6,29,30,28,49,22,49,23,26,2,17,41,38,25,49,16,39,39,45,49,3,5,24,10,44,16,47,46,13,17,7,14,15,39,39,38,34,12,37],\"data\":\"3P1sk3v7iWSLr4SZzBR3ggLitRaoqESs29UYVPAwSZaqzuNBa3kNNWA4bnof89orRR377\",\"programIdIndex\":10}]";
-
-        solanaParse.evaluate(chainId, protocol,
-                slot, blockTime,
-                accountKeys, logMessageString,
-                writableAddressString, readonlyAddressString,
-                postTokenBalanceString, preTokenBalanceString,
-                postBalanceString, preBalanceString,
-                innerInstructionString, outerInstructionString,
-                hash, price
-
-        );
 
 
     }
