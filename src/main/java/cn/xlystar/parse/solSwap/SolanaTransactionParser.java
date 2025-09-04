@@ -839,7 +839,7 @@ public class SolanaTransactionParser {
                 continue;
             } else if (isPumpAMM(event)) {
                 // 其他协议使用确定的规则
-                processMeteoraAlmmEvent(event, txTransferEvents);
+                processPumpAmmEvent(event, txTransferEvents);
                 continue;
             } else if (isHeavenAmm(event)) {
                 // 查找符合条件的transfer pair
@@ -1011,6 +1011,45 @@ public class SolanaTransactionParser {
                 }
             }
         }
+    }
+
+    private static void processPumpAmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
+        // 找到所有可能的transfer1
+        for (int i = 0; i < transfers.size(); i++) {
+            TransferEvent tempT = transfers.get(i);
+            for (int j = i + 1; j < transfers.size(); j++) {
+                TransferEvent tempS = transfers.get(j);
+                if (tempS.getOuterIndex() != tempT.getOuterIndex()) continue;
+                if (tempS.getContractAddress().equals(tempT.getContractAddress())) continue;
+
+                if (tempT.getSenderOrigin().equals(swapEvent.getSender()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultIn())
+                        && tempS.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempS.getReceiverOrigin().equals(swapEvent.getTo())
+                ) {
+                    transfers.remove(tempT);
+                    transfers.remove(tempS);
+                    swapEvent.setSender(tempT.getSender());
+                    swapEvent.setTokenIn(tempT.getContractAddress());
+                    swapEvent.setAmountIn(tempT.getAmount());
+                    swapEvent.setTo(tempS.getReceiver());
+                    swapEvent.setTokenOut(tempS.getContractAddress());
+                    swapEvent.setAmountOut(tempS.getAmount());
+                    return;
+                } else if (tempS.getSenderOrigin().equals(swapEvent.getSender()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultIn())
+                        && tempT.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempT.getReceiverOrigin().equals(swapEvent.getTo())
+                ) {
+                    transfers.remove(tempT);
+                    transfers.remove(tempS);
+                    swapEvent.setSender(tempS.getSender());
+                    swapEvent.setTokenIn(tempS.getContractAddress());
+                    swapEvent.setAmountIn(tempS.getAmount());
+                    swapEvent.setTo(tempT.getReceiver());
+                    swapEvent.setTokenOut(tempT.getContractAddress());
+                    swapEvent.setAmountOut(tempT.getAmount());
+                    return;
+                }
+            }
+        }
+
     }
 
     private static void processHeavenAmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
