@@ -839,7 +839,7 @@ public class SolanaTransactionParser {
                 continue;
             } else if (isPumpAMM(event)) {
                 // 其他协议使用确定的规则
-                processHeavenAmmEvent(event, txTransferEvents);
+                processMeteoraAlmmEvent(event, txTransferEvents);
                 continue;
             } else if (isHeavenAmm(event)) {
                 // 查找符合条件的transfer pair
