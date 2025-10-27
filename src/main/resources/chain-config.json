@@ -80,6 +80,7 @@
     "tokens": {
       "WSOL": {"address": "So11111111111111111111111111111111111111112", "scale": "1e9", "decimals": "9", "name": "WSOL" },
       "USDC": {"address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "scale": "1e6", "decimals": "6", "name": "USDC" },
+      "USD1": {"address": "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB", "scale": "1e6", "decimals": "6", "name": "USD1" },
       "USDT": {"address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "scale": "1e6", "decimals": "6", "name": "USDT" }
     },
     "protocols": {
