@@ -1106,7 +1106,12 @@ public class SolanaTransactionParser {
     }
 
     private static void processMeteoraAlmmEvent(UniswapEvent swapEvent, List<TransferEvent> transfers) {
-        // 找到所有可能的transfer1
+        TransferEvent maxT = null;
+        TransferEvent maxS = null;
+        BigInteger maxAmount = BigInteger.ZERO;
+        boolean found = false;
+
+        // 找到所有可能的transfer对，并记录金额最大的组合
         for (int i = 0; i < transfers.size(); i++) {
             TransferEvent tempT = transfers.get(i);
             for (int j = i + 1; j < transfers.size(); j++) {
@@ -1114,44 +1119,58 @@ public class SolanaTransactionParser {
                 if (tempS.getOuterIndex() != tempT.getOuterIndex()) continue;
                 if (tempS.getContractAddress().equals(tempT.getContractAddress())) continue;
 
+                BigInteger currentAmount = tempT.getAmount().add(tempS.getAmount());
+
                 if (tempS.getInnerIndex() > tempT.getInnerIndex()
                         && tempT.getSenderOrigin().equals(swapEvent.getSender())
                         && tempS.getReceiverOrigin().equals(swapEvent.getTo())
                         && ((tempS.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultIn()))
                         || (tempS.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempT.getReceiverOrigin().equals(swapEvent.getVaultOut()))
-                )
-                ) {
-                    transfers.remove(tempT);
-                    transfers.remove(tempS);
-                    swapEvent.setSender(tempT.getSender());
-                    swapEvent.setTokenIn(tempT.getContractAddress());
-                    swapEvent.setAmountIn(tempT.getAmount());
-                    swapEvent.setTo(tempS.getReceiver());
-                    swapEvent.setTokenOut(tempS.getContractAddress());
-                    swapEvent.setAmountOut(tempS.getAmount());
-                    return;
+                )) {
+                    if (currentAmount.compareTo(maxAmount) > 0) {
+                        maxT = tempT;
+                        maxS = tempS;
+                        maxAmount = currentAmount;
+                        found = true;
+                    }
                 } else if (tempS.getInnerIndex() < tempT.getInnerIndex()
                         && tempS.getSenderOrigin().equals(swapEvent.getSender())
                         && tempT.getReceiverOrigin().equals(swapEvent.getTo())
                         && ((tempT.getSenderOrigin().equals(swapEvent.getVaultOut()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultIn()))
                         || (tempT.getSenderOrigin().equals(swapEvent.getVaultIn()) && tempS.getReceiverOrigin().equals(swapEvent.getVaultOut()))
-                )
-                ) {
-                    transfers.remove(tempT);
-                    transfers.remove(tempS);
-                    swapEvent.setSender(tempS.getSender());
-                    swapEvent.setTokenIn(tempS.getContractAddress());
-                    swapEvent.setAmountIn(tempS.getAmount());
-                    swapEvent.setTo(tempT.getReceiver());
-                    swapEvent.setTokenOut(tempT.getContractAddress());
-                    swapEvent.setAmountOut(tempT.getAmount());
-                    return;
+                )) {
+                    if (currentAmount.compareTo(maxAmount) > 0) {
+                        maxT = tempT;
+                        maxS = tempS;
+                        maxAmount = currentAmount;
+                        found = true;
+                    }
                 }
             }
         }
 
-    }
+        // 如果找到符合条件的最大金额交易对，进行处理
+        if (found) {
+            transfers.remove(maxT);
+            transfers.remove(maxS);
 
+            if (maxS.getInnerIndex() > maxT.getInnerIndex()) {
+                swapEvent.setSender(maxT.getSender());
+                swapEvent.setTokenIn(maxT.getContractAddress());
+                swapEvent.setAmountIn(maxT.getAmount());
+                swapEvent.setTo(maxS.getReceiver());
+                swapEvent.setTokenOut(maxS.getContractAddress());
+                swapEvent.setAmountOut(maxS.getAmount());
+            } else {
+                swapEvent.setSender(maxS.getSender());
+                swapEvent.setTokenIn(maxS.getContractAddress());
+                swapEvent.setAmountIn(maxS.getAmount());
+                swapEvent.setTo(maxT.getReceiver());
+                swapEvent.setTokenOut(maxT.getContractAddress());
+                swapEvent.setAmountOut(maxT.getAmount());
+            }
+        }
+    }
 
     private static void processBoopfunEvent(UniswapEvent swapEvent, List<TransferEvent> transfers, List<TransferEvent> solTransferEvent) {
         // 找到所有可能的transfer1

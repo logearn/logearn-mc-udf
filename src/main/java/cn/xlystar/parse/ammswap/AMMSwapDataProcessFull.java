@@ -374,8 +374,11 @@ public class AMMSwapDataProcessFull {
         String usdcDecimals = conf.getTokens().get("USDC").get("scale").asText();
         String usdtAddress = conf.getTokens().get("USDT").get("address").asText();
         String usdtDecimals = conf.getTokens().get("USDT").get("scale").asText();
+        String usd1Address = conf.getTokens().get("USD1").get("address").asText();
+        String usd1Decimals = conf.getTokens().get("USD1").get("scale").asText();
         boolean hasUsdc = usdcAddress.equals(t.getTokenIn()) || usdcAddress.equals(t.getTokenOut());
         boolean hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
+        boolean hasUsd1 = usd1Address.equals(t.getTokenIn()) || usd1Address.equals(t.getTokenOut());
 
         String tokenAddress = "";
         String decimals = "";
@@ -386,6 +389,9 @@ public class AMMSwapDataProcessFull {
         } else if (hasUsdt) {
             tokenAddress = usdtAddress;
             decimals = usdtDecimals;
+        } else if (hasUsd1) {
+            tokenAddress = usd1Address;
+            decimals = usd1Decimals;
         }
 
         if (StringUtils.isEmpty(tokenAddress)) return false;

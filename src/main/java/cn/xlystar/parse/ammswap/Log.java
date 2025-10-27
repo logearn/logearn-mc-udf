@@ -4,23 +4,27 @@ import cn.xlystar.entity.*;
 import cn.xlystar.helpers.ChainConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 public class Log {
 
+    public static final List<String> fourMemeQuoteList = Lists.newArrayList(
+            "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d",
+            "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+            "0x55d398326f99059ff775485246999027b3197955",
+            "0x000ae314e2a2172a039b26378814c252734f556a"
+    );
     /**
      * 从log的String串中解析成对象
      */
@@ -362,6 +366,212 @@ public class Log {
         return uniswapEvents;
     }
 
+
+    /**
+     * 解析 fourMemeSwap V1事件
+     */
+    public static List<UniswapEvent> findFourMemeSwapV1(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents) {
+        JsonNode logLists = logJson.get("logs");
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (!contractAddress.equals("0xec4549cadce5da21df6e6422d448034b5233bfbc") || tmp.get("data").toString().length() != 324)
+                continue;
+            String data = tmp.get("data").asText().substring(2);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+
+            if (topicLists.size() == 1
+                    && "0x7db52723a3b2cdd6164364b3b766e65e540d7be48ffa89582956d8eaebe62942".equalsIgnoreCase(topicLists.get(0))) {
+//                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
+//                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+//
+//                BigInteger token = web3HexToBigInteger(data.substring(128, 192));
+//                BigInteger coin = web3HexToBigInteger(data.substring(192, 256));
+//                BigInteger fee = web3HexToBigInteger(data.substring(256, 320));
+//
+//                UniswapEvent uniswapEvent = UniswapEvent.builder()
+//                        .sender("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+//                        .to(sender)
+//                        .tokenIn(conf.getWCoinAddress())
+//                        .tokenOut(token_address)
+//                        .amountIn(coin.add(fee))
+//                        .amountOut(token)
+//                        .logIndex(logIndex)
+//                        .contractAddress(contractAddress)
+//                        .fromMergedTransferEvent(new ArrayList<>())
+//                        .toMergedTransferEvent(new ArrayList<>())
+//                        .protocol(conf.getProtocol())
+//                        .version("four.meme2")
+//                        .build();
+//
+//                for (TransferEvent transferEvent : transferEvents) {
+//                    if (transferEvent.getContractAddress().equals(token_address)
+//                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
+//                        uniswapEvent.setTo(transferEvent.getReceiver());
+//                        transferEvents.remove(transferEvent);
+//                        break;
+//                    }
+//                }
+//
+//                uniswapEvents.add(uniswapEvent);
+            } else if (topicLists.size() == 1
+                    && "0x80d4e495cda89b31af98c8e977ff11f417bafcee26902a17a15be51830c47533".equalsIgnoreCase(topicLists.get(0))) {
+                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
+                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+
+                BigInteger token = web3HexToBigInteger(data.substring(128, 192));
+                BigInteger coin = web3HexToBigInteger(data.substring(192, 256));
+                BigInteger fee = web3HexToBigInteger(data.substring(256, 320));
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(sender)
+                        .tokenIn(token_address)
+                        .tokenOut(conf.getWCoinAddress())
+                        .amountIn(token)
+                        .amountOut(coin.subtract(fee))
+
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(conf.getProtocol())
+                        .version("four.meme1")
+                        .build();
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getContractAddress().equals(token_address)
+                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getReceiver().equals("0xec4549cadce5da21df6e6422d448034b5233bfbc")) {
+                        uniswapEvent.setSender(transferEvent.getSender());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+
+                uniswapEvents.add(uniswapEvent);
+            }
+        }
+        return uniswapEvents;
+    }
+
+
+    /**
+     * 解析 fourMemeSwap V2事件
+     */
+    public static List<UniswapEvent> findFourMemeSwapV2(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents, String price) {
+        JsonNode logLists = logJson.get("logs");
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (!contractAddress.equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b") || tmp.get("data").toString().length() != 516)
+                continue;
+            String data = tmp.get("data").asText().substring(2);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+
+            if (topicLists.size() == 1
+                    && "0x7db52723a3b2cdd6164364b3b766e65e540d7be48ffa89582956d8eaebe62942".equalsIgnoreCase(topicLists.get(0))) {
+                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
+                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+
+//                BigInteger price = web3HexToBigInteger(data.substring(128, 192));
+                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
+                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
+                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
+
+                BigInteger amountIn = coin.add(fee);
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+                        .to(sender)
+                        .tokenIn(conf.getWCoinAddress())
+                        .tokenOut(token_address)
+                        .amountIn(amountIn)
+                        .amountOut(token)
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(conf.getProtocol())
+                        .version("four.meme")
+                        .build();
+
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getContractAddress().equals(token_address)
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
+                        uniswapEvent.setTo(transferEvent.getReceiver());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    // 非 BNB 的情况，比如 USD1
+                    if (transferEvent.getAmount().subtract(amountIn).abs().compareTo(new BigDecimal(amountIn).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
+                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+                            && fourMemeQuoteList.contains(transferEvent.getContractAddress())
+                    ) {
+                        BigInteger wcoinAmount = new BigDecimal(amountIn).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        uniswapEvent.setAmountIn(wcoinAmount);
+                        break;
+                    }
+                }
+
+                uniswapEvents.add(uniswapEvent);
+            } else if (topicLists.size() == 1
+                    && "0x0a5575b3648bae2210cee56bf33254cc1ddfbc7bf637c0af2ac18b14fb1bae19".equalsIgnoreCase(topicLists.get(0))) {
+                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
+                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+
+//                BigInteger price = web3HexToBigInteger(data.substring(128, 192));
+                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
+                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
+                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(sender)
+                        .tokenIn(token_address)
+                        .tokenOut(conf.getWCoinAddress())
+                        .amountIn(token)
+                        .amountOut(coin.subtract(fee))
+
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(conf.getProtocol())
+                        .version("four.meme")
+                        .build();
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getContractAddress().equals(token_address)
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
+                        uniswapEvent.setSender(transferEvent.getSender());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    // 非 BNB 的情况，比如 USD1
+                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
+                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
+                            && fourMemeQuoteList.contains(transferEvent.getContractAddress())
+                    ) {
+//                        transferEvents.remove(transferEvent);
+                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee)).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        uniswapEvent.setAmountOut(wcoinAmount);
+                        break;
+                    }
+                }
+                uniswapEvents.add(uniswapEvent);
+            }
+        }
+        return uniswapEvents;
+    }
+
+
     /**
      * 将uniswapV2Event对象转为标准的uniswapEvent对象
      */
@@ -698,207 +908,4 @@ public class Log {
         }
         return uniswapEvents;
     }
-
-
-    /**
-     * 解析 fourMemeSwap V1事件
-     */
-    public static List<UniswapEvent> findFourMemeSwapV1(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents) {
-        JsonNode logLists = logJson.get("logs");
-        List<UniswapEvent> uniswapEvents = new ArrayList<>();
-        for (JsonNode tmp : logLists) {
-            String contractAddress = tmp.get("address").asText().toLowerCase();
-            if (!contractAddress.equals("0xec4549cadce5da21df6e6422d448034b5233bfbc") || tmp.get("data").toString().length() != 324) continue;
-            String data = tmp.get("data").asText().substring(2);
-            List<String> topicLists = parseTopics(tmp.get("topics"));
-            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
-            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
-
-            if (topicLists.size() == 1
-                    && "0x7db52723a3b2cdd6164364b3b766e65e540d7be48ffa89582956d8eaebe62942".equalsIgnoreCase(topicLists.get(0))) {
-//                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
-//                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
-//
-//                BigInteger token = web3HexToBigInteger(data.substring(128, 192));
-//                BigInteger coin = web3HexToBigInteger(data.substring(192, 256));
-//                BigInteger fee = web3HexToBigInteger(data.substring(256, 320));
-//
-//                UniswapEvent uniswapEvent = UniswapEvent.builder()
-//                        .sender("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-//                        .to(sender)
-//                        .tokenIn(conf.getWCoinAddress())
-//                        .tokenOut(token_address)
-//                        .amountIn(coin.add(fee))
-//                        .amountOut(token)
-//                        .logIndex(logIndex)
-//                        .contractAddress(contractAddress)
-//                        .fromMergedTransferEvent(new ArrayList<>())
-//                        .toMergedTransferEvent(new ArrayList<>())
-//                        .protocol(conf.getProtocol())
-//                        .version("four.meme2")
-//                        .build();
-//
-//                for (TransferEvent transferEvent : transferEvents) {
-//                    if (transferEvent.getContractAddress().equals(token_address)
-//                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
-//                        uniswapEvent.setTo(transferEvent.getReceiver());
-//                        transferEvents.remove(transferEvent);
-//                        break;
-//                    }
-//                }
-//
-//                uniswapEvents.add(uniswapEvent);
-            } else if (topicLists.size() == 1
-                    && "0x80d4e495cda89b31af98c8e977ff11f417bafcee26902a17a15be51830c47533".equalsIgnoreCase(topicLists.get(0))) {
-                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
-                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
-
-                BigInteger token = web3HexToBigInteger(data.substring(128, 192));
-                BigInteger coin = web3HexToBigInteger(data.substring(192, 256));
-                BigInteger fee = web3HexToBigInteger(data.substring(256, 320));
-
-                UniswapEvent uniswapEvent = UniswapEvent.builder()
-                        .sender(sender)
-                        .to(sender)
-                        .tokenIn(token_address)
-                        .tokenOut(conf.getWCoinAddress())
-                        .amountIn(token)
-                        .amountOut(coin.subtract(fee))
-
-                        .logIndex(logIndex)
-                        .contractAddress(contractAddress)
-                        .fromMergedTransferEvent(new ArrayList<>())
-                        .toMergedTransferEvent(new ArrayList<>())
-                        .protocol(conf.getProtocol())
-                        .version("four.meme1")
-                        .build();
-                for (TransferEvent transferEvent : transferEvents) {
-                    if (transferEvent.getContractAddress().equals(token_address)
-                            && transferEvent.getAmount().compareTo(token) == 0 && transferEvent.getReceiver().equals("0xec4549cadce5da21df6e6422d448034b5233bfbc")) {
-                        uniswapEvent.setSender(transferEvent.getSender());
-                        transferEvents.remove(transferEvent);
-                        break;
-                    }
-                }
-
-                uniswapEvents.add(uniswapEvent);
-            }
-        }
-        return uniswapEvents;
-    }
-
-
-    /**
-     * 解析 fourMemeSwap V2事件
-     */
-    public static List<UniswapEvent> findFourMemeSwapV2(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents, String price) {
-        JsonNode logLists = logJson.get("logs");
-        List<UniswapEvent> uniswapEvents = new ArrayList<>();
-        for (JsonNode tmp : logLists) {
-            String contractAddress = tmp.get("address").asText().toLowerCase();
-            if (!contractAddress.equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b") || tmp.get("data").toString().length() != 516)
-                continue;
-            String data = tmp.get("data").asText().substring(2);
-            List<String> topicLists = parseTopics(tmp.get("topics"));
-            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
-            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
-
-            if (topicLists.size() == 1
-                    && "0x7db52723a3b2cdd6164364b3b766e65e540d7be48ffa89582956d8eaebe62942".equalsIgnoreCase(topicLists.get(0))) {
-                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
-                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
-
-//                BigInteger price = web3HexToBigInteger(data.substring(128, 192));
-                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
-                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
-                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
-
-                BigInteger amountIn = coin.add(fee);
-                UniswapEvent uniswapEvent = UniswapEvent.builder()
-                        .sender("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-                        .to(sender)
-                        .tokenIn(conf.getWCoinAddress())
-                        .tokenOut(token_address)
-                        .amountIn(amountIn)
-                        .amountOut(token)
-                        .logIndex(logIndex)
-                        .contractAddress(contractAddress)
-                        .fromMergedTransferEvent(new ArrayList<>())
-                        .toMergedTransferEvent(new ArrayList<>())
-                        .protocol(conf.getProtocol())
-                        .version("four.meme")
-                        .build();
-
-                for (TransferEvent transferEvent : transferEvents) {
-                    if (transferEvent.getContractAddress().equals(token_address)
-                            && transferEvent.getAmount().compareTo(token) == 0
-                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
-                        uniswapEvent.setTo(transferEvent.getReceiver());
-                        transferEvents.remove(transferEvent);
-                        break;
-                    }
-                }
-                for (TransferEvent transferEvent : transferEvents) {
-                    // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(amountIn).abs().compareTo(new BigDecimal(amountIn).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
-                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-                            && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
-                    ) {
-                        BigInteger wcoinAmount = new BigDecimal(amountIn).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
-                        uniswapEvent.setAmountIn(wcoinAmount);
-                        break;
-                    }
-                }
-
-                uniswapEvents.add(uniswapEvent);
-            } else if (topicLists.size() == 1
-                    && "0x0a5575b3648bae2210cee56bf33254cc1ddfbc7bf637c0af2ac18b14fb1bae19".equalsIgnoreCase(topicLists.get(0))) {
-                String token_address = "0x" + data.substring(0, 64).substring(24).toLowerCase();
-                String sender = "0x" + data.substring(64, 128).substring(24).toLowerCase();
-
-                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
-                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
-                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
-
-                UniswapEvent uniswapEvent = UniswapEvent.builder()
-                        .sender(sender)
-                        .to(sender)
-                        .tokenIn(token_address)
-                        .tokenOut(conf.getWCoinAddress())
-                        .amountIn(token)
-                        .amountOut(coin.subtract(fee))
-
-                        .logIndex(logIndex)
-                        .contractAddress(contractAddress)
-                        .fromMergedTransferEvent(new ArrayList<>())
-                        .toMergedTransferEvent(new ArrayList<>())
-                        .protocol(conf.getProtocol())
-                        .version("four.meme")
-                        .build();
-                for (TransferEvent transferEvent : transferEvents) {
-                    if (transferEvent.getContractAddress().equals(token_address)
-                            && transferEvent.getAmount().compareTo(token) == 0
-                            && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")) {
-                        uniswapEvent.setSender(transferEvent.getSender());
-                        transferEvents.remove(transferEvent);
-                        break;
-                    }
-                }
-                for (TransferEvent transferEvent : transferEvents) {
-                    // 非 BNB 的情况，比如 USD1
-                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
-                            && transferEvent.getSender().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
-                            && transferEvent.getContractAddress().equals("0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d")
-                    ) {
-                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee)).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
-                        uniswapEvent.setAmountOut(wcoinAmount);
-                        break;
-                    }
-                }
-                uniswapEvents.add(uniswapEvent);
-            }
-        }
-        return uniswapEvents;
-    }
-
 }
