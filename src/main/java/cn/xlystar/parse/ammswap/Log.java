@@ -344,7 +344,10 @@ public class Log {
                 // 对于v2，大于0的是out，其他是in
                 BigInteger amountOut = amount0Out.compareTo(BigInteger.ONE) > 0 ? amount0Out : amount1Out;
                 BigInteger amountIn = amount1In.compareTo(BigInteger.ONE) > 0 ? amount1In : amount0In;
-
+                if ((amount1In.compareTo(BigInteger.ONE) > 0 && amount0In.compareTo(BigInteger.ONE) > 0)
+                        || (amount0Out.compareTo(BigInteger.ONE) > 0 && amount1Out.compareTo(BigInteger.ONE) > 0)) {
+                    continue;
+                }
                 UniswapEvent uniswapEvent = UniswapEvent.builder()
                         .sender(sender)
                         .to(to)
