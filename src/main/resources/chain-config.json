@@ -32,6 +32,8 @@
       "WBNB": {"address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "scale": "1e18", "decimals": "18", "name": "WBNB" },
       "USD1": {"address": "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d", "scale": "1e18", "decimals": "18", "name": "USD1" },
       "USDC": {"address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", "scale": "1e18", "decimals": "18", "name": "USDC" },
+      "ASTER": {"address": "0x000ae314e2a2172a039b26378814c252734f556a", "scale": "1e18", "decimals": "18", "name": "ASTER" },
+      "CAKE": {"address": "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", "scale": "1e18", "decimals": "18", "name": "CAKE" },
       "USDT": {"address": "0x55d398326f99059ff775485246999027b3197955", "scale": "1e18", "decimals": "18", "name": "USDT" }
     },
     "protocols": {

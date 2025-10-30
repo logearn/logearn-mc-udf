@@ -4,37 +4,40 @@ import cn.xlystar.entity.PumpFunTokenPool;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
+import cn.xlystar.helpers.ConfigHelper;
 import cn.xlystar.parse.solSwap.SolanaTransactionParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
+
 
 @Slf4j
 public class AMMSwapDataProcess {
     public static String ZEROADDR = "0x0000000000000000000000000000000000000000".toLowerCase();
 
-    public static List<Map<String, String>> decodeInputData(ChainConfig conf, String inputData, String from, String to, String value, String logs, String internalTxs, String hash, String price) throws IOException {
+    public static List<Map<String, String>> decodeInputData(ChainConfig conf, String inputData, String from, String to, String value, String logs, String internalTxs, String hash, String price, Map<String, BigDecimal> mainTokenPriceList ) throws IOException {
         // 从内部交易中找到有效的交易，即：value>0的交易，且type = call
         List<TransferEvent> validInternalTxs = InternalTx.parseTx(internalTxs, conf.getWCoinAddress());
         log.debug("******* Log 中找到符合条件(value > 0 且 callType == call)的 InnelTx： {} 条", validInternalTxs.size());
 
         // 从logs中解析swap
-        List<Map<String, String>> maps = AMMSwapDataProcessFull.parseFullUniswap(from, conf, logs, hash, validInternalTxs, price);
+        List<Map<String, String>> maps = AMMSwapDataProcessFull.parseFullUniswap(from, conf, logs, hash, validInternalTxs, price, mainTokenPriceList);
         return maps;
     }
 
     public static List<Map<String, String>> decodeSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents,
-                                                       List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance, List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance) {
-        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents, price, transferOwnerEvents, postTokenBalance, preTokenBalance);
+                                                       List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance, List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList) {
+        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents, price, transferOwnerEvents, postTokenBalance, preTokenBalance, mainTokenPriceList);
     }
 
 
     public static List<Map<String, String>> parseSolTx(ChainConfig conf, String chain,
                                                        String slot, String blockTime,
                                                        List<String> accountKeys, List<String> logMessages,
-                                                       List<String> writableAddresses, List<String> readonlyAddresses, List<Map<String, Object>> postTokenBalances, List<Map<String, Object>> preTokenBalances, List<String> postBalances, List<String> preBalances, List<Map<String, Object>> innerInstructions, List<Map<String, Object>> outerInstructions, String hash, String price) throws Exception {
+                                                       List<String> writableAddresses, List<String> readonlyAddresses, List<Map<String, Object>> postTokenBalances, List<Map<String, Object>> preTokenBalances, List<String> postBalances, List<String> preBalances, List<Map<String, Object>> innerInstructions, List<Map<String, Object>> outerInstructions, String hash, String price, Map<String, BigDecimal> mainTokenPriceList) throws Exception {
 
         return processAmm(conf, chain,
                 slot, blockTime,
@@ -43,7 +46,7 @@ public class AMMSwapDataProcess {
                 postTokenBalances, preTokenBalances,
                 postBalances, preBalances,
                 innerInstructions, outerInstructions,
-                hash, price);
+                hash, price, mainTokenPriceList);
     }
 
     public static List<Map<String, String>> parsePdaBalance(String slot, String blockTime,
@@ -118,7 +121,7 @@ public class AMMSwapDataProcess {
                                                        List<Map<String, Object>> postTokenBalances, List<Map<String, Object>> preTokenBalances,
                                                        List<String> postBalances, List<String> preBalances,
                                                        List<Map<String, Object>> innerInstructions, List<Map<String, Object>> outerInstructions,
-                                                       String hash, String price) throws Exception {
+                                                       String hash, String price, Map<String, BigDecimal> mainTokenPriceList) throws Exception {
         try {
             List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance = new ArrayList<>(8);
             List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance = new ArrayList<>(8);
@@ -288,7 +291,7 @@ public class AMMSwapDataProcess {
                 SolanaTransactionParser.processSwapEvents(allSwapEvents, allTransferEvents, allCreatePDA, allPoolLiquidity, allSolTransferEvents, logMessages, allAggregatorSwapEvents);
             }
             // 串联 swap
-            return new ArrayList<>(AMMSwapDataProcess.decodeSwap(conf, originSender, hash, allSwapEvents, allTransferEvents, price, allTxTransferOwnerEvents, postTokenBalance, preTokenBalance));
+            return new ArrayList<>(AMMSwapDataProcess.decodeSwap(conf, originSender, hash, allSwapEvents, allTransferEvents, price, allTxTransferOwnerEvents, postTokenBalance, preTokenBalance,mainTokenPriceList));
         } catch (Exception e) {
             e.printStackTrace();
             log.error("[processAmm] Error processing transaction {}: {}", hash, e.getMessage(), e);
@@ -296,7 +299,7 @@ public class AMMSwapDataProcess {
         return null;
     }
 
-    public static void processPDA(List<TransferEvent> allTransferEvents, Map<String, Map<String, Object>> allCreatePDA, Map<String, Map<String, Object>> transferSenderPda) {
+    private static void processPDA(List<TransferEvent> allTransferEvents, Map<String, Map<String, Object>> allCreatePDA, Map<String, Map<String, Object>> transferSenderPda) {
         allTransferEvents.forEach(t -> {
             if (allCreatePDA.containsKey(t.getSenderOrigin())) {
                 Map<String, Object> sendrMap = allCreatePDA.get(t.getSenderOrigin());

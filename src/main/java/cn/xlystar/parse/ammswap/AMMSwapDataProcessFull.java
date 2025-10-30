@@ -28,17 +28,17 @@ public class AMMSwapDataProcessFull {
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs, String price) throws IOException {
+    public static List<Map<String, String>> parseFullUniswap(String sender, ChainConfig conf, String logs, String hash, List<TransferEvent> tftxs, String price, Map<String, BigDecimal> mainTokenPriceList) throws IOException {
         // 解析
         List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs, price);
         // 后缀处理
-        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price);
+        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList);
     }
 
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance) {
+    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList) {
         String wCoinAddress = conf.getWCoinAddress();
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
 //        if (!CollectionUtils.isEmpty(transferOwnerEvents)) {
@@ -56,7 +56,7 @@ public class AMMSwapDataProcessFull {
         }
 
         // 后缀处理
-        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price);
+        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList);
     }
 
     private static List<UniswapEvent> updateSwapEventsFromTransferOwner(ChainConfig conf, List<TransferEvent> transferOwnerEvents, List<Map<String, Object>> postTokenBalance, List<Map<String, Object>> preTokenBalance, List<UniswapEvent> uniswapEvents) {
@@ -154,7 +154,7 @@ public class AMMSwapDataProcessFull {
         return uniswapEvents;
     }
 
-    private static List<Map<String, String>> processSwap(String hash, List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price) {
+    private static List<Map<String, String>> processSwap(String hash, List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price, Map<String, BigDecimal> mainTokenPriceList) {
         String wCoinAddress = conf.getWCoinAddress();
         if (CollectionUtils.isEmpty(swapEvents)) return finalSwap;
         Map<String, BigDecimal> tokenPriceList = new HashMap<>();
@@ -165,7 +165,7 @@ public class AMMSwapDataProcessFull {
                     swap.getRawSwapLog().forEach(u -> convertToSol(conf, u, new BigDecimal(price)));
                 } else {
                     // 稳定币对处理
-                    swap.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price)));
+                    swap.getRawSwapLog().forEach(u -> convertToNative(conf, u, new BigDecimal(price), mainTokenPriceList));
                     // 非稳定币对处理
                     convertPlatformToNative(swap.getRawSwapLog(), conf);
                 }
@@ -464,7 +464,7 @@ public class AMMSwapDataProcessFull {
 
     }
 
-    private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price) {
+    private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price, Map<String, BigDecimal> tokenPriceList) {
         String wcoin = conf.getChainConf().get("wcoin").asText();
         String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
         String wcoinAddress = conf.getTokens().get(wcoin).get("address").asText();
@@ -473,15 +473,23 @@ public class AMMSwapDataProcessFull {
         JsonNode usdc = conf.getTokens().get("USDC");
         JsonNode usdt = conf.getTokens().get("USDT");
         JsonNode usd1 = conf.getTokens().get("USD1");
+        JsonNode cake = conf.getTokens().get("CAKE");
+        JsonNode aster = conf.getTokens().get("ASTER");
         boolean hasUsdc = false;
         boolean hasUsdt = false;
         boolean hasUsd1 = false;
+        boolean hasCake = false;
+        boolean hasAster = false;
         String usdcDecimals = "";
         String usdcAddress = "";
         String usdtDecimals = "";
         String usdtAddress = "";
         String usd1Decimals = "";
         String usd1Address = "";
+        String cakeDecimals = "";
+        String cakeAddress = "";
+        String asterDecimals = "";
+        String asterAddress = "";
         if (usdc != null) {
             usdcAddress = usdc.get("address").asText();
             usdcDecimals = usdc.get("scale").asText();
@@ -497,6 +505,29 @@ public class AMMSwapDataProcessFull {
             usdtDecimals = usdt.get("scale").asText();
             hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
         }
+        if (aster != null) {
+            asterAddress = aster.get("address").asText();
+            hasAster = asterAddress.equals(t.getTokenIn()) || asterAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("ASTER");
+
+            if (mainPrice == null) hasAster = false;
+            if (hasAster) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                asterDecimals = aster.get("scale").asText();
+            }
+
+        }
+        if (cake != null) {
+            cakeAddress = cake.get("address").asText();
+            hasCake = cakeAddress.equals(t.getTokenIn()) || cakeAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("CAKE");
+
+            if (mainPrice == null) hasCake = false;
+            if (hasCake) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                cakeDecimals = cake.get("scale").asText();
+            }
+        }
 
         String tokenAddress = "";
         String decimals = "";
@@ -510,6 +541,12 @@ public class AMMSwapDataProcessFull {
         } else if (hasUsd1) {
             tokenAddress = usd1Address;
             decimals = usd1Decimals;
+        } else if (hasAster) {
+            tokenAddress = asterAddress;
+            decimals = asterDecimals;
+        } else if (hasCake) {
+            tokenAddress = cakeAddress;
+            decimals = cakeDecimals;
         }
 
         if (StringUtils.isEmpty(tokenAddress)) return false;
