@@ -37,6 +37,9 @@ public class JupiterInstructionParser extends InstructionParser {
             case SHARED_ACCOUNTS_ROUTE:
                 info = parseSharedAccountsRoute(buffer, accounts);
                 break;
+            case SHARED_ACCOUNTS_ROUTE_V2:
+                info = parseSharedAccountsRouteV2(buffer, accounts);
+                break;
             case SHARED_ACCOUNTS_EXACT_OUT_ROUTE:
                 info = parseSharedAccountsExactOutRoute(buffer, accounts);
                 break;
@@ -113,6 +116,24 @@ public class JupiterInstructionParser extends InstructionParser {
         info.put("token_2022_program", accounts[10]); // 可选账户
         info.put("event_authority", accounts[11]);
         info.put("program", accounts[12]);
+
+        return info;
+    }
+
+    private Map<String, Object> parseSharedAccountsRouteV2(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("program_authority", accounts[0]);
+        info.put("user_transfer_authority", accounts[1]);
+        info.put("source_token_account", accounts[2]);
+        info.put("program_source_token_account", accounts[3]);
+        info.put("program_destination_token_account", accounts[4]);
+        info.put("destination_token_account", accounts[5]);
+        info.put("source_mint", accounts[6]);
+        info.put("destination_mint", accounts[7]);
+        info.put("source_token_program", accounts[8]);
+        info.put("destination_token_program", accounts[9]);
+        info.put("event_authority", accounts[10]);
+        info.put("program", accounts[11]);
 
         return info;
     }

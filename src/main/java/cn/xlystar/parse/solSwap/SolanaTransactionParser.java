@@ -869,6 +869,11 @@ public class SolanaTransactionParser {
             txTransferEvents.remove(transfer2);
         }
 
+        swapIterator = txSwapEvents.iterator();
+        while (swapIterator.hasNext()) {
+            UniswapEvent event = swapIterator.next();
+            if (event.getAmountIn() == null || event.getAmountOut() == null) swapIterator.remove();
+        }
         txTransferEvents.removeAll(aggSwapTransfers);
         txSwapEvents.addAll(txValidAggSwapEvents);
     }
@@ -876,6 +881,8 @@ public class SolanaTransactionParser {
     private static void findAggregatorSwapTransfers(List<UniswapEvent> txValidAggSwapEvents, List<TransferEvent> transfers, UniswapEvent swapEvent, List<TransferEvent> txTransferEvents) {
         List<TransferEvent> txFromList = new ArrayList<>();
         List<TransferEvent> txToList = new ArrayList<>();
+        int minFromInnerIndex = 100;
+        int maxFromInnerIndex = 1;
         for (int i = 0; i < transfers.size(); i++) {
             TransferEvent tr = transfers.get(i);
             // 基本条件匹配
@@ -888,8 +895,10 @@ public class SolanaTransactionParser {
             ) {
                 if (tr.getSenderOrigin().equals(swapEvent.getSender())) {
                     txFromList.add(tr);
+                    minFromInnerIndex = Math.min(minFromInnerIndex, tr.getInnerIndex());
                 } else if (tr.getReceiverOrigin().equals(swapEvent.getTo())) {
                     txToList.add(tr);
+                    maxFromInnerIndex = Math.max(maxFromInnerIndex, tr.getInnerIndex());
                 }
             }
         }
@@ -897,8 +906,12 @@ public class SolanaTransactionParser {
         if (CollectionUtils.isEmpty(txFromList) || CollectionUtils.isEmpty(txToList)) return;
 
         txValidAggSwapEvents.add(swapEvent);
-        txTransferEvents.addAll(txFromList);
-        txTransferEvents.addAll(txToList);
+        int finalMinFromInnerIndex = minFromInnerIndex;
+        int finalMaxFromInnerIndex = maxFromInnerIndex;
+        txTransferEvents.addAll(transfers.stream().filter(t -> {
+            return swapEvent.getOuterIndex() == t.getOuterIndex() && t.getInnerIndex() >= finalMinFromInnerIndex && t.getInnerIndex() <= finalMaxFromInnerIndex;
+        }).collect(Collectors.toSet()));
+//        txTransferEvents.addAll(txToList);
         swapEvent.setAggregator(true);
 
         swapEvent.setAmountIn(txFromList.stream().map(TransferEvent::getAmount).reduce(BigInteger.ZERO, BigInteger::add));

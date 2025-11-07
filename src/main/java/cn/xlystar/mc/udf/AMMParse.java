@@ -54,7 +54,7 @@ public class AMMParse extends UDF {
     public Map<String, BigDecimal> parseJsonToMap(String jsonString) {
         Map<String, BigDecimal> result = new HashMap<>();
 
-        if (jsonString == null || jsonString.trim().isEmpty()) {
+        if (jsonString == null || jsonString.trim().isEmpty() || jsonString.length() < 8) {
             return result;
         }
 
@@ -62,51 +62,18 @@ public class AMMParse extends UDF {
             ObjectMapper objectMapper = new ObjectMapper();
 
             // 先解析为 Map<String, Object>
-            Map<String, Object> rawMap = objectMapper.readValue(
-                    jsonString, Map.class);
-
-            // 遍历转换每个值
-            for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-
-                BigDecimal decimalValue = convertToBigDecimal(value);
-                result.put(key, decimalValue);
+            Map<String, String>[] items = objectMapper.readValue(jsonString, Map[].class);
+            for (Map<String, String> item : items) {
+                item.forEach((key, valueStr) -> {
+                    BigDecimal value = new BigDecimal(valueStr);
+                    result.put(key, value);
+                });
             }
-
         } catch (Exception e) {
             throw new RuntimeException("JSON 解析失败: " + e.getMessage(), e);
         }
 
         return result;
-    }
-
-    private BigDecimal convertToBigDecimal(Object value) {
-        if (value == null) {
-            return BigDecimal.ZERO;
-        }
-
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
-        } else if (value instanceof Integer) {
-            return new BigDecimal((Integer) value);
-        } else if (value instanceof Long) {
-            return new BigDecimal((Long) value);
-        } else if (value instanceof Double) {
-            // 使用字符串构造避免精度问题
-            return new BigDecimal(value.toString());
-        } else if (value instanceof Float) {
-            return new BigDecimal(value.toString());
-        } else if (value instanceof String) {
-            String strValue = ((String) value).trim();
-            if (strValue.isEmpty()) {
-                return BigDecimal.ZERO;
-            }
-            return new BigDecimal(strValue);
-        } else {
-            // 尝试字符串转换
-            return new BigDecimal(value.toString());
-        }
     }
 
 //    public static void main(String[] args) throws Exception {
