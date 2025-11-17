@@ -9,6 +9,7 @@ package cn.xlystar.parse.solSwap.pump_swap;
  */
 public enum PumpSwapInstruction {
     BUY("66063d1201daebea"),                      // Buy tokens
+    BUY_EXACT_QUOTE_IN("c62e1552b4d9e870"),
     SELL("33e685a4017f83ad"),                     // Sell tokens
     CREATE_POOL("e992d18ecf6840bc"),              // Create pool
     DEPOSIT("f223c68952e1f2b6"),                  // Deposit tokens

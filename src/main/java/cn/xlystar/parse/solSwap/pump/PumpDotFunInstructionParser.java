@@ -45,6 +45,9 @@ public class PumpDotFunInstructionParser extends InstructionParser {
             case CREATE:
                 info = parseCreate(buffer, accounts);
                 break;
+            case CREATE_V2:
+                info = parseCreateV2(buffer, accounts);
+                break;
             case BUY:
                 info = parseBuy(buffer, accounts);
                 break;
@@ -148,6 +151,42 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         info.put("rent", accounts[11]);
         info.put("eventAuthority", accounts[12]);
         info.put("program", accounts[13]);
+        return info;
+    }
+
+
+    private static Map<String, Object> parseCreateV2(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        // 解析字符串参数
+        String name = parseString(buffer);
+        String symbol = parseString(buffer);
+        String uri = parseString(buffer);
+        byte[] creatorBytes = new byte[32];
+        buffer.get(creatorBytes);
+        String creator = Base58.encode(creatorBytes);
+        byte isMayhemMode = buffer.get();
+        info.put("name", name);
+        info.put("symbol", symbol);
+        info.put("uri", uri);
+        info.put("creator", creator);
+        info.put("is_mayhem", isMayhemMode);
+
+        info.put("mint", accounts[0]);
+        info.put("mintAuthority", accounts[1]);
+        info.put("bondingCurve", accounts[2]);
+        info.put("associatedBondingCurve", accounts[3]);
+        info.put("global", accounts[4]);
+        info.put("user", accounts[5]);
+        info.put("systemProgram", accounts[6]);
+        info.put("tokenProgram", accounts[7]);
+        info.put("associatedTokenProgram", accounts[8]);
+        info.put("mayhemProgramId", accounts[9]);
+        info.put("globalParams", accounts[10]);
+        info.put("SolVault", accounts[11]);
+        info.put("mayhemState", accounts[12]);
+        info.put("mayhemTokenVault", accounts[13]);
+        info.put("eventAuthority", accounts[14]);
         return info;
     }
 

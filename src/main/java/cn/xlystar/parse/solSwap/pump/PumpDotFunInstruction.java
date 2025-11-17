@@ -9,6 +9,7 @@ package cn.xlystar.parse.solSwap.pump;
  */
 public enum PumpDotFunInstruction {
     CREATE("181ec828051c0777"),                    // 创建代币
+    CREATE_V2("d6904cec5f8b31b4"),                    // 创建代币 V2
     INITIALIZE("afaf6d1f0d989bed"),                // 初始化
     SET_PARAMS("1beab2349302bb8d"),               // 设置参数
     BUY("66063d1201daebea"),                      // 购买代币

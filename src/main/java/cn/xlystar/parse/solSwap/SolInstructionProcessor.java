@@ -493,6 +493,19 @@ public class SolInstructionProcessor {
             result.put("creator", info.get("creator"));
             result.put("instruction_type", "pump_create_pool");
             return result;
+        }  else if (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID)
+                && parsed.get("method_id").equals(PumpDotFunInstruction.CREATE_V2.getValue() + "")
+        ) {
+            result.put("pool_id", info.get("bondingCurve"));
+            result.put("vault_0", info.get("associatedBondingCurve"));
+            result.put("vault_mint_0", info.get("mint"));
+            result.put("vault_1", "So11111111111111111111111111111111111111112");
+            result.put("vault_mint_1", "So11111111111111111111111111111111111111112");
+            result.put("user", info.get("user"));
+            result.put("creator", info.get("creator"));
+            result.put("is_mayhem", info.get("is_mayhem"));
+            result.put("instruction_type", "pump_create_pool");
+            return result;
         } else if (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID)
                 && parsed.get("method_id").equals(PumpDotFunInstruction.ANCHOR_SELF_CPI_LOG.getValue())
                 && info.get("eventType").toString().equals("trade")
@@ -532,9 +545,12 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "pump_amm_instruction");
             return result;
         } else if (programId.equals(PumpSwapInstructionParser.PROGRAM_ID)
-                && (parsed.get("method_id").equals(PumpSwapInstruction.BUY.getValue()) || parsed.get("method_id").equals(PumpSwapInstruction.SELL.getValue()))
+                && (parsed.get("method_id").equals(PumpSwapInstruction.BUY.getValue())
+                || parsed.get("method_id").equals(PumpSwapInstruction.SELL.getValue())
+                || parsed.get("method_id").equals(PumpSwapInstruction.BUY_EXACT_QUOTE_IN.getValue())
+        )
         ) {
-            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY.getValue())) {
+            if (parsed.get("method_id").equals(PumpSwapInstruction.BUY.getValue()) || parsed.get("method_id").equals(PumpSwapInstruction.BUY_EXACT_QUOTE_IN.getValue())) {
                 result.put("pool_id", info.get("pool"));
                 result.put("input_vault", info.get("pool_quote_token_account"));
                 result.put("input_vault_mint", info.get("quote_mint"));

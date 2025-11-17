@@ -27,6 +27,7 @@ public class PumpSwapInstructionParser extends InstructionParser {
 
         switch (PumpSwapInstruction.fromValue(methodId)) {
             case BUY:// tx: 2ffhNyfzCcW6vFxxv6VLZd9YbjuQrCJmfFX7BDaKL6xNqqtcPDwURgPh4NQ24ZkWcZJaYxr2UMru3ZisbmB3bLan
+            case BUY_EXACT_QUOTE_IN:// tx: 5ZA8FJyihpmMpgs4NECA11uT5RJVVxb2tomjTHvbnz3n7mLbHuEk77BqxkxRSNvRVp4oZroDyaoEDQifMduCdvyE
                 info = parseBuy(buffer, accounts);
                 break;
 

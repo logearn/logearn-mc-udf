@@ -1130,6 +1130,7 @@ public class SolanaTransactionParser {
             for (int j = i + 1; j < transfers.size(); j++) {
                 TransferEvent tempS = transfers.get(j);
                 if (tempS.getOuterIndex() != tempT.getOuterIndex()) continue;
+                if (tempT.getInnerIndex() <= tempS.getInnerIndex() - 4) continue;
                 if (tempS.getContractAddress().equals(tempT.getContractAddress())) continue;
 
                 BigInteger currentAmount = tempT.getAmount().add(tempS.getAmount());
@@ -1171,19 +1172,24 @@ public class SolanaTransactionParser {
                 swapEvent.setSender(maxT.getSender());
                 swapEvent.setTokenIn(maxT.getContractAddress());
                 swapEvent.setAmountIn(maxT.getAmount());
+                swapEvent.setVaultIn(maxT.getReceiverOrigin());
                 swapEvent.setTo(maxS.getReceiver());
                 swapEvent.setTokenOut(maxS.getContractAddress());
                 swapEvent.setAmountOut(maxS.getAmount());
+                swapEvent.setVaultOut(maxS.getSenderOrigin());
             } else {
                 swapEvent.setSender(maxS.getSender());
                 swapEvent.setTokenIn(maxS.getContractAddress());
                 swapEvent.setAmountIn(maxS.getAmount());
+                swapEvent.setVaultIn(maxS.getReceiverOrigin());
                 swapEvent.setTo(maxT.getReceiver());
                 swapEvent.setTokenOut(maxT.getContractAddress());
                 swapEvent.setAmountOut(maxT.getAmount());
+                swapEvent.setVaultOut(maxT.getSenderOrigin());
             }
         }
     }
+
 
     private static void processBoopfunEvent(UniswapEvent swapEvent, List<TransferEvent> transfers, List<TransferEvent> solTransferEvent) {
         // 找到所有可能的transfer1
