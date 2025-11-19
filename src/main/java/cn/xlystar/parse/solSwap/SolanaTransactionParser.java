@@ -635,6 +635,7 @@ public class SolanaTransactionParser {
                             .tokenOut((String) event.get("output_vault_mint"))
                             .vaultIn((String) event.get("input_vault"))
                             .vaultOut((String) event.get("output_vault"))
+                            .protocol((String) event.get("platform_config"))
                             .outerIndex(outerInstructionIndex)
                             .innerIndex(innerInstructionIndex)
                             .logIndex(new BigInteger(String.valueOf(logIndex)))

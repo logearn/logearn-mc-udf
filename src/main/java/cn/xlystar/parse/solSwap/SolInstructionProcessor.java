@@ -329,6 +329,7 @@ public class SolInstructionProcessor {
             result.put("output_vault", info.get("quote_vault"));
             result.put("output_vault_mint", info.get("quote_mint"));
             result.put("output_token_account", info.get("output_token_account"));
+            result.put("platform_config", info.get("config"));
             result.put("instruction_type", "dex_amm");
             return result;
         } else if (programId.equals(BoopInstructionParser.PROGRAM_ID)
