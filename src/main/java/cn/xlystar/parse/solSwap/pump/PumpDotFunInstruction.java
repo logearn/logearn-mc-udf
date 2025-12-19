@@ -13,6 +13,7 @@ public enum PumpDotFunInstruction {
     INITIALIZE("afaf6d1f0d989bed"),                // 初始化
     SET_PARAMS("1beab2349302bb8d"),               // 设置参数
     BUY("66063d1201daebea"),                      // 购买代币
+    BUY_EXACT_SOL_IN("38fc74089edfcd5f"),         // 购买代币
     SELL("33e685a4017f83ad"),                     // 出售代币
     WITHDRAW("b712469c946da122"),                 // 提取资金
     MIGRATION("9beae792ec9ea21e"),                 // 提取资金

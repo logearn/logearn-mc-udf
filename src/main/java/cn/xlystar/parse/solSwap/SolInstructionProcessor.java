@@ -522,13 +522,17 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "pump_amm_liquidity");
             return result;
         } else if (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID)
-                && (parsed.get("method_id").equals(PumpDotFunInstruction.BUY.getValue()) || parsed.get("method_id").equals(PumpDotFunInstruction.SELL.getValue()))
+                && (parsed.get("method_id").equals(PumpDotFunInstruction.BUY.getValue())
+                || parsed.get("method_id").equals(PumpDotFunInstruction.SELL.getValue())
+                || parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN.getValue())
+        )
         ) {
-            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY.getValue())) {
+            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY.getValue()) || parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN.getValue()) ) {
                 result.put("input_vault", info.get("associatedBondingCurve"));
                 result.put("input_vault_mint", "So11111111111111111111111111111111111111112");
                 result.put("input_token_account", info.get("associatedUser"));
-                result.put("output_amount", new BigInteger(info.get("amount").toString()));
+                result.put("input_amount",  parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN.getValue()) ? new BigInteger(info.get("amount").toString()) : null);
+                result.put("output_amount",  parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN.getValue()) ? null:new BigInteger(info.get("amount").toString()));
                 result.put("output_vault", info.get("associatedBondingCurve"));
                 result.put("output_vault_mint", info.get("mint"));
                 result.put("output_token_account", info.get("associatedUser"));

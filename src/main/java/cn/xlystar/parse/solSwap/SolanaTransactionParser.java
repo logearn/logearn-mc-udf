@@ -927,7 +927,7 @@ public class SolanaTransactionParser {
     public static void processPumpSwapEvent(UniswapEvent event, List<TransferEvent> txTransferEvents, List<PumpFunTokenPool> allPoolLiquidity) {
         // sell
         try {
-            if (event.getAmountOut() == null) {
+            if (event.getAmountOut() == null && event.getTokenOut().equals("So11111111111111111111111111111111111111112")) {
                 for (int i = 0; i < allPoolLiquidity.size(); i++) {
                     PumpFunTokenPool dimAMMTokenPoolInfo = allPoolLiquidity.get(i);
                     if (dimAMMTokenPoolInfo.getTokenAddress().equals(event.getTokenIn())
@@ -939,7 +939,7 @@ public class SolanaTransactionParser {
                         break;
                     }
                 }
-            } else { // buy
+            } else if (event.getAmountIn() == null){ // buy
                 for (int i = 0; i < allPoolLiquidity.size(); i++) {
                     PumpFunTokenPool dimAMMTokenPoolInfo = allPoolLiquidity.get(i);
                     if (dimAMMTokenPoolInfo.getTokenAddress().equals(event.getTokenOut())
@@ -952,7 +952,20 @@ public class SolanaTransactionParser {
                     }
                 }
 
+            } else {// buy_extract_sol_in
+                for (int i = 0; i < allPoolLiquidity.size(); i++) {
+                    PumpFunTokenPool dimAMMTokenPoolInfo = allPoolLiquidity.get(i);
+                    if (dimAMMTokenPoolInfo.getTokenAddress().equals(event.getTokenOut())
+                            && new BigInteger(dimAMMTokenPoolInfo.getAmountChange0()).compareTo(BigInteger.ZERO) > 0
+                            && new BigInteger(dimAMMTokenPoolInfo.getAmountChange1()).abs().equals(event.getAmountIn())
+                    ) {
+                        event.setAmountOut(new BigInteger(dimAMMTokenPoolInfo.getAmountChange0()).abs());
+                        dimAMMTokenPoolInfo.setPoolAddress(event.getContractAddress());
+                        break;
+                    }
+                }
             }
+
 
             List<TransferEvent> swapEventsTransfer = new ArrayList<>();
             for (int i = 0; i < txTransferEvents.size(); i++) {

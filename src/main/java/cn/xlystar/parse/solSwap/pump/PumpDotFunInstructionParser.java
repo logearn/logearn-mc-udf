@@ -49,6 +49,7 @@ public class PumpDotFunInstructionParser extends InstructionParser {
                 info = parseCreateV2(buffer, accounts);
                 break;
             case BUY:
+            case BUY_EXACT_SOL_IN:
                 info = parseBuy(buffer, accounts);
                 break;
             case SELL:
