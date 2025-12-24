@@ -835,7 +835,7 @@ public class SolanaTransactionParser {
                 continue;
             } else if (isPumpFun(event)) {
                 // 其他协议使用确定的规则
-                processPumpSwapEvent(event, txTransferEvents, allPoolLiquidity);
+                processPumpSwapEvent(event, txTransferEvents, allPoolLiquidity, solTransferEvents);
                 if (event.getAmountOut() == null || event.getAmountIn() == null) swapIterator.remove();
                 continue;
             } else if (isPumpAMM(event)) {
@@ -924,7 +924,7 @@ public class SolanaTransactionParser {
         swapEvent.setTokenOut(txToList.get(0).getContractAddress());
     }
 
-    public static void processPumpSwapEvent(UniswapEvent event, List<TransferEvent> txTransferEvents, List<PumpFunTokenPool> allPoolLiquidity) {
+    public static void processPumpSwapEvent(UniswapEvent event, List<TransferEvent> txTransferEvents, List<PumpFunTokenPool> allPoolLiquidity, List<TransferEvent> solTransferEvents) {
         // sell
         try {
             if (event.getAmountOut() == null && event.getTokenOut().equals("So11111111111111111111111111111111111111112")) {
@@ -961,6 +961,17 @@ public class SolanaTransactionParser {
                     ) {
                         event.setAmountOut(new BigInteger(dimAMMTokenPoolInfo.getAmountChange0()).abs());
                         dimAMMTokenPoolInfo.setPoolAddress(event.getContractAddress());
+                        break;
+                    }
+                }
+
+                for (int i = 0; i < solTransferEvents.size(); i++) {
+                    TransferEvent transferEvent = solTransferEvents.get(i);
+                    if (transferEvent.getInnerIndex() > event.getInnerIndex()
+                            && transferEvent.getOuterIndex() == event.getOuterIndex()
+                            && transferEvent.getReceiverOrigin().equals(event.getContractAddress())
+                    ) {
+                        event.setAmountIn(transferEvent.getAmount());
                         break;
                     }
                 }
