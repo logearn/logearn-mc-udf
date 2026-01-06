@@ -1,7 +1,9 @@
 package cn.xlystar.parse.ammswap;
 
+import cn.xlystar.constants.InsideContract;
 import cn.xlystar.entity.*;
 import cn.xlystar.helpers.ChainConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -14,6 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Slf4j
@@ -26,6 +29,7 @@ public class Log {
             "0xce24439f2d9c6a2289f741120fe202248b666666",
             "0x000ae314e2a2172a039b26378814c252734f556a"
     );
+
     /**
      * 从log的String串中解析成对象
      */
@@ -370,6 +374,178 @@ public class Log {
         return uniswapEvents;
     }
 
+
+    public static byte[] hexToBytes(String hex) {
+        if (hex.startsWith("0x")) {
+            hex = hex.substring(2);
+        }
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) (
+                    (Character.digit(hex.charAt(i), 16) << 4)
+                            + Character.digit(hex.charAt(i + 1), 16)
+            );
+        }
+        return data;
+    }
+    static BigInteger readUint256(byte[] data, int offset) {
+        return new BigInteger(1, Arrays.copyOfRange(data, offset, offset + 32));
+    }
+    static String readAbiString(byte[] data, int paramIndex) {
+        // paramIndex = 第几个参数（从 0 开始）
+        int offsetPos = paramIndex * 32;
+
+        // 1. 读 offset
+        int offset = readUint256(data, offsetPos).intValue();
+
+        // 2. 读 length
+        int len = readUint256(data, offset).intValue();
+
+        // 3. 读 string bytes
+        byte[] strBytes = Arrays.copyOfRange(
+                data,
+                offset + 32,
+                offset + 32 + len
+        );
+
+        return new String(strBytes, StandardCharsets.UTF_8);
+    }
+
+
+    public static List<UniswapEvent> findFlapSwap(ChainConfig conf, JsonNode logJson, List<TransferEvent> transferEvents, String price) {
+        JsonNode logLists = logJson.get("logs");
+        List<UniswapEvent> uniswapEvents = new ArrayList<>();
+        for (JsonNode tmp : logLists) {
+            String contractAddress = tmp.get("address").asText().toLowerCase();
+            if (!contractAddress.equals(InsideContract.BSCFlapMEME.contractAddress) || tmp.get("data").asText().length() != 450)
+                continue;
+            String data = tmp.get("data").asText().substring(2);
+            List<String> topicLists = parseTopics(tmp.get("topics"));
+            JsonNode logIndexNode = tmp.get("logIndex") != null ? tmp.get("logIndex") : tmp.get("logindex");
+            BigInteger logIndex = new BigInteger(logIndexNode.asText().substring(2), 16);
+
+            if (topicLists.size() == 1
+                    && "0xa800a2038683844fac66747f771bfdfae862eb28b16bcfa387afa9fbacce8ff7".equalsIgnoreCase(topicLists.get(0))) {
+                String token_address = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+                String sender = "0x" + data.substring(128, 192).substring(24).toLowerCase();
+                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
+                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
+                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
+
+
+                BigInteger amountIn = coin.add(fee);
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(sender)
+                        .tokenIn(conf.getWCoinAddress())
+                        .tokenOut(token_address)
+                        .amountIn(amountIn)
+                        .amountOut(token)
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(conf.getProtocol())
+                        .version(InsideContract.BSCFlapAliseMEME.contractAddress)
+                        .build();
+
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getContractAddress().equals(token_address)
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && (transferEvent.getSender().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            || transferEvent.getSender().equals(InsideContract.BSCFlapProxyMEME.contractAddress))) {
+                        uniswapEvent.setTo(transferEvent.getReceiver());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
+                            && (transferEvent.getReceiver().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            || transferEvent.getReceiver().equals(InsideContract.BSCFlapProxyMEME.contractAddress))
+                            && (!transferEvent.getSender().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            && !transferEvent.getSender().equals(InsideContract.BSCFlapProxyMEME.contractAddress)
+                            && !transferEvent.getSender().equals(conf.getWCoinAddress()))
+                    ) {
+                        uniswapEvent.setTokenIn(transferEvent.getContractAddress());
+                        uniswapEvent.setAmountIn(transferEvent.getAmount());
+                        uniswapEvent.setSender(transferEvent.getSender());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                uniswapEvents.add(uniswapEvent);
+            } else if (topicLists.size() == 1
+                    && "0x03a4693e592f5e75dc7c136acb39b146d2b4966c0e509c34f362dee02b3b861a".equalsIgnoreCase(topicLists.get(0))) {
+                String token_address = "0x" + data.substring(64, 128).substring(24).toLowerCase();
+                String sender = "0x" + data.substring(128, 192).substring(24).toLowerCase();
+                BigInteger token = web3HexToBigInteger(data.substring(192, 256));
+                BigInteger coin = web3HexToBigInteger(data.substring(256, 320));
+                BigInteger fee = web3HexToBigInteger(data.substring(320, 384));
+
+                UniswapEvent uniswapEvent = UniswapEvent.builder()
+                        .sender(sender)
+                        .to(sender)
+                        .tokenIn(token_address)
+                        .tokenOut(conf.getWCoinAddress())
+                        .amountIn(token)
+                        .amountOut(coin.subtract(fee))
+
+                        .logIndex(logIndex)
+                        .contractAddress(contractAddress)
+                        .fromMergedTransferEvent(new ArrayList<>())
+                        .toMergedTransferEvent(new ArrayList<>())
+                        .protocol(conf.getProtocol())
+                        .version(InsideContract.BSCFlapAliseMEME.contractAddress)
+                        .build();
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getContractAddress().equals(token_address)
+                            && transferEvent.getAmount().compareTo(token) == 0
+                            && (transferEvent.getReceiver().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            || transferEvent.getReceiver().equals(InsideContract.BSCFlapProxyMEME.contractAddress))
+                    ) {
+                        uniswapEvent.setSender(transferEvent.getSender());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
+                            && (transferEvent.getSender().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            || transferEvent.getSender().equals(InsideContract.BSCFlapProxyMEME.contractAddress))
+                            && (!transferEvent.getReceiver().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            && !transferEvent.getReceiver().equals(InsideContract.BSCFlapProxyMEME.contractAddress)
+                            && !transferEvent.getReceiver().equals(conf.getWCoinAddress()))
+                    ) {
+                        uniswapEvent.setTokenOut(transferEvent.getContractAddress());
+                        uniswapEvent.setAmountOut(transferEvent.getAmount());
+                        uniswapEvent.setTo(transferEvent.getReceiver());
+                        transferEvents.remove(transferEvent);
+                        break;
+                    }
+                }
+                for (TransferEvent transferEvent : transferEvents) {
+                    // 非 BNB 的情况，比如 USD1
+                    if (transferEvent.getAmount().subtract(coin.subtract(fee)).abs().compareTo(new BigDecimal(coin).multiply(new BigDecimal("0.05")).toBigInteger()) <= 0
+                            && (transferEvent.getSender().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            || transferEvent.getSender().equals(InsideContract.BSCFlapProxyMEME.contractAddress))
+                            && (!transferEvent.getReceiver().equals(InsideContract.BSCFlapMEME.contractAddress)
+                            && !transferEvent.getReceiver().equals(InsideContract.BSCFlapProxyMEME.contractAddress)
+                            && !transferEvent.getReceiver().equals(conf.getWCoinAddress()))
+                            && fourMemeQuoteList.contains(transferEvent.getContractAddress())
+                    ) {
+//                        transferEvents.remove(transferEvent);
+                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee)).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        uniswapEvent.setAmountOut(wcoinAmount);
+                        break;
+                    }
+                }
+                uniswapEvents.add(uniswapEvent);
+            }
+        }
+        return uniswapEvents;
+    }
 
     /**
      * 解析 fourMemeSwap V1事件

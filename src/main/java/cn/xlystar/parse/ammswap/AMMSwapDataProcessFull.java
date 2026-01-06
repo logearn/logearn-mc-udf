@@ -753,6 +753,7 @@ public class AMMSwapDataProcessFull {
         List<UniswapEvent> uniswapV3Events = Log.findSwapV3(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapMMEvents = Log.findSwapMM(conf.getProtocol(), txLog);
         List<UniswapEvent> uniswapStableCoinEvents = Log.findSwapStableCoin(conf.getProtocol(), txLog);
+        List<UniswapEvent> flapSwap = Log.findFlapSwap(conf, txLog, transferEvents, price);
         List<UniswapEvent> fourMemeSwapV2 = Log.findFourMemeSwapV2(conf, txLog, transferEvents, price);
         List<UniswapEvent> findFourMemeV1 = Log.findFourMemeSwapV1(conf, txLog, transferEvents);
 
@@ -762,6 +763,7 @@ public class AMMSwapDataProcessFull {
         uniswapEvents.addAll(uniswapV3Events);
         uniswapEvents.addAll(uniswapMMEvents);
         uniswapEvents.addAll(uniswapStableCoinEvents);
+        uniswapEvents.addAll(flapSwap);
         uniswapEvents.addAll(fourMemeSwapV2);
         uniswapEvents.addAll(findFourMemeV1);
         Collections.sort(uniswapEvents, Comparator.comparing(UniswapEvent::getLogIndex));
