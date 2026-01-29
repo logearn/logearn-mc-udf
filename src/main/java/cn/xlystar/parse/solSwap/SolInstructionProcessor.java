@@ -1,5 +1,6 @@
 package cn.xlystar.parse.solSwap;
 
+import cn.xlystar.constants.InsideContract;
 import cn.xlystar.parse.solSwap.boop.BoopInstruction;
 import cn.xlystar.parse.solSwap.okx.OkxInstructionParser;
 import cn.xlystar.parse.solSwap.boop.BoopInstructionParser;
@@ -315,6 +316,7 @@ public class SolInstructionProcessor {
             result.put("vault_mint_1", info.get("quote_mint"));
             result.put("user", info.get("creator"));
             result.put("creator", info.get("creator"));
+            result.put("platform_config", InsideContract.Dbc_Bags.contractAddress.equals(info.get("creator")) ? info.get("creator") : info.get("config"));
             result.put("instruction_type", "meteora_dbc_create_token_instruction");
             return result;
         } else if (programId.equals(MeteoraDbcInstructionParser.PROGRAM_ID)

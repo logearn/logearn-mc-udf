@@ -16,10 +16,10 @@ public enum InsideContract {
 
     MeteoraDbc("dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN"),
     Dbc_Dbc("Bov7gMQ88BQbtFMTxQ5e8grtrwG4ryQGAV9Mih2j9SxK"),
-    Dbc_Bags("2BH8m9E2mE6cc86GLjfodYvRn2P7LQ9ge8fN2u7q19dt"),
+    Dbc_Bags("BAGSB9TpGrZxQbEsrEznv5jXXdwyP6AXerN8aVRiAmcv"),
     Dbc_Moonshot("FbKf76ucsQssF7XZBuzScdJfugtsSKwZFYztKsMEhWZM"),
     Dbc_AnoncoinIt("GybkUNYVNk1FZMt9myAfvpSVgoKBgaueMTvszwBN4qYx"),
-    Dbc_Studio("EQMdk2NDUrdCrWR2avdLcmPmtmGePiTz4LzSRuLew61P"),
+    Dbc_Studio("8rE9CtCjwhSmbwL5fbJBtRFsS3ohfMcDFeTTC7t4ciUA"),
     Dbc_TrendFun("7UNpFBfTdWrcfS7aBQzEaPgZCfPJe8BDgHzwmWUZaMaF"),
 
     BSCFlapAliseMEME("flap"),

@@ -957,7 +957,7 @@ public class SolanaTransactionParser {
                     PumpFunTokenPool dimAMMTokenPoolInfo = allPoolLiquidity.get(i);
                     if (dimAMMTokenPoolInfo.getTokenAddress().equals(event.getTokenOut())
                             && new BigInteger(dimAMMTokenPoolInfo.getAmountChange0()).compareTo(BigInteger.ZERO) > 0
-                            && new BigInteger(dimAMMTokenPoolInfo.getAmountChange1()).abs().equals(event.getAmountIn())
+                            && event.getAmountIn().subtract(new BigInteger(dimAMMTokenPoolInfo.getAmountChange1()).abs()).compareTo(new BigDecimal(event.getAmountIn()).multiply(new BigDecimal("0.07")).toBigInteger()) < 0
                     ) {
                         event.setAmountOut(new BigInteger(dimAMMTokenPoolInfo.getAmountChange0()).abs());
                         dimAMMTokenPoolInfo.setPoolAddress(event.getContractAddress());

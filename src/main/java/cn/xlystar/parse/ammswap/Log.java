@@ -351,24 +351,54 @@ public class Log {
                 BigInteger amountIn = amount1In.compareTo(BigInteger.ONE) > 0 ? amount1In : amount0In;
                 if ((amount1In.compareTo(BigInteger.ONE) > 0 && amount0In.compareTo(BigInteger.ONE) > 0)
                         || (amount0Out.compareTo(BigInteger.ONE) > 0 && amount1Out.compareTo(BigInteger.ONE) > 0)) {
-                    continue;
+                    UniswapEvent uni1 = UniswapEvent.builder()
+                            .sender(sender)
+                            .to(to)
+
+                            .amountIn(amount1In)
+                            .amountOut(amount0Out)
+
+                            .logIndex(logIndex)
+                            .contractAddress(contractAddress)
+                            .fromMergedTransferEvent(new ArrayList<>())
+                            .toMergedTransferEvent(new ArrayList<>())
+                            .protocol(protocol)
+                            .version("v2")
+                            .build();
+                    UniswapEvent uni2 = UniswapEvent.builder()
+                            .sender(sender)
+                            .to(to)
+
+                            .amountIn(amount0In)
+                            .amountOut(amount1Out)
+
+                            .logIndex(logIndex.add(BigInteger.ONE))
+                            .contractAddress(contractAddress)
+                            .fromMergedTransferEvent(new ArrayList<>())
+                            .toMergedTransferEvent(new ArrayList<>())
+                            .protocol(protocol)
+                            .version("v2")
+                            .build();
+                    uniswapEvents.add(uni1);
+                    uniswapEvents.add(uni2);
+                } else {
+                    UniswapEvent uniswapEvent = UniswapEvent.builder()
+                            .sender(sender)
+                            .to(to)
+
+                            .amountIn(amountIn)
+                            .amountOut(amountOut)
+
+                            .logIndex(logIndex)
+                            .contractAddress(contractAddress)
+                            .fromMergedTransferEvent(new ArrayList<>())
+                            .toMergedTransferEvent(new ArrayList<>())
+                            .protocol(protocol)
+                            .version("v2")
+                            .build();
+
+                    uniswapEvents.add(uniswapEvent);
                 }
-                UniswapEvent uniswapEvent = UniswapEvent.builder()
-                        .sender(sender)
-                        .to(to)
-
-                        .amountIn(amountIn)
-                        .amountOut(amountOut)
-
-                        .logIndex(logIndex)
-                        .contractAddress(contractAddress)
-                        .fromMergedTransferEvent(new ArrayList<>())
-                        .toMergedTransferEvent(new ArrayList<>())
-                        .protocol(protocol)
-                        .version("v2")
-                        .build();
-
-                uniswapEvents.add(uniswapEvent);
             }
         }
         return uniswapEvents;
@@ -389,9 +419,11 @@ public class Log {
         }
         return data;
     }
+
     static BigInteger readUint256(byte[] data, int offset) {
         return new BigInteger(1, Arrays.copyOfRange(data, offset, offset + 32));
     }
+
     static String readAbiString(byte[] data, int paramIndex) {
         // paramIndex = 第几个参数（从 0 开始）
         int offsetPos = paramIndex * 32;
@@ -692,8 +724,11 @@ public class Log {
                             && transferEvent.getReceiver().equals("0x5c952063c7fc8610ffdb798152d69f0b9550762b")
                             && fourMemeQuoteList.contains(transferEvent.getContractAddress())
                     ) {
-                        BigInteger wcoinAmount = new BigDecimal(amountIn).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        BigInteger wcoinAmount = new BigDecimal(amountIn)
+//                                .divide(new BigDecimal(price), 20, RoundingMode.HALF_UP)
+                                .toBigInteger();
                         uniswapEvent.setAmountIn(wcoinAmount);
+                        uniswapEvent.setTokenIn(transferEvent.getContractAddress());
                         break;
                     }
                 }
@@ -740,8 +775,11 @@ public class Log {
                             && fourMemeQuoteList.contains(transferEvent.getContractAddress())
                     ) {
 //                        transferEvents.remove(transferEvent);
-                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee)).divide(new BigDecimal(price), 20, RoundingMode.HALF_UP).toBigInteger();
+                        BigInteger wcoinAmount = new BigDecimal(coin.subtract(fee))
+//                                .divide(new BigDecimal(price), 20, RoundingMode.HALF_UP)
+                                .toBigInteger();
                         uniswapEvent.setAmountOut(wcoinAmount);
+                        uniswapEvent.setTokenOut(transferEvent.getContractAddress());
                         break;
                     }
                 }
@@ -819,6 +857,7 @@ public class Log {
 //            rawTransferEvent.removeAll(excludeRawTransferEvents);
 //        });
 
+        _fillSwapTokenInAndTokenOut(uniswapEvents, transferEvents, excludetransferEvents, hash, true);
         _fillSwapTokenInAndTokenOut(uniswapEvents, transferEvents, excludetransferEvents, hash, false);
         _fillSwapTokenInAndTokenOut(rawUniswapEvents, rawTransferEvent, excludeRawTransferEvents, hash, true);
 

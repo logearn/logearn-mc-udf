@@ -464,6 +464,7 @@ public class AMMSwapDataProcessFull {
 
     }
 
+
     private static boolean convertToNative(ChainConfig conf, UniswapEvent t, BigDecimal price, Map<String, BigDecimal> tokenPriceList) {
         String wcoin = conf.getChainConf().get("wcoin").asText();
         String wcoinDecimals = conf.getTokens().get(wcoin).get("scale").asText();
@@ -475,15 +476,19 @@ public class AMMSwapDataProcessFull {
         JsonNode usd1 = conf.getTokens().get("USD1");
         JsonNode cake = conf.getTokens().get("CAKE");
         JsonNode aster = conf.getTokens().get("ASTER");
+        JsonNode u = conf.getTokens().get("U");
         boolean hasUsdc = false;
         boolean hasUsdt = false;
         boolean hasUsd1 = false;
         boolean hasCake = false;
         boolean hasAster = false;
+        boolean hasU = false;
         String usdcDecimals = "";
         String usdcAddress = "";
         String usdtDecimals = "";
         String usdtAddress = "";
+        String uDecimals = "";
+        String uAddress = "";
         String usd1Decimals = "";
         String usd1Address = "";
         String cakeDecimals = "";
@@ -504,6 +509,11 @@ public class AMMSwapDataProcessFull {
             usdtAddress = usdt.get("address").asText();
             usdtDecimals = usdt.get("scale").asText();
             hasUsdt = usdtAddress.equals(t.getTokenIn()) || usdtAddress.equals(t.getTokenOut());
+        }
+        if (u != null) {
+            uAddress = u.get("address").asText();
+            uDecimals = u.get("scale").asText();
+            hasU = uAddress.equals(t.getTokenIn()) || uAddress.equals(t.getTokenOut());
         }
         if (aster != null) {
             asterAddress = aster.get("address").asText();
@@ -541,6 +551,9 @@ public class AMMSwapDataProcessFull {
         } else if (hasUsd1) {
             tokenAddress = usd1Address;
             decimals = usd1Decimals;
+        } else if (hasU) {
+            tokenAddress = uAddress;
+            decimals = uDecimals;
         } else if (hasAster) {
             tokenAddress = asterAddress;
             decimals = asterDecimals;
@@ -652,6 +665,8 @@ public class AMMSwapDataProcessFull {
                 throw new RuntimeException(e);
             }
         });
+        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList());
+
         // 3、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
 //        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
         transferToUniswapSell(conf, transferEvents, fullUniswapEvents);
@@ -712,6 +727,7 @@ public class AMMSwapDataProcessFull {
                 throw new RuntimeException(e);
             }
         });
+        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList());
 
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
 

@@ -151,34 +151,35 @@ public class AccountAmountSum extends Aggregator {
     @SneakyThrows
     @Override
     public void iterate(Writable buffer, Writable[] args) throws UDFException {
-        String type = ((Text) args[0]).toString(); // 交易类型
-        String amount = ((Text) args[1]).toString(); // 交易金额
-        amount = "Base".equals(type) ? amount : amount.replaceAll("^(-)", "");
-        String buy_gas_usd = args[2] == null || StringUtils.isNullOrEmpty(args[2].toString()) ? "0" : args[2].toString();// gas usd计价
-        String buy_gas_bnb = args[3] == null || StringUtils.isNullOrEmpty(args[3].toString()) ? "0" : args[3].toString();// gas eth计价
-        String sell_gas_usd = args[4] == null || StringUtils.isNullOrEmpty(args[4].toString()) ? "0" : args[4].toString();// gas usd计价
-        String sell_gas_bnb = args[5] == null || StringUtils.isNullOrEmpty(args[5].toString()) ? "0" : args[5].toString();// gas eth计价
-        String tradeAccountAmount = args[6] == null || StringUtils.isNullOrEmpty(args[6].toString()) ? "0" : args[6].toString(); // 交易账号总余额
-        String trade_token_amount = args[7] == null || StringUtils.isNullOrEmpty(args[7].toString()) ? "0" : args[7].toString(); // 买入的总 amount
-        String trade_token_cost_usd = args[8] == null || StringUtils.isNullOrEmpty(args[8].toString()) ? "0" : args[8].toString();
-        String trade_token_cost_eth = args[9] == null || StringUtils.isNullOrEmpty(args[9].toString()) ? "0" : args[9].toString();
+        try {
+
+            String type = ((Text) args[0]).toString(); // 交易类型
+            String amount = ((Text) args[1]).toString(); // 交易金额
+            amount = "Base".equals(type) ? amount : amount.replaceAll("^(-)", "");
+            String buy_gas_usd = args[2] == null || StringUtils.isNullOrEmpty(args[2].toString()) ? "0" : args[2].toString();// gas usd计价
+            String buy_gas_bnb = args[3] == null || StringUtils.isNullOrEmpty(args[3].toString()) ? "0" : args[3].toString();// gas eth计价
+            String sell_gas_usd = args[4] == null || StringUtils.isNullOrEmpty(args[4].toString()) ? "0" : args[4].toString();// gas usd计价
+            String sell_gas_bnb = args[5] == null || StringUtils.isNullOrEmpty(args[5].toString()) ? "0" : args[5].toString();// gas eth计价
+            String tradeAccountAmount = args[6] == null || StringUtils.isNullOrEmpty(args[6].toString()) ? "0" : args[6].toString(); // 交易账号总余额
+            String trade_token_amount = args[7] == null || StringUtils.isNullOrEmpty(args[7].toString()) ? "0" : args[7].toString(); // 买入的总 amount
+            String trade_token_cost_usd = args[8] == null || StringUtils.isNullOrEmpty(args[8].toString()) ? "0" : args[8].toString();
+            String trade_token_cost_eth = args[9] == null || StringUtils.isNullOrEmpty(args[9].toString()) ? "0" : args[9].toString();
 //        String price = ((Text) args[2]).toString(); // token:usd 汇率
 //        price = StringUtils.isNullOrEmpty(price) ? "0" : price;
-        String priceUSD = args[10] == null || StringUtils.isNullOrEmpty(args[10].toString()) ? "0" : args[10].toString();// token:usd 汇率
-        String priceETH = args[11] == null || StringUtils.isNullOrEmpty(args[11].toString()) ? "0" : args[11].toString(); // token:eth 汇率
-        String out_by_in_ratio = args[12] == null || StringUtils.isNullOrEmpty(args[12].toString()) ? "0" : args[12].toString(); // token:eth 汇率
-        String tokenPositionNum = args[13] == null || StringUtils.isNullOrEmpty(args[13].toString()) ? "0" : args[13].toString(); // 仓位序号
-        String decimals = args[14] == null || StringUtils.isNullOrEmpty(args[14].toString()) ? "0" : args[14].toString(); // 精度
-        String sell_receive_usd = args[15] == null || StringUtils.isNullOrEmpty(args[15].toString()) ? "0" : args[15].toString(); // 精度
-        String sell_receive_eth = args[16] == null || StringUtils.isNullOrEmpty(args[16].toString()) ? "0" : args[16].toString(); // 精度
-        String sell_amount = args[17] == null || StringUtils.isNullOrEmpty(args[17].toString()) ? "0" : args[17].toString(); // 精度
-        String transferout_amount = args[18] == null || StringUtils.isNullOrEmpty(args[18].toString()) ? "0" : args[18].toString(); // 精度
-        String trade_token_cost_usd_now = args[19] == null || StringUtils.isNullOrEmpty(args[19].toString()) ? "0" : args[19].toString(); // 现持仓的开销
-        String trade_token_cost_coin_now = args[20] == null || StringUtils.isNullOrEmpty(args[20].toString()) ? "0" : args[20].toString(); // 现持仓的开销
-        String hold_price_usd = args[21] == null || StringUtils.isNullOrEmpty(args[21].toString()) ? "0" : args[21].toString(); // 现持仓的开销
-        String hold_price_coin = args[22] == null || StringUtils.isNullOrEmpty(args[22].toString()) ? "0" : args[22].toString(); // 现持仓的开销
-        AmountBuffer buf = (AmountBuffer) buffer;
-        try {
+            String priceUSD = args[10] == null || StringUtils.isNullOrEmpty(args[10].toString()) ? "0" : args[10].toString();// token:usd 汇率
+            String priceETH = args[11] == null || StringUtils.isNullOrEmpty(args[11].toString()) ? "0" : args[11].toString(); // token:eth 汇率
+            String out_by_in_ratio = args[12] == null || StringUtils.isNullOrEmpty(args[12].toString()) ? "0" : args[12].toString(); // token:eth 汇率
+            String tokenPositionNum = args[13] == null || StringUtils.isNullOrEmpty(args[13].toString()) ? "0" : args[13].toString(); // 仓位序号
+            String decimals = args[14] == null || StringUtils.isNullOrEmpty(args[14].toString()) ? "0" : args[14].toString(); // 精度
+            String sell_receive_usd = args[15] == null || StringUtils.isNullOrEmpty(args[15].toString()) ? "0" : args[15].toString(); // 精度
+            String sell_receive_eth = args[16] == null || StringUtils.isNullOrEmpty(args[16].toString()) ? "0" : args[16].toString(); // 精度
+            String sell_amount = args[17] == null || StringUtils.isNullOrEmpty(args[17].toString()) ? "0" : args[17].toString(); // 精度
+            String transferout_amount = args[18] == null || StringUtils.isNullOrEmpty(args[18].toString()) ? "0" : args[18].toString(); // 精度
+            String trade_token_cost_usd_now = args[19] == null || StringUtils.isNullOrEmpty(args[19].toString()) ? "0" : args[19].toString(); // 现持仓的开销
+            String trade_token_cost_coin_now = args[20] == null || StringUtils.isNullOrEmpty(args[20].toString()) ? "0" : args[20].toString(); // 现持仓的开销
+            String hold_price_usd = args[21] == null || StringUtils.isNullOrEmpty(args[21].toString()) ? "0" : args[21].toString(); // 现持仓的开销
+            String hold_price_coin = args[22] == null || StringUtils.isNullOrEmpty(args[22].toString()) ? "0" : args[22].toString(); // 现持仓的开销
+            AmountBuffer buf = (AmountBuffer) buffer;
             log.info("[iterate func start]: type={}, amount={}, price={}, tradeAccountAmount={}", type, amount, priceUSD, tradeAccountAmount);
             //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
             boolean isTradeAccountClean = "0".equals(buf.tradeAccountAmount);
@@ -247,7 +248,7 @@ public class AccountAmountSum extends Aggregator {
                         buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.compare(decrCost, buf.tradeAccountTokenCostHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostHoldOfBuy, decrCost).toString();
                         buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.compare(decrCostCoin, buf.tradeAccountTokenCostETHHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostETHHoldOfBuy, decrCostCoin).toString();
 
-                        buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+                        buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                         buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                     }
                 }
@@ -271,7 +272,7 @@ public class AccountAmountSum extends Aggregator {
                     buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostHoldOfBuy, incrCost).toString();
                     buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostETHHoldOfBuy, incrCostETH).toString();
 
-                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                     buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
 
                 }
@@ -299,7 +300,7 @@ public class AccountAmountSum extends Aggregator {
                     buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.compare(decrCost, buf.tradeAccountTokenCostHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostHoldOfBuy, decrCost).toString();
                     buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.compare(decrCostCoin, buf.tradeAccountTokenCostETHHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostETHHoldOfBuy, decrCostCoin).toString();
 
-                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                     buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
 
 //                //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
@@ -342,7 +343,7 @@ public class AccountAmountSum extends Aggregator {
                     buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.compare(decrCost, buf.tradeAccountTokenCostHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostHoldOfBuy, decrCost).toString();
                     buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.compare(decrCostCoin, buf.tradeAccountTokenCostETHHoldOfBuy) ? "0" : ArithmeticUtils.sub(buf.tradeAccountTokenCostETHHoldOfBuy, decrCostCoin).toString();
 
-                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+                    buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
                     buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
 
 //                //当 tradeAccountAmount = 0 时，Buy 的 总 Cost、总 Amount 都重置为 0。
@@ -361,7 +362,7 @@ public class AccountAmountSum extends Aggregator {
             for (int i = 0; i < args.length; i++) {
                 builder.append("| index-" + i + ":" + args[i].toString());
             }
-            throw new Exception("buf:" + buf + ", args:" + builder.toString());
+//            throw new Exception("buf:" + buf + ", args:" + builder.toString());
         }
     }
 
@@ -413,7 +414,7 @@ public class AccountAmountSum extends Aggregator {
         buf.tradeAccountTokenSellCostGasETH = ArithmeticUtils.add(buf.tradeAccountTokenSellCostGasETH, p.tradeAccountTokenSellCostGasETH).toString();
         buf.tradeAccountTokenCostHoldOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostHoldOfBuy, p.tradeAccountTokenCostHoldOfBuy).toString();
         buf.tradeAccountTokenCostETHHoldOfBuy = ArithmeticUtils.add(buf.tradeAccountTokenCostETHHoldOfBuy, p.tradeAccountTokenCostETHHoldOfBuy).toString();
-        buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0" ;
+        buf.holdPriceUsd = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
         buf.holdPriceCoin = ArithmeticUtils.compare(buf.tradeAccountAmount, "0") ? ArithmeticUtils.div(buf.tradeAccountTokenCostETHHoldOfBuy, buf.tradeAccountAmount, 64) : "0";
         log.info("[merge func]: buffer={}", buf);
     }
