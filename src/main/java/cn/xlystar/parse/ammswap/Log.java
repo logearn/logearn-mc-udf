@@ -729,6 +729,7 @@ public class Log {
                                 .toBigInteger();
                         uniswapEvent.setAmountIn(wcoinAmount);
                         uniswapEvent.setTokenIn(transferEvent.getContractAddress());
+                        transferEvents.remove(transferEvent);
                         break;
                     }
                 }
@@ -780,6 +781,7 @@ public class Log {
                                 .toBigInteger();
                         uniswapEvent.setAmountOut(wcoinAmount);
                         uniswapEvent.setTokenOut(transferEvent.getContractAddress());
+                        transferEvents.remove(transferEvent);
                         break;
                     }
                 }
