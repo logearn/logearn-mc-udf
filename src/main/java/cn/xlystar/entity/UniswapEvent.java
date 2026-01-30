@@ -89,7 +89,7 @@ public class UniswapEvent extends Event implements Serializable {
     /**
      * 将多个events，串联起来，形成完整的uniswapEvents事件， 串联规则：前一个swap的to是后一个sender
      */
-    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents, List<UniswapEvent> aggList) {
+    public static List<UniswapEvent> merge(List<UniswapEvent> uniswapEvents, List<UniswapEvent> aggList, boolean isFinal) {
         ArrayList<UniswapEvent> fullUniswapEvents = new ArrayList<>();
         for (UniswapEvent t : aggList) {
             List<UniswapEvent> aggMergeList = new ArrayList<>();
@@ -117,14 +117,14 @@ public class UniswapEvent extends Event implements Serializable {
             builder.isAggregator(u.isAggregator);
 
             // 向前找最早1个swap事件
-            UniswapEvent _tpre = findPreEvent(tmpUniswapEvents, u, mergedPools);
+            UniswapEvent _tpre = findPreEvent(tmpUniswapEvents, u, mergedPools,isFinal);
             builder.tokenIn(_tpre.getTokenIn());
             builder.amountIn(_tpre.getAmountIn());
             builder.sender(_tpre.getSender());
             originPair.add(0, _tpre.getTokenIn());
 
             // 向后找最后一个swap事件
-            UniswapEvent _taft = findAfterEvent(tmpUniswapEvents, u, mergedPools);
+            UniswapEvent _taft = findAfterEvent(tmpUniswapEvents, u, mergedPools,isFinal);
             builder.tokenOut(_taft.getTokenOut());
             builder.amountOut(_taft.getAmountOut());
             builder.to(_taft.getTo());
@@ -155,7 +155,7 @@ public class UniswapEvent extends Event implements Serializable {
     /**
      * 向前找到最早的一个swapEvent
      */
-    private static UniswapEvent findPreEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged) {
+    private static UniswapEvent findPreEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged, boolean isFinal) {
         if (events.isEmpty()) {
             return target;
         }
@@ -166,14 +166,17 @@ public class UniswapEvent extends Event implements Serializable {
             if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) > 0) continue;
             if (elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
-                if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn()) && elem.getAmountOut().equals(target.getAmountIn())
+                if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn())
+                        && ((elem.getAmountOut().compareTo(target.getAmountIn().divide(new BigInteger("2"))) >= 0 && isFinal)
+                        || (elem.getAmountOut().equals(target.getAmountIn()) && !isFinal)
+                )
                         // elem.getTo().equalsIgnoreCase(target.getSender())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
                         // elem.getTo().equalsIgnoreCase(target.getContractAddress()) => 这就是merge  a -> pool1 -> pool2 -> a
                         && (elem.getTo().equalsIgnoreCase(target.getSender()) || elem.getTo().equalsIgnoreCase(target.getContractAddress()))
                 ) {
                     iterator.remove(); // 移除匹配到的元素
                     merged.add(0, elem);
-                    return findPreEvent(events, elem, merged);
+                    return findPreEvent(events, elem, merged, isFinal);
                 }
             }
         }
@@ -183,7 +186,7 @@ public class UniswapEvent extends Event implements Serializable {
     /**
      * 向后找到最晚的一个swapEvent
      */
-    private static UniswapEvent findAfterEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged) {
+    private static UniswapEvent findAfterEvent(List<UniswapEvent> events, UniswapEvent target, List<UniswapEvent> merged, boolean isFinal) {
         if (events.isEmpty()) {
             return target;
         }
@@ -193,14 +196,17 @@ public class UniswapEvent extends Event implements Serializable {
             if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) < 0) continue;
             if (elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
-                if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut()) && elem.getAmountIn().equals(target.getAmountOut())
+                if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut())
+                        && ((elem.getAmountIn().equals(target.getAmountOut())&& !isFinal) || (
+                        elem.getAmountIn().compareTo(target.getAmountOut().divide(new BigInteger("2"))) >= 0 && isFinal
+                ))
                         // elem.getSender().equalsIgnoreCase(target.getTo())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
                         // elem.getSender().equalsIgnoreCase(target.getContractAddress()) => 这就是merge  a -> pool1 -> pool2 -> a
                         && (elem.getSender().equalsIgnoreCase(target.getTo()) || elem.getSender().equalsIgnoreCase(target.getContractAddress()))
                 ) {
                     iterator.remove(); // 移除匹配到的元素
                     merged.add(elem);
-                    return findAfterEvent(events, elem, merged);
+                    return findAfterEvent(events, elem, merged, isFinal);
                 }
             }
         }

@@ -637,7 +637,7 @@ public class AMMSwapDataProcessFull {
 //            return t.isAggregator() || !aggOuterIndex.contains(t.getOuterIndex());
 //        }).collect(Collectors.toList());
 
-        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(uniswapEvents, aggList);
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(uniswapEvents, aggList, false);
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
 
         // 2、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
@@ -665,7 +665,7 @@ public class AMMSwapDataProcessFull {
                 throw new RuntimeException(e);
             }
         });
-        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList());
+        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList(), true);
 
         // 3、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
 //        List<TransferEvent> getFinalTransferOutEvent = TransferEvent.calculateBalances(transferEvents);
@@ -701,7 +701,7 @@ public class AMMSwapDataProcessFull {
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
         Result resultEvent = getUniswapEvents(conf, transferEvents, txLog, hash, price);
         // 3、将构建好的所有 swapEven t的首尾串联，串联规则：前一个swap的receiver = 后一个swap的sender
-        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents(), Lists.newArrayList());
+        List<UniswapEvent> fullUniswapEvents = UniswapEvent.merge(resultEvent.getUniswapEvents(), Lists.newArrayList(), false);
         log.debug("******* 所有 Swap 首尾相连后为： {} 条", fullUniswapEvents.size());
 
         // 5、循环遍历swapEvents， 从transferEvents找到每一个swapEvent的最开始的入地址和最终的转出地址
@@ -727,7 +727,7 @@ public class AMMSwapDataProcessFull {
                 throw new RuntimeException(e);
             }
         });
-        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList());
+        fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList(), false);
 
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
 

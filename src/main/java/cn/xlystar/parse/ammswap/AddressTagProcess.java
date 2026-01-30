@@ -94,7 +94,7 @@ public class AddressTagProcess {
         });
 
         // 7、套利合约交易者 tag
-        uniswapEvents = UniswapEvent.merge(uniswapEvents, Lists.newArrayList());
+        uniswapEvents = UniswapEvent.merge(uniswapEvents, Lists.newArrayList(), false);
         uniswapEvents.forEach(uniswapEvent -> {
             if (StringUtils.isEmpty(uniswapEvent.getTokenIn()) || StringUtils.isEmpty(uniswapEvent.getTokenOut()))
                 return;

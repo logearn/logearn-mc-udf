@@ -160,7 +160,7 @@ public class TransferEvent extends Event implements Serializable {
         // 案例：https://app.blocksec.com/explorer/tx/eth/0xc5ac09df66a4c891991dc4f298843e01503cff2fbce25293e5e606383ae3e3c3
         // 解决发起人，通过一层代理合约进行 真实交易
         try {
-            if (from.equals(ut.getTo()) && from.equals(originSender)) {
+            if (from.equals(originSender)) {
                 matchOriginSender = true;
             }
         } catch (Exception e) {
