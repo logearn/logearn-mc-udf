@@ -9,6 +9,7 @@ public enum MeteoraDlmmV2Instruction {
     INITIALIZE_LB_PAIR("2d9aedd2dd0fa65c"),                    // 初始化交易对
     INITIALIZE_REWARD("5f87c0c4f281e644"),                     // 初始化奖励
     SWAP("f8c69e91e17587c8"),                                  // 交换代币
+    SWAP2("414b3f4ceb5b5b88"),
     ADD_LIQUIDITY("b59d5943bf34348"),                          // 添加流动性
     ADD_LIQUIDITY_BY_WEIGHT("e6d1bb9a0c2b1b0d"),              // 按权重添加流动性
     ADD_LIQUIDITY_ONE_SIDE("f5d7b6c3a4b2c1d0"),               // 单边添加流动性

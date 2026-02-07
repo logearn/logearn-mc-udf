@@ -38,7 +38,7 @@ public enum MeteoraDlmmInstruction {
     INITIALIZE_POSITION_PDA("initializePositionPda"),         // 初始化PDA仓位
     INITIALIZE_POSITION_BY_OPERATOR("initializePositionByOperator"), // 由操作者初始化仓位
     UPDATE_POSITION_OPERATOR("updatePositionOperator"),       // 更新仓位操作者
-    SWAP_EXACT_OUT("swapExactOut"),                          // 精确输出交换
+    SWAP_EXACT_OUT("fa49652126cf4bb8"),                          // 精确输出交换
     SWAP_WITH_PRICE_IMPACT("swapWithPriceImpact"),           // 带价格影响的交换
     REMOVE_ALL_LIQUIDITY("removeAllLiquidity"),              // 移除所有流动性
     TOGGLE_PAIR_STATUS("togglePairStatus"),                  // 切换交易对状态

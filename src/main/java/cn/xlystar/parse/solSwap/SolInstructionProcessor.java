@@ -407,7 +407,9 @@ public class SolInstructionProcessor {
             return result;
         } else if (programId.equals(MeteoraDlmmInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP.getValue())
-                || parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP2.getValue()))
+                || parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP2.getValue())
+                || parsed.get("method_id").equals(MeteoraDlmmInstruction.SWAP_EXACT_OUT.getValue())
+        )
         ) {
             result.put("pool_id", info.get("lb_pair"));
             result.put("input_vault", info.get("reserve_x"));
@@ -419,7 +421,9 @@ public class SolInstructionProcessor {
             result.put("instruction_type", "dex_amm");
             return result;
         } else if (programId.equals(MeteoraDlmmV2InstructionParser.PROGRAM_ID)
-                && parsed.get("method_id").equals(MeteoraDlmmV2Instruction.SWAP.getValue())) {
+                && (parsed.get("method_id").equals(MeteoraDlmmV2Instruction.SWAP.getValue())
+                || parsed.get("method_id").equals(MeteoraDlmmV2Instruction.SWAP2.getValue()))
+        ) {
             result.put("pool_id", info.get("pool"));
             result.put("input_vault", info.get("token_a_vault"));
             result.put("input_vault_mint", info.get("token_a_mint"));

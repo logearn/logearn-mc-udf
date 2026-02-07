@@ -24,6 +24,7 @@ public class MeteoraDlmmV2InstructionParser extends InstructionParser {
         Map<String, Object> info;
         switch (MeteoraDlmmV2Instruction.fromValue(methodId)) {
             case SWAP:
+            case SWAP2:
                 info = parseSwap(buffer, accounts);
                 break;
             default:
