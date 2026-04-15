@@ -34,6 +34,7 @@
       "USDC": {"address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", "scale": "1e18", "decimals": "18", "name": "USDC" },
       "ASTER": {"address": "0x000ae314e2a2172a039b26378814c252734f556a", "scale": "1e18", "decimals": "18", "name": "ASTER" },
       "CAKE": {"address": "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", "scale": "1e18", "decimals": "18", "name": "CAKE" },
+      "FOUR": {"address": "0x5b73a93b4e5e4f1fd27d8b3f8c97d69908b5e284", "scale": "1e18", "decimals": "18", "name": "FOUR" },
       "USDT": {"address": "0x55d398326f99059ff775485246999027b3197955", "scale": "1e18", "decimals": "18", "name": "USDT" },
       "U": {"address": "0xce24439f2d9c6a2289f741120fe202248b666666", "scale": "1e18", "decimals": "18", "name": "U" }
     },

@@ -54,7 +54,9 @@ public class TransferEvent extends Event implements Serializable {
         Iterator<TransferEvent> iterator = internalTxs.iterator();
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
-            if (elem.getSender().equals(elem.getReceiver())) continue;
+            if (elem.getSender().equals(elem.getReceiver())
+                    || elem.getReceiver().equals(elem.getContractAddress())
+            ) continue;
             //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
             //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
             // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
@@ -77,7 +79,7 @@ public class TransferEvent extends Event implements Serializable {
                 //                                && !elem.getReceiver().equals(elem.contractAddress)
                 // 解决 token 低于百分之50的 稅问题
                 if (value.compareTo(elem.getAmount()) >= 0
-                        && ((!chainId.equals("3") &&  elem.getReceiver().equals(originSender))
+                        && ((!chainId.equals("3") && elem.getReceiver().equals(originSender))
                         || (elem.getAmount().compareTo(value.divide(new BigInteger("2"))) > 0
                         && !elem.getReceiver().equals(elem.contractAddress)
                 )
@@ -174,7 +176,9 @@ public class TransferEvent extends Event implements Serializable {
         while (iterator.hasNext()) {
             TransferEvent elem = iterator.next();
             // solana 中，会有一个 pdaA 给 pdaB 转账，但同属于一个 owner 的情况
-            if (elem.getSender().equals(elem.getReceiver())) continue;
+            if (elem.getSender().equals(elem.getReceiver())
+                    || elem.getSender().equals(elem.getContractAddress())
+            ) continue;
             //0x6fee34fc25a18177ab63af034cdddbf5d6ca059ecc35b8c3a095bb575cdeca6d -> 修改之前正常解析的 case
             //0xa5ee87c74a53da8c7ff21ff751392b6209c47bc20e8d4b91310902f99317f5bf -> 收税，没有接着继续向后找，导致实际收到的 token 数量过多
             // 当 transfer 存在 token 由 池子转出给 swap 的to 时，忽略 transfer from 的判断，不需要一定等于 swap 的 to
@@ -326,3 +330,4 @@ public class TransferEvent extends Event implements Serializable {
     }
 
 }
+

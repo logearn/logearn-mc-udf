@@ -4,7 +4,9 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Data
@@ -37,6 +39,7 @@ public class UniswapEvent extends Event implements Serializable {
     private List<String> pair;
     private List<UniswapEvent> rawSwapLog;
     private List<UniswapEvent> connectedPools;
+    private BigInteger gasFee;
     // 扩展边都合并都 transfer, 记录一下，好排查bug, 但是不需要条到数据仓库
     private List<TransferEvent> fromMergedTransferEvent;
     private List<TransferEvent> toMergedTransferEvent;
@@ -117,14 +120,14 @@ public class UniswapEvent extends Event implements Serializable {
             builder.isAggregator(u.isAggregator);
 
             // 向前找最早1个swap事件
-            UniswapEvent _tpre = findPreEvent(tmpUniswapEvents, u, mergedPools,isFinal);
+            UniswapEvent _tpre = findPreEvent(tmpUniswapEvents, u, mergedPools, isFinal);
             builder.tokenIn(_tpre.getTokenIn());
             builder.amountIn(_tpre.getAmountIn());
             builder.sender(_tpre.getSender());
             originPair.add(0, _tpre.getTokenIn());
 
             // 向后找最后一个swap事件
-            UniswapEvent _taft = findAfterEvent(tmpUniswapEvents, u, mergedPools,isFinal);
+            UniswapEvent _taft = findAfterEvent(tmpUniswapEvents, u, mergedPools, isFinal);
             builder.tokenOut(_taft.getTokenOut());
             builder.amountOut(_taft.getAmountOut());
             builder.to(_taft.getTo());
@@ -167,7 +170,9 @@ public class UniswapEvent extends Event implements Serializable {
             if (elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn())
-                        && ((elem.getAmountOut().compareTo(target.getAmountIn().divide(new BigInteger("2"))) >= 0 && isFinal)
+                        && ((elem.getAmountOut().compareTo(new BigDecimal(target.getAmountIn()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                        && target.getAmountIn().compareTo(new BigDecimal(elem.getAmountOut().toString()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                        && isFinal && elem.getTokenOut().equals(target.getTokenIn()))
                         || (elem.getAmountOut().equals(target.getAmountIn()) && !isFinal)
                 )
                         // elem.getTo().equalsIgnoreCase(target.getSender())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
@@ -197,8 +202,10 @@ public class UniswapEvent extends Event implements Serializable {
             if (elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut())
-                        && ((elem.getAmountIn().equals(target.getAmountOut())&& !isFinal) || (
-                        elem.getAmountIn().compareTo(target.getAmountOut().divide(new BigInteger("2"))) >= 0 && isFinal
+                        && ((elem.getAmountIn().equals(target.getAmountOut()) && !isFinal) || (
+                        elem.getAmountIn().compareTo(new BigDecimal(target.getAmountOut()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                                && target.getAmountOut().compareTo(new BigDecimal(elem.getAmountIn()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                                && isFinal && elem.getTokenIn().equals(target.getTokenOut())
                 ))
                         // elem.getSender().equalsIgnoreCase(target.getTo())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a
                         // elem.getSender().equalsIgnoreCase(target.getContractAddress()) => 这就是merge  a -> pool1 -> pool2 -> a

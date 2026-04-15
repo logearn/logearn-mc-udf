@@ -477,12 +477,14 @@ public class AMMSwapDataProcessFull {
         JsonNode cake = conf.getTokens().get("CAKE");
         JsonNode aster = conf.getTokens().get("ASTER");
         JsonNode u = conf.getTokens().get("U");
+        JsonNode four = conf.getTokens().get("FOUR");
         boolean hasUsdc = false;
         boolean hasUsdt = false;
         boolean hasUsd1 = false;
         boolean hasCake = false;
         boolean hasAster = false;
         boolean hasU = false;
+        boolean hasFour = false;
         String usdcDecimals = "";
         String usdcAddress = "";
         String usdtDecimals = "";
@@ -495,6 +497,8 @@ public class AMMSwapDataProcessFull {
         String cakeAddress = "";
         String asterDecimals = "";
         String asterAddress = "";
+        String fourDecimals = "";
+        String fourAddress = "";
         if (usdc != null) {
             usdcAddress = usdc.get("address").asText();
             usdcDecimals = usdc.get("scale").asText();
@@ -527,6 +531,17 @@ public class AMMSwapDataProcessFull {
             }
 
         }
+        if (four != null) {
+            fourAddress = four.get("address").asText();
+            hasFour = fourAddress.equals(t.getTokenIn()) || fourAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("FOUR");
+
+            if (mainPrice == null) hasFour = false;
+            if (hasFour) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                fourDecimals = four.get("scale").asText();
+            }
+        }
         if (cake != null) {
             cakeAddress = cake.get("address").asText();
             hasCake = cakeAddress.equals(t.getTokenIn()) || cakeAddress.equals(t.getTokenOut());
@@ -557,6 +572,9 @@ public class AMMSwapDataProcessFull {
         } else if (hasAster) {
             tokenAddress = asterAddress;
             decimals = asterDecimals;
+        } else if (hasFour) {
+            tokenAddress = fourAddress;
+            decimals = fourDecimals;
         } else if (hasCake) {
             tokenAddress = cakeAddress;
             decimals = cakeDecimals;
