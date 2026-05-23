@@ -13,10 +13,13 @@ public enum PumpDotFunInstruction {
     INITIALIZE("afaf6d1f0d989bed"),                // 初始化
     SET_PARAMS("1beab2349302bb8d"),               // 设置参数
     BUY("66063d1201daebea"),                      // 购买代币
+    BUY_V2("b817ee6167c5d33d"),                      // 购买代币
     BUY_EXACT_SOL_IN("38fc74089edfcd5f"),         // 购买代币
     SELL("33e685a4017f83ad"),                     // 出售代币
+    SELL_V2("5df6823ce7e940b2"),                     // 出售代币
     WITHDRAW("b712469c946da122"),                 // 提取资金
     MIGRATION("9beae792ec9ea21e"),                 // 提取资金
+    MIGRATION_V2("9beae792ec9ea21e"),                 // 提取资金
     ANCHOR_SELF_CPI_LOG("e445a52e51cb9a1d");                 // CPI 日志
 
     private final String value;

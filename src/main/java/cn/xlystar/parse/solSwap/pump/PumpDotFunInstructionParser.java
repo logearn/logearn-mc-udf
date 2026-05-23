@@ -19,7 +19,8 @@ public class PumpDotFunInstructionParser extends InstructionParser {
     private static final String SET_PARAMS_DISCRIMINATOR = "9479848787621954527";
 
     public static boolean isMigrated(String methodId) {
-        return methodId.equals(PumpDotFunInstruction.MIGRATION.getValue());
+        return methodId.equals(PumpDotFunInstruction.MIGRATION.getValue())
+                || methodId.equals(PumpDotFunInstruction.MIGRATION_V2.getValue());
     }
 
     @Override
@@ -48,6 +49,12 @@ public class PumpDotFunInstructionParser extends InstructionParser {
             case CREATE_V2:
                 info = parseCreateV2(buffer, accounts);
                 break;
+            case BUY_V2:
+                info = parseBuyV2(buffer, accounts);
+                break;
+            case SELL_V2:
+                info = parseSellV2(buffer, accounts);
+                break;
             case BUY:
             case BUY_EXACT_SOL_IN:
                 info = parseBuy(buffer, accounts);
@@ -66,7 +73,43 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         }
         return info;
     }
+    private static Map<String, Object> parseBuyV2(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
 
+        info.put("amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("maxSolCost", Long.toUnsignedString(buffer.getLong()));
+
+        info.put("global", accounts[0]);
+        info.put("base", accounts[1]);
+        info.put("quote", accounts[2]);
+        info.put("feeRecipient", accounts[6]);
+        info.put("bondingCurve", accounts[10]);
+        info.put("associatedBaseBondingCurve", accounts[11]);
+        info.put("associatedQuoteBondingCurve", accounts[12]);
+        info.put("user", accounts[13]);
+        info.put("associatedBaseUser", accounts[14]);
+        info.put("associatedQuoteUser", accounts[15]);
+
+        return info;
+    }
+    private static Map<String, Object> parseSellV2(ByteBuffer buffer, String[] accounts) {
+        Map<String, Object> info = new HashMap<>();
+
+        info.put("amount", Long.toUnsignedString(buffer.getLong()));
+        info.put("minSolOutput", Long.toUnsignedString(buffer.getLong()));
+
+        info.put("global", accounts[0]);
+        info.put("base", accounts[1]);
+        info.put("quote", accounts[2]);
+        info.put("feeRecipient", accounts[6]);
+        info.put("bondingCurve", accounts[10]);
+        info.put("associatedBaseBondingCurve", accounts[11]);
+        info.put("associatedQuoteBondingCurve", accounts[12]);
+        info.put("user", accounts[13]);
+        info.put("associatedBaseUser", accounts[14]);
+        info.put("associatedQuoteUser", accounts[15]);
+        return info;
+    }
     private static Map<String, Object> parseInitialize(ByteBuffer buffer, String[] accounts) {
         Map<String, Object> info = new HashMap<>();
         info.put("global", accounts[0]);

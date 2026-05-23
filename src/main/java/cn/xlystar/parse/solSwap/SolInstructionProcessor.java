@@ -555,6 +555,33 @@ public class SolInstructionProcessor {
             result.put("user", info.get("user"));
             result.put("instruction_type", "pump_amm_instruction");
             return result;
+        } else if (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID)
+                && (parsed.get("method_id").equals(PumpDotFunInstruction.BUY_V2.getValue())
+                || parsed.get("method_id").equals(PumpDotFunInstruction.SELL_V2.getValue())
+        )
+        ) {
+            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY_V2.getValue())) {
+                result.put("input_vault", info.get("associatedBaseBondingCurve"));
+                result.put("input_vault_mint", info.get("quote"));
+                result.put("input_token_account", info.get("associatedBaseUser"));
+                result.put("input_amount", null);
+                result.put("output_amount", new BigInteger(info.get("amount").toString()));
+                result.put("output_vault", info.get("associatedQuoteBondingCurve"));
+                result.put("output_vault_mint", info.get("base"));
+                result.put("output_token_account", info.get("associatedQuoteUser"));
+            } else {
+                result.put("input_amount", new BigInteger(info.get("amount").toString()));
+                result.put("input_vault", info.get("associatedQuoteBondingCurve"));
+                result.put("input_vault_mint", info.get("base"));
+                result.put("input_token_account", info.get("associatedQuoteUser"));
+                result.put("output_vault", info.get("associatedBaseBondingCurve"));
+                result.put("output_vault_mint", info.get("quote"));;
+                result.put("output_token_account", info.get("associatedBaseUser"));
+            }
+            result.put("pool_id", info.get("bondingCurve"));
+            result.put("user", info.get("user"));
+            result.put("instruction_type", "pump_amm_instruction");
+            return result;
         } else if (programId.equals(PumpSwapInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(PumpSwapInstruction.BUY.getValue())
                 || parsed.get("method_id").equals(PumpSwapInstruction.SELL.getValue())
