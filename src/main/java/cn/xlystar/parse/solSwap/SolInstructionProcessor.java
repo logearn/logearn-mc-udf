@@ -518,6 +518,10 @@ public class SolInstructionProcessor {
                 && info.get("eventType").toString().equals("trade")
         ) {
             result.put("solAmount", info.get("solAmount"));
+            result.put("quoteMint", info.get("quoteMint"));
+            result.put("quoteAmount", info.get("quoteAmount"));
+            result.put("virtualQuoteReserves", info.get("virtualQuoteReserves"));
+            result.put("realQuoteReserves", info.get("realQuoteReserves"));
             result.put("tokenAmount", info.get("tokenAmount"));
             result.put("isBuy", info.get("isBuy"));
             result.put("virtual_sol_reserves", info.get("virtual_sol_reserves"));
@@ -558,14 +562,15 @@ public class SolInstructionProcessor {
         } else if (programId.equals(PumpDotFunInstructionParser.PROGRAM_ID)
                 && (parsed.get("method_id").equals(PumpDotFunInstruction.BUY_V2.getValue())
                 || parsed.get("method_id").equals(PumpDotFunInstruction.SELL_V2.getValue())
+                || parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN_V2.getValue())
         )
         ) {
-            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY_V2.getValue())) {
+            if (parsed.get("method_id").equals(PumpDotFunInstruction.BUY_V2.getValue()) || parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN_V2.getValue())) {
                 result.put("input_vault", info.get("associatedBaseBondingCurve"));
                 result.put("input_vault_mint", info.get("quote"));
                 result.put("input_token_account", info.get("associatedBaseUser"));
-                result.put("input_amount", null);
-                result.put("output_amount", new BigInteger(info.get("amount").toString()));
+                result.put("input_amount", parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN_V2.getValue()) ? new BigInteger(info.get("amount").toString()) : null);
+                result.put("output_amount", parsed.get("method_id").equals(PumpDotFunInstruction.BUY_EXACT_SOL_IN_V2.getValue()) ? null : new BigInteger(info.get("amount").toString()));
                 result.put("output_vault", info.get("associatedQuoteBondingCurve"));
                 result.put("output_vault_mint", info.get("base"));
                 result.put("output_token_account", info.get("associatedQuoteUser"));

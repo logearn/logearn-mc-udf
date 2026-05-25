@@ -17,6 +17,7 @@ import cn.xlystar.parse.solSwap.raydium.amm_v4.RaydiumAmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.clmm.RaydiumClmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.cpmm.RaydiumCpmmInstructionParser;
 import cn.xlystar.parse.solSwap.raydium.launch.RaydiumLaunchInstructionParser;
+import cn.xlystar.parse.solSwap.system_program.SystemInstructionParser;
 import cn.xlystar.parse.solSwap.whirlpool.WhirlpoolInstructionParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -690,18 +691,34 @@ public class SolanaTransactionParser {
                     vaultAddress.put((String) event.get("pool_id"), vaultData1);
                     break;
                 case "pump_amm_liquidity":
-                    pumpPoolLiquidityEvents.add(
-                            PumpFunTokenPool.builder()
-                                    .tokenAddress((String) event.get("mint"))
-                                    .amount0((String) event.get("real_token_reserves"))
-                                    .token0((String) event.get("mint"))
-                                    .amount1((String) event.get("real_sol_reserves"))
-                                    .amountChange0((event.get("isBuy").toString().equals("1") ? "" : "-") + event.get("tokenAmount").toString())
-                                    .amountChange1((event.get("isBuy").toString().equals("1") ? "-" : "") + event.get("solAmount").toString())
-                                    .token1("So11111111111111111111111111111111111111112")
-                                    .version(executeProgramId)
-                                    .price(new BigDecimal(event.get("virtual_sol_reserves").toString()).divide(new BigDecimal(event.get("virtual_token_reserves").toString()), 9, RoundingMode.HALF_UP).toPlainString())
-                                    .build());
+                    boolean isSol = event.get("quoteMint").equals(SystemInstructionParser.PROGRAM_ID);
+                    if (isSol) {
+                        pumpPoolLiquidityEvents.add(
+                                PumpFunTokenPool.builder()
+                                        .tokenAddress((String) event.get("mint"))
+                                        .amount0((String) event.get("real_token_reserves"))
+                                        .token0((String) event.get("mint"))
+                                        .amount1((String) event.get("real_sol_reserves"))
+                                        .amountChange0((event.get("isBuy").toString().equals("1") ? "" : "-") + event.get("tokenAmount").toString())
+                                        .amountChange1((event.get("isBuy").toString().equals("1") ? "-" : "") + event.get("solAmount").toString())
+                                        .token1("So11111111111111111111111111111111111111112")
+                                        .version(executeProgramId)
+                                        .price(new BigDecimal(event.get("virtual_sol_reserves").toString()).divide(new BigDecimal(event.get("virtual_token_reserves").toString()), 9, RoundingMode.HALF_UP).toPlainString())
+                                        .build());
+                    } else {
+                        pumpPoolLiquidityEvents.add(
+                                PumpFunTokenPool.builder()
+                                        .tokenAddress((String) event.get("mint"))
+                                        .amount0((String) event.get("real_token_reserves"))
+                                        .token0((String) event.get("mint"))
+                                        .amount1((String) event.get("realQuoteReserves"))
+                                        .amountChange0((event.get("isBuy").toString().equals("1") ? "" : "-") + event.get("tokenAmount").toString())
+                                        .amountChange1((event.get("isBuy").toString().equals("1") ? "-" : "") + event.get("quoteAmount").toString())
+                                        .token1(event.get("quoteMint").toString())
+                                        .version(executeProgramId)
+                                        .price(new BigDecimal(event.get("virtualQuoteReserves").toString()).divide(new BigDecimal(event.get("virtual_token_reserves").toString()), 9, RoundingMode.HALF_UP).toPlainString())
+                                        .build());
+                    }
                     break;
                 case "pump_create_pool":
                     poolEvents.add(PumpFunTokenPool.builder()
@@ -927,7 +944,7 @@ public class SolanaTransactionParser {
     public static void processPumpSwapEvent(UniswapEvent event, List<TransferEvent> txTransferEvents, List<PumpFunTokenPool> allPoolLiquidity, List<TransferEvent> solTransferEvents) {
         // sell
         try {
-            if (event.getAmountOut() == null && event.getTokenOut().equals("So11111111111111111111111111111111111111112")) {
+            if (event.getAmountOut() == null && (event.getTokenOut().equals("So11111111111111111111111111111111111111112")||event.getTokenOut().equals("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"))) {
                 for (int i = 0; i < allPoolLiquidity.size(); i++) {
                     PumpFunTokenPool dimAMMTokenPoolInfo = allPoolLiquidity.get(i);
                     if (dimAMMTokenPoolInfo.getTokenAddress().equals(event.getTokenIn())

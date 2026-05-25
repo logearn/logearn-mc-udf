@@ -15,6 +15,7 @@ public enum PumpDotFunInstruction {
     BUY("66063d1201daebea"),                      // 购买代币
     BUY_V2("b817ee6167c5d33d"),                      // 购买代币
     BUY_EXACT_SOL_IN("38fc74089edfcd5f"),         // 购买代币
+    BUY_EXACT_SOL_IN_V2("c2ab1c46684d5b2f"),
     SELL("33e685a4017f83ad"),                     // 出售代币
     SELL_V2("5df6823ce7e940b2"),                     // 出售代币
     WITHDRAW("b712469c946da122"),                 // 提取资金

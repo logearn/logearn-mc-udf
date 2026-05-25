@@ -5,7 +5,9 @@ import org.bitcoinj.core.Base58;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -50,6 +52,7 @@ public class PumpDotFunInstructionParser extends InstructionParser {
                 info = parseCreateV2(buffer, accounts);
                 break;
             case BUY_V2:
+            case BUY_EXACT_SOL_IN_V2:
                 info = parseBuyV2(buffer, accounts);
                 break;
             case SELL_V2:
@@ -362,9 +365,58 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         event.put("virtual_token_reserves", Long.toUnsignedString(buffer.getLong()));
         event.put("real_sol_reserves", Long.toUnsignedString(buffer.getLong()));
         event.put("real_token_reserves", Long.toUnsignedString(buffer.getLong()));
-        event.put("eventType", "trade");
+        event.put("feeRecipient", readPubkey(buffer));
+        event.put("feeBasisPoints", Long.toUnsignedString(buffer.getLong()));
+        event.put("fee", Long.toUnsignedString(buffer.getLong()));
+        event.put("creator", readPubkey(buffer));
+        event.put("creatorFeeBasisPoints", Long.toUnsignedString(buffer.getLong()));
+        event.put("creatorFee", Long.toUnsignedString(buffer.getLong()));
+        event.put("trackVolume", buffer.get() != 0);
 
+        event.put("totalUnclaimedTokens", Long.toUnsignedString(buffer.getLong()));
+        event.put("totalClaimedTokens", Long.toUnsignedString(buffer.getLong()));
+        event.put("currentSolVolume", Long.toUnsignedString(buffer.getLong()));
+
+        event.put("lastUpdateTimestamp", buffer.getLong()); // i64
+
+        event.put("ixName", parseString(buffer));
+
+        event.put("mayhemMode", buffer.get() != 0);
+
+        event.put("cashbackFeeBasisPoints", Long.toUnsignedString(buffer.getLong()));
+        event.put("cashback", Long.toUnsignedString(buffer.getLong()));
+
+        event.put("buybackFeeBasisPoints", Long.toUnsignedString(buffer.getLong()));
+        event.put("buybackFee", Long.toUnsignedString(buffer.getLong()));
+
+        // --- shareholders: vec ---
+        event.put("shareholders", parseShareholders(buffer));
+
+        // --- quote ---
+        event.put("quoteMint", readPubkey(buffer));
+        event.put("quoteAmount", Long.toUnsignedString(buffer.getLong()));
+        event.put("virtualQuoteReserves", Long.toUnsignedString(buffer.getLong()));
+        event.put("realQuoteReserves", Long.toUnsignedString(buffer.getLong()));
+
+        event.put("eventType", "trade");
         return event;
+    }
+
+    private static List<Map<String, Object>> parseShareholders(ByteBuffer buffer) {
+        int length = buffer.getInt(); // u32
+
+        List<Map<String, Object>> list = new ArrayList<>(length);
+
+        for (int i = 0; i < length; i++) {
+            Map<String, Object> s = new HashMap<>();
+
+            s.put("owner", readPubkey(buffer));
+            s.put("share", Long.toUnsignedString(buffer.getLong()));
+
+            list.add(s);
+        }
+
+        return list;
     }
 
     private static Map<String, Object> parseCompleteEvent(ByteBuffer buffer) {
