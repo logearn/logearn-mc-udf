@@ -343,10 +343,11 @@ public class SolanaTransactionParser {
                     boolean innerMatch;
                     if (swapEvent.getInnerIndex() == 0) {  // is null
                         innerMatch = tr.getInnerIndex() == 2 ||
-                                tr.getInnerIndex() == 3;
+                                tr.getInnerIndex() == 3 ||
+                                tr.getInnerIndex() == 4;
                     } else {
                         innerMatch = tr.getInnerIndex() == swapEvent.getInnerIndex() + 2 ||
-                                tr.getInnerIndex() == swapEvent.getInnerIndex() + 3;
+                                tr.getInnerIndex() == swapEvent.getInnerIndex() + 3 || tr.getInnerIndex() == swapEvent.getInnerIndex() + 4;
                     }
 
                     return outerMatch && innerMatch;
@@ -354,6 +355,8 @@ public class SolanaTransactionParser {
                 .collect(Collectors.toList());
 
         // 遍历所有可能的组合，找到符合条件的pair
+        Pair<TransferEvent, TransferEvent> bestPair = null;
+        BigInteger maxAmount = BigInteger.ZERO;
         for (TransferEvent tr1 : possibleTransfer1s) {
             for (TransferEvent tr2 : possibleTransfer2s) {
                 // 检查token mint不相等
@@ -374,12 +377,16 @@ public class SolanaTransactionParser {
                                 tr2.getReceiverOrigin().equals(swapEvent.getTo());
 
                 if (matchPattern1 || matchPattern2) {
-                    return Pair.of(tr1, tr2);
+                    BigInteger currentAmount = tr1.getAmount().add(tr2.getAmount());
+                    if (currentAmount.compareTo(maxAmount) > 0) {
+                        maxAmount = currentAmount;
+                        bestPair = Pair.of(tr1, tr2);
+                    }
                 }
             }
         }
 
-        return null;
+        return bestPair;
     }
 
     /**
@@ -1000,7 +1007,7 @@ public class SolanaTransactionParser {
                 TransferEvent transferEvent = txTransferEvents.get(i);
                 if (transferEvent.getContractAddress().equals(event.getTokenOut())
                         && transferEvent.getAmount().equals(event.getAmountOut())
-                        && transferEvent.getSenderOrigin().equals(event.getVaultOut())
+                        && (transferEvent.getSenderOrigin().equals(event.getVaultOut()) || transferEvent.getSenderOrigin().equals(event.getVaultIn()))
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
                     swapEventsTransfer.add(transferEvent);
@@ -1010,7 +1017,7 @@ public class SolanaTransactionParser {
                 }
                 if (transferEvent.getContractAddress().equals(event.getTokenIn())
                         && transferEvent.getAmount().equals(event.getAmountIn())
-                        && transferEvent.getReceiverOrigin().equals(event.getVaultIn())
+                        && (transferEvent.getReceiverOrigin().equals(event.getVaultIn()) || transferEvent.getReceiverOrigin().equals(event.getVaultOut()))
                         && transferEvent.getOuterIndex() == event.getOuterIndex()
                 ) {
                     swapEventsTransfer.add(transferEvent);

@@ -410,8 +410,8 @@ public class PumpDotFunInstructionParser extends InstructionParser {
         for (int i = 0; i < length; i++) {
             Map<String, Object> s = new HashMap<>();
 
-            s.put("owner", readPubkey(buffer));
-            s.put("share", Long.toUnsignedString(buffer.getLong()));
+            s.put("address", readPubkey(buffer));
+            s.put("share", Long.toUnsignedString(buffer.getShort()));
 
             list.add(s);
         }
