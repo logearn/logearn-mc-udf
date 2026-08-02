@@ -166,12 +166,12 @@ public class UniswapEvent extends Event implements Serializable {
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
             // solana 处理夹子乱序问题
-            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) > 0) continue;
+            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) <= 0) continue;
             if (elem.getTokenOut() != null && target.getTokenIn() != null && elem.getAmountOut() != null && target.getAmountIn() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenOut().equalsIgnoreCase(target.getTokenIn())
-                        && ((elem.getAmountOut().compareTo(new BigDecimal(target.getAmountIn()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
-                        && target.getAmountIn().compareTo(new BigDecimal(elem.getAmountOut().toString()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                        && ((elem.getAmountOut().compareTo(new BigDecimal(target.getAmountIn()).multiply(new BigDecimal("0.91")).toBigInteger()) >= 0
+                        && target.getAmountIn().compareTo(new BigDecimal(elem.getAmountOut().toString()).multiply(new BigDecimal("0.91")).toBigInteger()) >= 0
                         && isFinal && elem.getTokenOut().equals(target.getTokenIn()))
                         || (elem.getAmountOut().equals(target.getAmountIn()) && !isFinal)
                 )
@@ -198,13 +198,13 @@ public class UniswapEvent extends Event implements Serializable {
         Iterator<UniswapEvent> iterator = events.iterator();
         while (iterator.hasNext()) {
             UniswapEvent elem = iterator.next();
-            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) < 0) continue;
+            if (elem.getProgramId() != null && elem.logIndex.compareTo(target.logIndex) >= 0) continue;
             if (elem.getTokenIn() != null && target.getTokenOut() != null && elem.getAmountIn() != null && target.getAmountOut() != null) {
                 // 第一个从 交易币种 和 金额上判断是一样的
                 if (elem.getTokenIn().equalsIgnoreCase(target.getTokenOut())
                         && ((elem.getAmountIn().equals(target.getAmountOut()) && !isFinal) || (
-                        elem.getAmountIn().compareTo(new BigDecimal(target.getAmountOut()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
-                                && target.getAmountOut().compareTo(new BigDecimal(elem.getAmountIn()).divide(new BigDecimal("0.91"), 0, RoundingMode.DOWN).toBigInteger()) >= 0
+                        elem.getAmountIn().compareTo(new BigDecimal(target.getAmountOut()).multiply(new BigDecimal("0.91")).toBigInteger()) >= 0
+                                && target.getAmountOut().compareTo(new BigDecimal(elem.getAmountIn()).multiply(new BigDecimal("0.91")).toBigInteger()) >= 0
                                 && isFinal && elem.getTokenIn().equals(target.getTokenOut())
                 ))
                         // elem.getSender().equalsIgnoreCase(target.getTo())  => 这种就是 merge   a -> pool1 -> a,  a -> pool2 -> a

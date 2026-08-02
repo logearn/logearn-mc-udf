@@ -25,6 +25,7 @@ public class Log {
     public static final List<String> fourMemeQuoteList = Lists.newArrayList(
             "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d",
             "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+            "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
             "0x55d398326f99059ff775485246999027b3197955",
             "0xce24439f2d9c6a2289f741120fe202248b666666",
             "0x5b73a93b4e5e4f1fd27d8b3f8c97d69908b5e284",
