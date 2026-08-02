@@ -476,6 +476,7 @@ public class AMMSwapDataProcessFull {
         JsonNode usd1 = conf.getTokens().get("USD1");
         JsonNode cake = conf.getTokens().get("CAKE");
         JsonNode aster = conf.getTokens().get("ASTER");
+        JsonNode btc = conf.getTokens().get("BTCB");
         JsonNode u = conf.getTokens().get("U");
         JsonNode four = conf.getTokens().get("FOUR");
         boolean hasUsdc = false;
@@ -485,6 +486,7 @@ public class AMMSwapDataProcessFull {
         boolean hasAster = false;
         boolean hasU = false;
         boolean hasFour = false;
+        boolean hasBtc = false;
         String usdcDecimals = "";
         String usdcAddress = "";
         String usdtDecimals = "";
@@ -497,6 +499,8 @@ public class AMMSwapDataProcessFull {
         String cakeAddress = "";
         String asterDecimals = "";
         String asterAddress = "";
+        String btcDecimals = "";
+        String btcAddress = "";
         String fourDecimals = "";
         String fourAddress = "";
         if (usdc != null) {
@@ -519,7 +523,18 @@ public class AMMSwapDataProcessFull {
             uDecimals = u.get("scale").asText();
             hasU = uAddress.equals(t.getTokenIn()) || uAddress.equals(t.getTokenOut());
         }
-        if (aster != null) {
+        if (btc != null) {
+            btcAddress = btc.get("address").asText();
+            hasBtc = btcAddress.equals(t.getTokenIn()) || btcAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("BTC");
+
+            if (mainPrice == null) hasBtc = false;
+            if (hasBtc) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                btcDecimals = btc.get("scale").asText();
+            }
+
+        }  if (aster != null) {
             asterAddress = aster.get("address").asText();
             hasAster = asterAddress.equals(t.getTokenIn()) || asterAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("ASTER");
@@ -569,6 +584,9 @@ public class AMMSwapDataProcessFull {
         } else if (hasU) {
             tokenAddress = uAddress;
             decimals = uDecimals;
+        } else if (hasBtc) {
+            tokenAddress = btcAddress;
+            decimals = btcDecimals;
         } else if (hasAster) {
             tokenAddress = asterAddress;
             decimals = asterDecimals;
