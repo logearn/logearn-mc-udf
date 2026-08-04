@@ -1,5 +1,6 @@
 package cn.xlystar.parse.ammswap;
 
+import cn.xlystar.constants.PlatformContract;
 import cn.xlystar.entity.PumpFunTokenPool;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
@@ -8,9 +9,11 @@ import cn.xlystar.helpers.ConfigHelper;
 import cn.xlystar.parse.solSwap.SolanaTransactionParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 
 
@@ -29,8 +32,8 @@ public class AMMSwapDataProcess {
     }
 
     public static List<Map<String, String>> decodeSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents,
-                                                       List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance, List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList) {
-        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents, price, transferOwnerEvents, postTokenBalance, preTokenBalance, mainTokenPriceList);
+                                                       List<AMMSwapDataProcessFull.TokenBalance> postTokenBalance, List<AMMSwapDataProcessFull.TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList, BigInteger fee, Map<String, Object> tip) {
+        return AMMSwapDataProcessFull.parseSolanaSwap(conf, originSender, hash, swapEvents, transferEvents, price, transferOwnerEvents, postTokenBalance, preTokenBalance, mainTokenPriceList, fee, tip);
     }
 
 
@@ -282,6 +285,16 @@ public class AMMSwapDataProcess {
 //                );
 //            });
 
+            Map<String, Object> tip = allSolTransferEvents.stream().map(t -> {
+                String platformNameByFeeAddress = PlatformContract.getTipPlatformNameByContractAddress(t.getReceiver());
+                if (StringUtils.isEmpty(platformNameByFeeAddress)) return null;
+                Map<String, Object> transfer = new HashMap<>();
+                transfer.put("sender", t.getSender());
+                transfer.put("amount", t.getAmount());
+                transfer.put("tips_platform", platformNameByFeeAddress);
+                return transfer;
+            }).filter(Objects::nonNull).findFirst().orElse(null);
+
             if (!CollectionUtils.isEmpty(allBurnTransferEvents))
                 allTransferEvents.addAll(allBurnTransferEvents);
             if (CollectionUtils.isEmpty(allTransferEvents))
@@ -291,7 +304,7 @@ public class AMMSwapDataProcess {
                 SolanaTransactionParser.processSwapEvents(allSwapEvents, allTransferEvents, allCreatePDA, allPoolLiquidity, allSolTransferEvents, logMessages, allAggregatorSwapEvents);
             }
             // 串联 swap
-            return new ArrayList<>(AMMSwapDataProcess.decodeSwap(conf, originSender, hash, allSwapEvents, allTransferEvents, price, allTxTransferOwnerEvents, postTokenBalance, preTokenBalance,mainTokenPriceList));
+            return new ArrayList<>(AMMSwapDataProcess.decodeSwap(conf, originSender, hash, allSwapEvents, allTransferEvents, price, allTxTransferOwnerEvents, postTokenBalance, preTokenBalance,mainTokenPriceList, null, tip));
         } catch (Exception e) {
             e.printStackTrace();
             log.error("[processAmm] Error processing transaction {}: {}", hash, e.getMessage(), e);

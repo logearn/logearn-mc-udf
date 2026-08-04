@@ -32,13 +32,13 @@ public class AMMSwapDataProcessFull {
         // 解析
         List<UniswapEvent> uniswapEvents = parseAllUniSwapLogs(sender, conf, logs, hash, tftxs, price);
         // 后缀处理
-        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList);
+        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList, null, null);
     }
 
     /**
      * 格式化最后的返回值
      */
-    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList) {
+    public static List<Map<String, String>> parseSolanaSwap(ChainConfig conf, String originSender, String hash, List<UniswapEvent> swapEvents, List<TransferEvent> transferEvents, String price, List<TransferEvent> transferOwnerEvents, List<TokenBalance> postTokenBalance, List<TokenBalance> preTokenBalance, Map<String, BigDecimal> mainTokenPriceList, BigInteger fee, Map<String, Object> tip) {
         String wCoinAddress = conf.getWCoinAddress();
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
 //        if (!CollectionUtils.isEmpty(transferOwnerEvents)) {
@@ -56,7 +56,7 @@ public class AMMSwapDataProcessFull {
         }
 
         // 后缀处理
-        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList);
+        return processSwap(hash, uniswapEvents, new ArrayList<>(), conf, price, mainTokenPriceList, fee, tip);
     }
 
     private static List<UniswapEvent> updateSwapEventsFromTransferOwner(ChainConfig conf, List<TransferEvent> transferOwnerEvents, List<Map<String, Object>> postTokenBalance, List<Map<String, Object>> preTokenBalance, List<UniswapEvent> uniswapEvents) {
@@ -154,7 +154,7 @@ public class AMMSwapDataProcessFull {
         return uniswapEvents;
     }
 
-    private static List<Map<String, String>> processSwap(String hash, List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price, Map<String, BigDecimal> mainTokenPriceList) {
+    private static List<Map<String, String>> processSwap(String hash, List<UniswapEvent> swapEvents, List<Map<String, String>> finalSwap, ChainConfig conf, final String price, Map<String, BigDecimal> mainTokenPriceList, BigInteger fee, Map<String, Object> tip) {
         String wCoinAddress = conf.getWCoinAddress();
         if (CollectionUtils.isEmpty(swapEvents)) return finalSwap;
         Map<String, BigDecimal> tokenPriceList = new HashMap<>();
@@ -181,12 +181,18 @@ public class AMMSwapDataProcessFull {
                 BigDecimal tokenPrice = new BigDecimal(wcoinAmount).divide(new BigDecimal(tokenAmount.toString()), 20, RoundingMode.HALF_UP);
                 tokenPriceList.put(tokenAddress, tokenPrice);
             });
-
+            String tips = tip != null ? tip.get("amount").toString() : "0";
+            String tipPlatform = tip != null ? tip.get("tips_platform").toString() : null;
             swapEvents.forEach(t -> {
+                        t.setTips(tips);
+                        t.setTipPlatform(tipPlatform);
+                        t.setGasFee(fee);
                         if (t.getTokenIn() != null && t.getTokenOut() != null && !t.getTokenIn().equals(conf.getWCoinAddress()) && !t.getTokenOut().equals(conf.getWCoinAddress())) {
                             switch (conf.getChainId()) {
                                 case "3":
                                     if (convertToSol(conf, t, new BigDecimal(price))) break;
+                                case "56":
+                                    if (convertToNative(conf, t, new BigDecimal(price), mainTokenPriceList)) break;
                                 default:
                                     List<UniswapEvent> connectedPools = t.getConnectedPools();
                                     if (conf.getChainId().equals("3") && t.isAggregator()) {
@@ -209,6 +215,9 @@ public class AMMSwapDataProcessFull {
                                                     .connectedPools(t.getConnectedPools())
                                                     .rawSwapLog(t.getRawSwapLog())
                                                     .version(t.getVersion())
+                                                    .gasFee(fee)
+                                                    .tips(tips)
+                                                    .tipPlatform(tipPlatform)
                                                     .errorMsg(t.getErrorMsg());
                                         } else {
                                             ethSellUniswap = UniswapEvent.builder()
@@ -224,6 +233,9 @@ public class AMMSwapDataProcessFull {
                                                     .connectedPools(t.getConnectedPools())
                                                     .rawSwapLog(t.getRawSwapLog())
                                                     .version(t.getVersion())
+                                                    .gasFee(fee)
+                                                    .tips(tips)
+                                                    .tipPlatform(tipPlatform)
                                                     .errorMsg(t.getErrorMsg());
                                         }
                                         finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
@@ -246,6 +258,9 @@ public class AMMSwapDataProcessFull {
                                                     .connectedPools(t.getConnectedPools())
                                                     .rawSwapLog(t.getRawSwapLog())
                                                     .version(t.getVersion())
+                                                    .gasFee(fee)
+                                                    .tips(tips)
+                                                    .tipPlatform(tipPlatform)
                                                     .errorMsg(t.getErrorMsg());
                                         } else {
                                             ethBuyUniswap = UniswapEvent.builder()
@@ -261,6 +276,9 @@ public class AMMSwapDataProcessFull {
                                                     .connectedPools(t.getConnectedPools())
                                                     .rawSwapLog(t.getRawSwapLog())
                                                     .version(t.getVersion())
+                                                    .gasFee(fee)
+                                                    .tips(tips)
+                                                    .tipPlatform(tipPlatform)
                                                     .errorMsg(t.getErrorMsg());
                                         }
                                         finalSwap.add(swapResultStruct(conf, ethBuyUniswap.build()));
@@ -285,6 +303,9 @@ public class AMMSwapDataProcessFull {
                                                         .connectedPools(t.getConnectedPools())
                                                         .rawSwapLog(t.getRawSwapLog())
                                                         .version(t.getVersion())
+                                                        .gasFee(fee)
+                                                        .tips(tips)
+                                                        .tipPlatform(tipPlatform)
                                                         .errorMsg(t.getErrorMsg());
                                                 finalSwap.add(swapResultStruct(conf, ethSellUniswap.build()));
 
@@ -301,6 +322,9 @@ public class AMMSwapDataProcessFull {
                                                         .toMergedTransferEvent(t.getToMergedTransferEvent())
                                                         .connectedPools(t.getConnectedPools())
                                                         .rawSwapLog(t.getRawSwapLog())
+                                                        .gasFee(fee)
+                                                        .tips(tips)
+                                                        .tipPlatform(tipPlatform)
                                                         .version(t.getVersion())
                                                         .errorMsg(t.getErrorMsg());
 
@@ -477,6 +501,16 @@ public class AMMSwapDataProcessFull {
         JsonNode cake = conf.getTokens().get("CAKE");
         JsonNode aster = conf.getTokens().get("ASTER");
         JsonNode btc = conf.getTokens().get("BTCB");
+        JsonNode spcx = conf.getTokens().get("SPCXB");
+        JsonNode nvda = conf.getTokens().get("NVDAB");
+        JsonNode tsla = conf.getTokens().get("TSLAB");
+        JsonNode amd = conf.getTokens().get("AMDB");
+        JsonNode mu = conf.getTokens().get("MUB");
+        JsonNode qqq = conf.getTokens().get("QQQB");
+        JsonNode skhy = conf.getTokens().get("SKHYB");
+        JsonNode spyb = conf.getTokens().get("SPYB");
+        JsonNode aapl = conf.getTokens().get("AAPLB");
+        JsonNode xaut = conf.getTokens().get("XAUTB");
         JsonNode u = conf.getTokens().get("U");
         JsonNode four = conf.getTokens().get("FOUR");
         boolean hasUsdc = false;
@@ -487,6 +521,24 @@ public class AMMSwapDataProcessFull {
         boolean hasU = false;
         boolean hasFour = false;
         boolean hasBtc = false;
+        boolean hasSpcx = false;
+        boolean hasTsla = false;
+        boolean hasNvda = false;
+        boolean hasAmd = false;
+        boolean hasMu = false;
+        boolean hasQqq = false;
+        boolean hasSkhy = false;
+        boolean hasSpyb = false;
+        boolean hasAapl = false;
+        boolean hasXaut = false;
+        String skhyAddress = "";
+        String skhyDecimals = "";
+        String xautAddress = "";
+        String xautDecimals = "";
+        String spybAddress = "";
+        String spybDecimals = "";
+        String aaplAddress = "";
+        String aaplDecimals = "";
         String usdcDecimals = "";
         String usdcAddress = "";
         String usdtDecimals = "";
@@ -499,6 +551,18 @@ public class AMMSwapDataProcessFull {
         String cakeAddress = "";
         String asterDecimals = "";
         String asterAddress = "";
+        String spcxDecimals = "";
+        String spcxAddress = "";
+        String nvdaDecimals = "";
+        String nvdaAddress = "";
+        String tslaDecimals = "";
+        String tslaAddress = "";
+        String amdDecimals = "";
+        String amdAddress = "";
+        String muDecimals = "";
+        String muAddress = "";
+        String qqqDecimals = "";
+        String qqqAddress = "";
         String btcDecimals = "";
         String btcAddress = "";
         String fourDecimals = "";
@@ -533,8 +597,117 @@ public class AMMSwapDataProcessFull {
                 price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
                 btcDecimals = btc.get("scale").asText();
             }
+        }
+        if (tsla != null) {
+            tslaAddress = tsla.get("address").asText();
+            hasTsla = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("TSLAB");
 
-        }  if (aster != null) {
+            if (mainPrice == null) hasTsla = false;
+            if (hasTsla) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                tslaDecimals = nvda.get("scale").asText();
+            }
+        }
+        if (qqq != null) {
+            qqqAddress = qqq.get("address").asText();
+            hasQqq = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("QQQB");
+
+            if (mainPrice == null) hasQqq = false;
+            if (hasQqq) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                qqqDecimals = nvda.get("scale").asText();
+            }
+        }
+        if (xaut != null) {
+            xautAddress = qqq.get("address").asText();
+            hasXaut = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("XAUTB");
+
+            if (mainPrice == null) hasXaut = false;
+            if (hasXaut) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                qqqDecimals = nvda.get("scale").asText();
+            }
+        }
+        if (spcx != null) {
+            spcxAddress = spcx.get("address").asText();
+            hasSpcx = spcxAddress.equals(t.getTokenIn()) || spcxAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("SPCXB");
+
+            if (mainPrice == null) hasSpcx = false;
+            if (hasSpcx) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                spcxDecimals = spcx.get("scale").asText();
+            }
+        }
+        if (nvda != null) {
+            nvdaAddress = nvda.get("address").asText();
+            hasNvda = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("NVDAB");
+
+            if (mainPrice == null) hasNvda = false;
+            if (hasNvda) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                nvdaDecimals = nvda.get("scale").asText();
+            }
+        }
+        if (amd != null) {
+            amdAddress = amd.get("address").asText();
+            hasAmd = amdAddress.equals(t.getTokenIn()) || amdAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("AMDB");
+
+            if (mainPrice == null) hasAmd = false;
+            if (hasAmd) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                amdDecimals = amd.get("scale").asText();
+            }
+        }
+        if (mu != null) {
+            muAddress = mu.get("address").asText();
+            hasMu = muAddress.equals(t.getTokenIn()) || muAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("MUB");
+
+            if (mainPrice == null) hasMu = false;
+            if (hasMu) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                muDecimals = mu.get("scale").asText();
+            }
+        }
+        if (skhy != null) {
+            skhyAddress = skhy.get("address").asText();
+            hasSkhy = skhyAddress.equals(t.getTokenIn()) || skhyAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("SKHYB");
+
+            if (mainPrice == null) hasSkhy = false;
+            if (hasSkhy) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                skhyDecimals = skhy.get("scale").asText();
+            }
+        }  if (spyb != null) {
+            spybAddress = spyb.get("address").asText();
+            hasSpyb = spybAddress.equals(t.getTokenIn()) || spybAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("SPYB");
+
+            if (mainPrice == null) hasSpyb = false;
+            if (hasSpyb) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                spybDecimals = spyb.get("scale").asText();
+            }
+        }
+        if (aapl != null) {
+            aaplAddress = aapl.get("address").asText();
+            hasAapl = aaplAddress.equals(t.getTokenIn()) || aaplAddress.equals(t.getTokenOut());
+            BigDecimal mainPrice = tokenPriceList.get("AAPLB");
+
+            if (mainPrice == null) hasAapl = false;
+            if (hasAapl) {
+                price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
+                aaplDecimals = aapl.get("scale").asText();
+            }
+        }
+        if (aster != null) {
             asterAddress = aster.get("address").asText();
             hasAster = asterAddress.equals(t.getTokenIn()) || asterAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("ASTER");
@@ -587,6 +760,36 @@ public class AMMSwapDataProcessFull {
         } else if (hasBtc) {
             tokenAddress = btcAddress;
             decimals = btcDecimals;
+        } else if (hasSpcx) {
+            tokenAddress = spcxAddress;
+            decimals = spcxDecimals;
+        } else if (hasXaut) {
+            tokenAddress = xautAddress;
+            decimals = xautDecimals;
+        } else if (hasTsla) {
+            tokenAddress = tslaAddress;
+            decimals = tslaDecimals;
+        } else if (hasQqq) {
+            tokenAddress = qqqAddress;
+            decimals = qqqDecimals;
+        } else if (hasSkhy) {
+            tokenAddress = skhyAddress;
+            decimals = skhyDecimals;
+        } else if (hasSpyb) {
+            tokenAddress = spybAddress;
+            decimals = spybDecimals;
+        } else if (hasAapl) {
+            tokenAddress = aaplAddress;
+            decimals = aaplDecimals;
+        } else if (hasNvda) {
+            tokenAddress = nvdaAddress;
+            decimals = nvdaDecimals;
+        } else if (hasAmd) {
+            tokenAddress = amdAddress;
+            decimals = amdDecimals;
+        } else if (hasMu) {
+            tokenAddress = muAddress;
+            decimals = muDecimals;
         } else if (hasAster) {
             tokenAddress = asterAddress;
             decimals = asterDecimals;
@@ -614,6 +817,7 @@ public class AMMSwapDataProcessFull {
     }
 
 
+
     private static HashMap<String, String> swapResultStruct(ChainConfig conf, UniswapEvent swap) {
         HashMap<String, String> map = new HashMap<>();
         map.put("caller", swap.getSender());
@@ -632,6 +836,9 @@ public class AMMSwapDataProcessFull {
         map.put("raw_swap_log", JSONObject.parseObject(JSON.toJSONString(swap.getRawSwapLog()), List.class).toString());
         map.put("version", swap.getVersion());
         map.put("errorMsg", swap.getErrorMsg());
+        map.put("gasFee", swap.getGasFee() == null ? null : swap.getGasFee().toString());
+        map.put("tips", swap.getTips());
+        map.put("tipPlatform", swap.getTipPlatform());
         map.put("chain", conf.getChainId());
         if (conf.getWCoinAddress().equals(swap.getTokenIn())) {
             map.put("eventType", "buy");

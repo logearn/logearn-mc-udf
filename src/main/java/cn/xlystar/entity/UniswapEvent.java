@@ -40,6 +40,8 @@ public class UniswapEvent extends Event implements Serializable {
     private List<UniswapEvent> rawSwapLog;
     private List<UniswapEvent> connectedPools;
     private BigInteger gasFee;
+    private String tips;
+    private String tipPlatform;
     // 扩展边都合并都 transfer, 记录一下，好排查bug, 但是不需要条到数据仓库
     private List<TransferEvent> fromMergedTransferEvent;
     private List<TransferEvent> toMergedTransferEvent;
