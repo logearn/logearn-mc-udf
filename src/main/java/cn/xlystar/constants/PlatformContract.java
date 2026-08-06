@@ -1,4 +1,4 @@
-package cn.xlystar.constants;
+package cn.logearn.spider.common;
 
 
 import java.util.Set;
@@ -25,6 +25,21 @@ public class PlatformContract {
             "FLasHXTqrbNvpWFB6grN47HGZfK6pze9HLNTgbukfPSk",
             "FLAshyAyBcKb39KPxSzXcepiS8iDYUhDGwJcJDPX4g2B",
             "FLAsHZTRcf3Dy1APaz6j74ebdMC6Xx4g6i9YxjyrDybR"
+    );
+    public static  Set<String> axiomTipContractAddresses = Set.of(
+            "AJwrjU2n7ac7Ho318pUyKfKhpH3JwX2MEpv3cyR8E3rk",
+            "8d5jPhXwjEa9cPkQG2aFHw5cwE6KjytnPFJbmH1RgN1M",
+            "FTkHWtbM8ouMhkiY8Pu9XnN6NMafgsiqtCnQdzo5eHnA",
+            "FsmHeVbT3z567gNVxFycHA33ULTf5n6u5uUPzL2oYMqz",
+            "6ZM1ZSPfpPdwFVyjMVrc46cVrfHNXsnWRXw3ZFHuYiR",
+            "J1jnSfGcQM7jtZNtuqz33saMnPSAeGhbqntQANDko2KS",
+            "FdeHzjSw24zmeo3AxsRQPwUL95YeWyk9NUjgMmcr9NWG",
+            "CSW5zZWx6QCjJXempjFGSEQRynTH1oVnT9FUetQvzYV8",
+            "J4PeVZhx2496eXjAMpbm7nrCxRBgAUfRDwhZ1YSdzTSE",
+            "EgSQNKbkqK5PghXx9qTpvdAcHmwvWKy4Pw8fcpE2Mzcv",
+            "7tgbPNtTrVTfgi7DDMeiEjtTuy7wReDhTpayF3c5Jhxo",
+            "6TYd5ytzKVDUP4jsuXyUA6BA8SmN57mzwJjw5XvnXqmG",
+            "5ZYrecfeS7dwA18LPqhAYVpLUUUsjuFpY1sE2VQmEVqW"
     );
     public static  Set<String> zanTipContractAddresses = Set.of(
             "7HkiWXe5deJvzn4D6kgMUFCADwX9Z4DMrdjNSSxN6bPp"
@@ -71,7 +86,7 @@ public class PlatformContract {
             "ENxTEjSQ1YabmUpXAdCgevnHQ9MHdLv8tzFiuiYJqa13",
             "6rYLG55Q9RpsPGvqdPNJs4z5WTxJVatMB8zV3WJhs5EK",
             "Cix2bHfqPcKcM233mzxbLk14kSggUUiz2A87fJtGivXr"
-   );
+    );
     public static  Set<String> platformContractAddresses = Set.of(
             "troyXT7Ty3s2rjJe4bqWaroUrS4Fjd8rbHHNHxcACF4", // trojan
             "FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9", // axiom
@@ -222,6 +237,8 @@ public class PlatformContract {
             return "jito";
         } else if (flashTipContractAddresses.contains(contractAddress)) {
             return "flash";
+        } else if (axiomTipContractAddresses.contains(contractAddress)) {
+            return "axiom";
         } else if (zanTipContractAddresses.contains(contractAddress)) {
             return "zan";
         } else if (bloxRouteTipContractAddresses.contains(contractAddress)) {
