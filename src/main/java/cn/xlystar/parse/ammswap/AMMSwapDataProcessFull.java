@@ -934,6 +934,7 @@ public class AMMSwapDataProcessFull {
 
         // 2、从log对象中解析 transfer 事件
         List<TransferEvent> transferEvents = Log.findTransfer(txLog);
+        List<TransferEvent> rawTransferEvents = new ArrayList<>(transferEvents);
         log.debug("******* Log 中找到符合条件 TransferEvent： {} 条", transferEvents.size());
         Collections.sort(transferEvents, Comparator.comparing(TransferEvent::getLogIndex));
 
@@ -974,34 +975,110 @@ public class AMMSwapDataProcessFull {
 
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
 
+        // 9.5、兜底：已知 DEX 的 Swap 日志签名均未识别到时，尝试从 Transfer 净额直接反推出一笔完整 swap
+        // 前提：1) 日志里根本没有匹配到任何已知 DEX 的 Swap topic（rawUniswapEvents 为空则说明连"疑似 swap"都没有，不兜底）
+        //       2) 已匹配到的 swap 都跟 originSender 无关（sender/to 均不是 originSender），
+        //          避免 originSender 本来就有一笔已识别但链接失败的 swap 时，又被兜底逻辑猜出一笔冲突/重复的记录
+        boolean swapsInvolveSender = fullUniswapEvents.stream().anyMatch(u ->
+                (u.getSender() != null && u.getSender().equals(originSender)) && (u.getTo() != null && u.getTo().equals(originSender)))
+                ;
+        if (!resultEvent.getRawUniswapEvents().isEmpty()
+                && !swapsInvolveSender
+        ) {
+            List<UniswapEvent> finalSwap = new ArrayList<>();
+            UniswapEvent netSwap = buildSwapFromTransferBalance(conf, originSender, rawTransferEvents);
+            if (netSwap != null) {
+                finalSwap.add(netSwap);
+                // 把已被净额兜底消费的资金流转链从 transferEvents 中消费掉，
+                // 避免下面 transferToUniswapSell 再把它们重复包装成单腿碎片记录
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn(), true);
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut(), false);
+            }
+            transferToUniswapSell(conf, rawTransferEvents, finalSwap);
+            finalSwap.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
+            return finalSwap;
+        }
+
         // 10、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
 //        Map<String, Map<String, BigInteger>> finalTransfer = TransferEvent.calculateBalances(transferEvents);
 //        List<TransferEvent> getFinalTransferOutEvent = getTransferOutEvent(finalTransfer);
         transferToUniswapSell(conf, transferEvents, fullUniswapEvents);
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
-
-
-//        for (int i = 0; i < fullUniswapEvents.size(); i++) {
-//            UniswapEvent ut = fullUniswapEvents.get(i);
-////            if (ut.getTokenIn().equals("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")) {
-//            if (ut.getTokenIn().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && !ut.getTokenOut().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && !ut.getVersion().equals("transferOut")) {
-//
-//                BigDecimal t1 =  new BigDecimal(ut.getAmountIn()); //.divide(new BigDecimal("1e18"), 20, RoundingMode.HALF_UP);
-//                BigDecimal t2 =  new BigDecimal(ut.getAmountOut()); //.divide(new BigDecimal("1e9"), 20, RoundingMode.HALF_UP);
-//
-//                log.info(ut.getTokenOut() + " 卖的价格： " + t1.divide(t2, 20, RoundingMode.HALF_UP));
-//
-//            } else if (!ut.getTokenIn().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c") && ut.getTokenOut().equals("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")) {
-//                BigDecimal t1 =  new BigDecimal(ut.getAmountIn()); //.divide(new BigDecimal("1e9"), 20, RoundingMode.HALF_UP);
-//                BigDecimal t2 =  new BigDecimal(ut.getAmountOut()); //.divide(new BigDecimal("1e18"), 20, RoundingMode.HALF_UP);
-//
-//                log.info(ut.getTokenIn() + " 买的价格： " + t2.divide(t1, 20, RoundingMode.HALF_UP));
-//            } else {
-//                log.info("非正常买卖，忽略价格！");
-//            }
-//        }
         fullUniswapEvents.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
         return fullUniswapEvents;
+    }
+    /**
+     * 兜底方案：当已知 DEX 的 Swap 日志签名均未识别到时（fullUniswapEvents 为空），
+     * 直接对 originSender 在这笔交易里涉及的全部 TransferEvent 做逐 token 净额结算，
+     * 若呈现"净减少 1 种 token、净增加 1 种 token"的干净形态，则视为一次完整 swap。
+     * 若净变化涉及多种 token（夹带 dust/税费），取绝对值最大的一负一正配对，其余较小的
+     * 净变化 token 不消费，仍交由 transferToUniswapSell 按现有逻辑生成单腿碎片记录。
+     */
+    private static UniswapEvent buildSwapFromTransferBalance(ChainConfig conf, String originSender, List<TransferEvent> transferEvents) {
+        if (StringUtils.isEmpty(originSender)) return null;
+        Map<String, Map<String, BigInteger>> balances = TransferEvent.calculateBalances(transferEvents);
+        Map<String, BigInteger> senderBalance = balances.get(originSender);
+        if (senderBalance == null || senderBalance.isEmpty() || senderBalance.size() != 2) return null;
+
+        String tokenIn = null;
+        BigInteger amountIn = null;
+        String tokenOut = null;
+        BigInteger amountOut = null;
+        for (Map.Entry<String, BigInteger> entry : senderBalance.entrySet()) {
+            BigInteger delta = entry.getValue();
+            if (delta.compareTo(BigInteger.ZERO) < 0) {
+                BigInteger abs = delta.negate();
+                if (amountIn == null || abs.compareTo(amountIn) > 0) {
+                    tokenIn = entry.getKey();
+                    amountIn = abs;
+                }
+            } else if (delta.compareTo(BigInteger.ZERO) > 0) {
+                if (amountOut == null || delta.compareTo(amountOut) > 0) {
+                    tokenOut = entry.getKey();
+                    amountOut = delta;
+                }
+            }
+        }
+        if (tokenIn == null || tokenOut == null) return null;
+
+        return UniswapEvent.builder()
+                .sender(originSender)
+                .to(originSender)
+                .tokenIn(tokenIn)
+                .amountIn(amountIn)
+                .tokenOut(tokenOut)
+                .amountOut(amountOut)
+                .protocol(conf.getProtocol())
+                .version("transferNetSwap")
+                .pair(Lists.newArrayList(tokenIn, tokenOut))
+                .rawSwapLog(Lists.newArrayList())
+                .connectedPools(new ArrayList<>())
+                .fromMergedTransferEvent(new ArrayList<>())
+                .toMergedTransferEvent(new ArrayList<>())
+                .build();
+    }
+
+    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount, boolean outgoing) {
+        if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) return;
+        List<TransferEvent> consumed = new ArrayList<>();
+        String currentAddr = startAddr;
+        BigInteger threshold = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
+        while (true) {
+            final String addr = currentAddr;
+            final BigInteger need = threshold;
+            TransferEvent next = transferEvents.stream()
+                    .filter(t -> !consumed.contains(t))
+                    .filter(t -> t.getContractAddress().equals(token))
+                    .filter(t -> outgoing ? addr.equals(t.getSender()) : addr.equals(t.getReceiver()))
+                    .filter(t -> t.getAmount().compareTo(need) >= 0)
+                    .findFirst()
+                    .orElse(null);
+            if (next == null) break;
+            consumed.add(next);
+            currentAddr = outgoing ? next.getReceiver() : next.getSender();
+            threshold = next.getAmount().multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
+        }
+        transferEvents.removeAll(consumed);
     }
 
     public static Result getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash, String price) {
