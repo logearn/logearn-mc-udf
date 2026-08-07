@@ -1,11 +1,9 @@
 package cn.xlystar.parse.ammswap;
 
-import cn.xlystar.constants.PlatformContract;
 import cn.xlystar.entity.PumpFunTokenPool;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
 import cn.xlystar.helpers.ChainConfig;
-import cn.xlystar.helpers.ConfigHelper;
 import cn.xlystar.parse.solSwap.SolanaTransactionParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -70,6 +68,7 @@ public class AMMSwapDataProcess {
             List<PumpFunTokenPool> allPool = new ArrayList<>(4);
             List<PumpFunTokenPool> allPoolLiquidity = new ArrayList<>(4);
             Map<String, Map<String, Object>> poolVaultAddress = new HashMap<>();
+            HashSet<String> programList = new HashSet<>();
             // 处理单笔交易
             SolanaTransactionParser.processTransactions(
                     blockTime,
@@ -89,7 +88,7 @@ public class AMMSwapDataProcess {
                     allSolTransferEvents,
                     allPoolLiquidity,
                     allTxTransferOwnerEvents,
-                    postTokenBalance, preTokenBalance, poolVaultAddress);
+                    postTokenBalance, preTokenBalance, poolVaultAddress, programList);
 
             allCreatePDA.forEach((key, pda) -> {
                 if (pda == null
@@ -139,7 +138,7 @@ public class AMMSwapDataProcess {
             List<PumpFunTokenPool> allPool = new ArrayList<>(4);
             List<PumpFunTokenPool> allPoolLiquidity = new ArrayList<>(4);
             Map<String, Map<String, Object>> poolVaultAddress = new HashMap<>();
-
+            HashSet<String> programList = new HashSet<>();
             // 创建只包含目标交易的新数组
             String originSender = accountKeys.get(0);
 
@@ -162,7 +161,7 @@ public class AMMSwapDataProcess {
                     allSolTransferEvents,
                     allPoolLiquidity,
                     allTxTransferOwnerEvents,
-                    postTokenBalance, preTokenBalance, poolVaultAddress);
+                    postTokenBalance, preTokenBalance, poolVaultAddress, programList);
 
             // 处理 transfer 维度信息
             if (CollectionUtils.isEmpty(allTxTransferOwnerEvents)
@@ -286,7 +285,7 @@ public class AMMSwapDataProcess {
 //            });
 
             Map<String, Object> tip = allSolTransferEvents.stream().map(t -> {
-                String platformNameByFeeAddress = PlatformContract.getTipPlatformNameByContractAddress(t.getReceiver());
+                String platformNameByFeeAddress = cn.logearn.spider.common.PlatformContract.getTipPlatformNameByContractAddress(t.getReceiver());
                 if (StringUtils.isEmpty(platformNameByFeeAddress)) return null;
                 Map<String, Object> transfer = new HashMap<>();
                 transfer.put("sender", t.getSender());

@@ -54,7 +54,8 @@ public class SolanaTransactionParser {
                                            List<TransferEvent> txTransferOwnerEvents,
                                            List<AMMSwapDataProcessFull.TokenBalance> postTokenBalanceLists,
                                            List<AMMSwapDataProcessFull.TokenBalance> preTokenBalanceLists,
-                                           Map<String, Map<String, Object>> poolVaultAddress
+                                           Map<String, Map<String, Object>> poolVaultAddress,
+                                           Set<String> programId
     ) {
 
         try {
@@ -63,7 +64,7 @@ public class SolanaTransactionParser {
             mergedKeys.addAll(readonlyAddresses);
 
             if (CollectionUtils.isEmpty(outerInstructions)) return;
-            List<Map<String, Object>> instructions = processInstructions(outerInstructions, innerInstructions, mergedKeys);
+            List<Map<String, Object>> instructions = processInstructions(outerInstructions, innerInstructions, mergedKeys, programId);
 
             // 处理事件
             List<Object> allEvents = processInstructionEvents(instructions);
@@ -172,12 +173,12 @@ public class SolanaTransactionParser {
         }
     }
 
-    public static List<Map<String, Object>> processInstructions(List<Map<String, Object>> outerInstructions, List<Map<String, Object>> innerInstructions, List<String> accountKeys) {
+    public static List<Map<String, Object>> processInstructions(List<Map<String, Object>> outerInstructions, List<Map<String, Object>> innerInstructions, List<String> accountKeys, Set<String> programId) {
         // 处理内部指令和外部指令
         List<Map<String, Object>> allInstructions = new ArrayList<>();
         for (int i = 0; i < outerInstructions.size(); i++) {
             Map<String, Object> outerInstru = outerInstructions.get(i);
-            createInstructionMap(allInstructions, outerInstru, accountKeys, false, i + 1, null);
+            createInstructionMap(allInstructions, outerInstru, accountKeys, false, i + 1, null, programId);
         }
 
         // 处理内部指令
@@ -187,7 +188,7 @@ public class SolanaTransactionParser {
                 List<Map<String, Object>> instructions = (List<Map<String, Object>>) innerInstru.get("instructions");
                 Integer outIndex = (Integer) innerInstru.get("index");
                 for (int j = 0; j < instructions.size(); j++) {
-                    createInstructionMap(allInstructions, instructions.get(j), accountKeys, true, outIndex + 1, j + 1);
+                    createInstructionMap(allInstructions, instructions.get(j), accountKeys, true, outIndex + 1, j + 1, programId);
                 }
             }
         }
@@ -195,9 +196,10 @@ public class SolanaTransactionParser {
     }
 
 
-    public static void createInstructionMap(List<Map<String, Object>> allInstructions, Map<String, Object> instru, List<String> accountKeys, boolean isInner, Integer outerIndex, Integer innerIndex) {
+    public static void createInstructionMap(List<Map<String, Object>> allInstructions, Map<String, Object> instru, List<String> accountKeys, boolean isInner, Integer outerIndex, Integer innerIndex, Set<String> programId) {
         Map<String, Object> instructionMap = new HashMap<>();
         String executeProgramId = accountKeys.get((Integer) instru.get("programIdIndex"));
+        programId.add(executeProgramId);
         if (SolInstructionParserFactory.getParser(executeProgramId) == null) return;
 
         instructionMap.put("is_inner", isInner);
@@ -415,9 +417,6 @@ public class SolanaTransactionParser {
             case MeteoraDlmmV2InstructionParser.PROGRAM_ID:
                 // CPMM的规则在处理时动态决定
                 return SolDexTransferMatchRule.METEORA_DLMM_V2;
-            case MeteoraDbcInstructionParser.PROGRAM_ID:
-                // CPMM的规则在处理时动态决定
-                return SolDexTransferMatchRule.METEORA_DBC;
             case MoonshotInstructionParser.PROGRAM_ID:
                 // CPMM的规则在处理时动态决定
                 return SolDexTransferMatchRule.MOOTSHOT;

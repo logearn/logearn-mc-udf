@@ -739,6 +739,7 @@ public class Log {
                         BigInteger wcoinAmount = new BigDecimal(amountIn)
 //                                .divide(new BigDecimal(price), 20, RoundingMode.HALF_UP)
                                 .toBigInteger();
+                        uniswapEvent.setSender(transferEvent.getSender());
                         uniswapEvent.setAmountIn(wcoinAmount);
                         uniswapEvent.setTokenIn(transferEvent.getContractAddress());
                         transferEvents.remove(transferEvent);
@@ -792,6 +793,7 @@ public class Log {
 //                                .divide(new BigDecimal(price), 20, RoundingMode.HALF_UP)
                                 .toBigInteger();
                         uniswapEvent.setAmountOut(wcoinAmount);
+                        uniswapEvent.setTo(transferEvent.getReceiver());
                         uniswapEvent.setTokenOut(transferEvent.getContractAddress());
                         transferEvents.remove(transferEvent);
                         break;
