@@ -975,6 +975,7 @@ public class AMMSwapDataProcessFull {
         fullUniswapEvents = UniswapEvent.merge(fullUniswapEvents, Lists.newArrayList(), false);
 
         log.debug("******* 所有 Swap 收尾再各自向前后链接 TransferEvent后，当前还剩余 transferEvents： {} 条", transferEvents.size());
+        boolean isVerify = verifyBalanceReconciliation(rawTransferEvents, fullUniswapEvents, hash);
 
         // 9.5、兜底：已知 DEX 的 Swap 日志签名均未识别到时，尝试从 Transfer 净额直接反推出一笔完整 swap
         // 前提：1) 日志里根本没有匹配到任何已知 DEX 的 Swap topic（rawUniswapEvents 为空则说明连"疑似 swap"都没有，不兜底）
@@ -984,7 +985,7 @@ public class AMMSwapDataProcessFull {
                 (u.getSender() != null && u.getSender().equals(originSender)) && (u.getTo() != null && u.getTo().equals(originSender)))
                 ;
         if (!resultEvent.getRawUniswapEvents().isEmpty()
-                && !swapsInvolveSender
+                && (!swapsInvolveSender || !isVerify)
         ) {
             List<UniswapEvent> finalSwap = new ArrayList<>();
             UniswapEvent netSwap = buildSwapFromTransferBalance(conf, originSender, rawTransferEvents);
@@ -1007,6 +1008,49 @@ public class AMMSwapDataProcessFull {
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
         fullUniswapEvents.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
         return fullUniswapEvents;
+    }
+    /**
+     * 校验 fullUniswapEvents 隐含的地址级余额变化是否与原始 transferEvents 平账。
+     * 只比较 swap 涉及的边界地址（sender/to），池子内部的中转余额本就被 merge 有意吞掉，不参与比较。
+     */
+    private static boolean verifyBalanceReconciliation(List<TransferEvent> rawTransferEvents,
+                                                       List<UniswapEvent> fullUniswapEvents, String hash) {
+        if (CollectionUtils.isEmpty(fullUniswapEvents)) {
+            return true;
+        }
+        Map<String, Map<String, BigInteger>> rawBalances = TransferEvent.calculateBalances(rawTransferEvents);
+
+        Map<String, Map<String, BigInteger>> swapBalances = new HashMap<>();
+        for (UniswapEvent u : fullUniswapEvents) {
+            if (u.getSender() != null && u.getTokenIn() != null && u.getAmountIn() != null) {
+                addDelta(swapBalances, u.getSender(), u.getTokenIn(), u.getAmountIn().negate());
+            }
+            if (u.getTo() != null && u.getTokenOut() != null && u.getAmountOut() != null) {
+                addDelta(swapBalances, u.getTo(), u.getTokenOut(), u.getAmountOut());
+            }
+        }
+
+        boolean isConsistent = true;
+        for (Map.Entry<String, Map<String, BigInteger>> entry : swapBalances.entrySet()) {
+            String address = entry.getKey();
+            Map<String, BigInteger> tokens = entry.getValue();
+            for (Map.Entry<String, BigInteger> tokenEntry : tokens.entrySet()) {
+                String token = tokenEntry.getKey();
+                BigInteger swapDelta = tokenEntry.getValue();
+                BigInteger rawDelta = rawBalances.getOrDefault(address, Collections.emptyMap())
+                        .getOrDefault(token, BigInteger.ZERO);
+                if (rawDelta.compareTo(swapDelta) != 0) {
+                    isConsistent = false;
+                    break;
+                }
+            }
+        }
+        return isConsistent;
+    }
+
+    private static void addDelta(Map<String, Map<String, BigInteger>> balances, String address, String token, BigInteger delta) {
+        balances.computeIfAbsent(address, k -> new HashMap<>())
+                .merge(token, delta, BigInteger::add);
     }
     /**
      * 兜底方案：当已知 DEX 的 Swap 日志签名均未识别到时（fullUniswapEvents 为空），
