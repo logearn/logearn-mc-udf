@@ -113,6 +113,7 @@ public class UniswapEvent extends Event implements Serializable {
             ArrayList<UniswapEvent> tmpUniswapEvents = new ArrayList<>(uniswapEvents);
             List<UniswapEvent> mergedPools = new ArrayList<>(u.isAggregator ? u.getConnectedPools() : Collections.singleton(u));
 
+            if (u.getTokenIn() == null || u.getTokenOut() == null || u.getAmountIn() == null || u.getAmountOut() == null) return;
             UniswapEvent.UniswapEventBuilder builder = UniswapEvent.builder();
             List<String> originPair = new ArrayList<>(2);
             builder.protocol(u.getProtocol());

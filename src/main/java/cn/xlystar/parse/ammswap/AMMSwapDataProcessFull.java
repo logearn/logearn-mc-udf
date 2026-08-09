@@ -600,35 +600,35 @@ public class AMMSwapDataProcessFull {
         }
         if (tsla != null) {
             tslaAddress = tsla.get("address").asText();
-            hasTsla = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            hasTsla = tslaAddress.equals(t.getTokenIn()) || tslaAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("TSLAB");
 
             if (mainPrice == null) hasTsla = false;
             if (hasTsla) {
                 price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
-                tslaDecimals = nvda.get("scale").asText();
+                tslaDecimals = tsla.get("scale").asText();
             }
         }
         if (qqq != null) {
             qqqAddress = qqq.get("address").asText();
-            hasQqq = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            hasQqq = qqqAddress.equals(t.getTokenIn()) || qqqAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("QQQB");
 
             if (mainPrice == null) hasQqq = false;
             if (hasQqq) {
                 price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
-                qqqDecimals = nvda.get("scale").asText();
+                qqqDecimals = qqq.get("scale").asText();
             }
         }
         if (xaut != null) {
-            xautAddress = qqq.get("address").asText();
-            hasXaut = nvdaAddress.equals(t.getTokenIn()) || nvdaAddress.equals(t.getTokenOut());
+            xautAddress = xaut.get("address").asText();
+            hasXaut = xautAddress.equals(t.getTokenIn()) || xautAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("XAUTB");
 
             if (mainPrice == null) hasXaut = false;
             if (hasXaut) {
                 price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
-                qqqDecimals = nvda.get("scale").asText();
+                xautDecimals = xaut.get("scale").asText();
             }
         }
         if (spcx != null) {
@@ -685,7 +685,8 @@ public class AMMSwapDataProcessFull {
                 price = price.divide(mainPrice, 20, RoundingMode.HALF_UP);
                 skhyDecimals = skhy.get("scale").asText();
             }
-        }  if (spyb != null) {
+        }
+        if (spyb != null) {
             spybAddress = spyb.get("address").asText();
             hasSpyb = spybAddress.equals(t.getTokenIn()) || spybAddress.equals(t.getTokenOut());
             BigDecimal mainPrice = tokenPriceList.get("SPYB");
@@ -934,12 +935,12 @@ public class AMMSwapDataProcessFull {
 
         // 2、从log对象中解析 transfer 事件
         List<TransferEvent> transferEvents = Log.findTransfer(txLog);
-        List<TransferEvent> rawTransferEvents = new ArrayList<>(transferEvents);
         log.debug("******* Log 中找到符合条件 TransferEvent： {} 条", transferEvents.size());
         Collections.sort(transferEvents, Comparator.comparing(TransferEvent::getLogIndex));
 
         // 3、将有效的内部交易添加到transfer事件
         transferEvents.addAll(validInternalTxs);
+        List<TransferEvent> rawTransferEvents = new ArrayList<>(transferEvents);
         log.debug("******* InnerTx 和 Transfer 合并, 当前 总共 transferEvents： {} 条。", transferEvents.size());
 
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
@@ -1018,7 +1019,7 @@ public class AMMSwapDataProcessFull {
         if (StringUtils.isEmpty(originSender)) return null;
         Map<String, Map<String, BigInteger>> balances = TransferEvent.calculateBalances(transferEvents);
         Map<String, BigInteger> senderBalance = balances.get(originSender);
-        if (senderBalance == null || senderBalance.isEmpty() || senderBalance.size() != 2) return null;
+        if (senderBalance == null || senderBalance.size() != 2) return null;
 
         String tokenIn = null;
         BigInteger amountIn = null;
