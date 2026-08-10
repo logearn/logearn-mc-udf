@@ -1002,8 +1002,8 @@ public class AMMSwapDataProcessFull {
                 finalSwap.add(netSwap);
                 // 把已被净额兜底消费的资金流转链从 transferEvents 中消费掉，
                 // 避免下面 transferToUniswapSell 再把它们重复包装成单腿碎片记录
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn());
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut());
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn(), true);
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut(), false);
             }
             transferToUniswap(conf, rawTransferEvents, finalSwap);
             finalSwap.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
@@ -1112,28 +1112,6 @@ public class AMMSwapDataProcessFull {
                 .build();
     }
 
-    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount, boolean outgoing) {
-        if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) return;
-        List<TransferEvent> consumed = new ArrayList<>();
-        String currentAddr = startAddr;
-        BigInteger threshold = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
-        while (true) {
-            final String addr = currentAddr;
-            final BigInteger need = threshold;
-            TransferEvent next = transferEvents.stream()
-                    .filter(t -> !consumed.contains(t))
-                    .filter(t -> t.getContractAddress().equals(token))
-                    .filter(t -> outgoing ? addr.equals(t.getSender()) : addr.equals(t.getReceiver()))
-                    .filter(t -> t.getAmount().compareTo(need) >= 0)
-                    .findFirst()
-                    .orElse(null);
-            if (next == null) break;
-            consumed.add(next);
-            currentAddr = outgoing ? next.getReceiver() : next.getSender();
-            threshold = next.getAmount().multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
-        }
-        transferEvents.removeAll(consumed);
-    }
 
     public static Result getUniswapEvents(ChainConfig conf, List<TransferEvent> transferEvents, JsonNode txLog, String hash, String price) {
         List<UniswapEvent> uniswapEvents = new ArrayList<>();
@@ -1167,22 +1145,23 @@ public class AMMSwapDataProcessFull {
 
     /**
      * 从 addr 出发，在 transferEvents 中找同一 token、且不在 excluded 里的下一跳 transfer。
-     * 同时匹配 sender=addr（资金流出）和 receiver=addr（资金流入）两个方向，命中金额需 >= amount 的 80%
-     * （容忍 dust/税费）。是否延续、往哪个方向延续完全由实际连上的边决定，而不是提前固定死一个方向 ——
-     * 否则中途方向一旦反转（比如经过一个既转入又转出的中转地址）就会断链，
-     * 导致本应属于同一条资金流的边找不到，被误当作独立的碎片记录，最终帐不平。
+     * forward=true 时只匹配 sender=addr（顺着资金流出方向往后找下一站），forward=false 时只匹配
+     * receiver=addr（逆着资金流入方向往前找上一站），命中金额需 >= amount 的 80%（容忍 dust/税费）。
+     * 之所以必须严格限定方向、不能 sender/receiver 都匹配：一个地址完全可能同时向多个不同地址转账
+     * （fan-out），如果不分方向地抓取"任意一条沾边的 transfer"，会把 addr 转给其他地址的、完全独立的
+     * 另一笔资金流误当成当前链条的上一跳/下一跳，错误地合并、消费掉，导致那笔独立资金流丢失记录。
      */
-    private static TransferEvent findNextChainHop(List<TransferEvent> transferEvents, List<TransferEvent> excluded, String addr, String token, BigInteger amount) {
+    private static TransferEvent findNextChainHop(List<TransferEvent> transferEvents, List<TransferEvent> excluded, String addr, String token, BigInteger amount, boolean forward) {
         BigInteger need = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
         return transferEvents.stream()
                 .filter(t -> !excluded.contains(t))
+                .filter(t -> t.getAmount() != null)
                 .filter(t -> t.getContractAddress().equals(token))
-                .filter(t -> addr.equals(t.getSender()) || addr.equals(t.getReceiver()))
+                .filter(t -> forward ? addr.equals(t.getSender()) : addr.equals(t.getReceiver()))
                 .filter(t -> t.getAmount().compareTo(need) >= 0)
                 .findFirst()
                 .orElse(null);
     }
-
     /**
      * 消费掉一笔 transfer 中被链条实际用掉的 amount 部分：一个 TransferEvent 可能承载了不止一条资金流
      * （比如池子把多个用户的资金合并成一笔转出），不能因为它被某条链用到了就整笔从 transferEvents 中
@@ -1207,26 +1186,29 @@ public class AMMSwapDataProcessFull {
      * 2) 再用这个统一的 bottleneck 对链上每一跳做真正的扣减（consumeAmount，归 0 才移除），
      *    金额大于 bottleneck 的那一跳会留下 (原金额 - bottleneck) 的剩余，交给 transferToUniswapSell
      *    按同样的逻辑单独处理，而不是被这条链错误地整笔吃掉。
+     * outgoing=true 表示 startAddr 是这笔资金的转出方（顺着 sender 往后找下一站，对应 tokenIn 转出去的场景），
+     * outgoing=false 表示 startAddr 是接收方（逆着 receiver 往前找上一站，对应 tokenOut 收进来的场景）——
+     * 必须区分方向，否则 startAddr 若同时还有转给其他地址的独立转账（fan-out），会被误当成同一条链。
      */
-    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount) {
+    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount, boolean outgoing) {
         if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) return;
         List<TransferEvent> visited = new ArrayList<>();
         List<TransferEvent> chain = new ArrayList<>();
         String currentAddr = startAddr;
+        boolean forward = outgoing;
         BigInteger bottleneck = amount;
         while (true) {
-            TransferEvent next = findNextChainHop(transferEvents, visited, currentAddr, token, bottleneck);
+            TransferEvent next = findNextChainHop(transferEvents, visited, currentAddr, token, bottleneck, forward);
             if (next == null) break;
             visited.add(next);
             chain.add(next);
-            currentAddr = currentAddr.equals(next.getSender()) ? next.getReceiver() : next.getSender();
+            currentAddr = forward ? next.getReceiver() : next.getSender();
             bottleneck = bottleneck.min(next.getAmount());
         }
         for (TransferEvent hop : chain) {
             consumeAmount(transferEvents, hop, bottleneck);
         }
     }
-
     private static void transferToUniswapSell(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
         AtomicInteger count = new AtomicInteger();
         transferLog.forEach(t -> {
@@ -1252,72 +1234,129 @@ public class AMMSwapDataProcessFull {
         });
         log.debug("******* 将 {} 条 transferOut 中的转化为 Swap 事件", count.get());
     }
-
-
     private static void transferToUniswap(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
+        settleRemainingTransfersAsSwap(conf, transferLog, eventLists);
+    }
+
+    /**
+     * 一条资金流经常会拆成多跳 transfer（A→B→C），甚至在某个中转地址处被拆分成多支
+     * （比如 A 转 30 给 F，F 再分别转 10 给 E、20 给 C，E 又转 10 给 B —— F 处出现了 fan-out）。
+     * 不能用一条"链 + 单一 bottleneck"的线性模型硬套：那样遇到分叉时，第一条被发现的分支金额
+     * 达不到分叉前那条边的 80% 阈值，会导致延伸中断，把分叉前那条共享边错误地当成一笔独立的
+     * 终点流量整笔吃掉，分叉出去的各支反而各自变成残缺、起点错误的记录。
+     * 因此改用 extend() 做树形递归展开：向前 (sender 端) 和向后 (receiver 端) 各自独立展开成一棵
+     * "资金流向树"，遇到同一地址上有多条未访问、同 token 的边时，按各分支自身金额从共享金额里
+     * 分别切走一部分递归下去（分支金额之和达不到 80% 阈值才视为噪音、就地终止），最后把
+     * 向前展开得到的多个起点与向后展开得到的多个终点按金额贪心配对，生成一条或多条 transferOut 记录。
+     */
+    private static void settleRemainingTransfersAsSwap(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
         AtomicInteger count = new AtomicInteger();
         List<TransferEvent> visited = new ArrayList<>();
         // 用快照迭代，避免下面 consumeAmount 从 transferLog 中移除元素时触发 ConcurrentModificationException
         for (TransferEvent t : new ArrayList<>(transferLog)) {
             if (visited.contains(t)) continue;
-            // transferOut 事件构造成 Uniswap Sell 操作
+            // transferOut 事件构造成 Uniswap Sell 操作；amount 为 null 说明这笔 transfer 本身无效，直接跳过
             if (t.getAmount() == null || t.getAmount().equals(BigInteger.ZERO)) continue;
             // from是0地址，表示增加总供应，实际并没有转账，所以过滤
 //            if (t.getSender().equals(AMMSwapDataProcess.ZEROADDR)) continue;
             if (conf.getWCoinAddress().equals(t.getContractAddress())) continue;
 
             String token = t.getContractAddress();
+            BigInteger amount = t.getAmount();
             visited.add(t);
+            consumeAmount(transferLog, t, amount);
 
-            LinkedList<TransferEvent> chain = new LinkedList<>();
-            chain.add(t);
-            BigInteger bottleneck = t.getAmount();
+            List<BranchEnd> heads = extend(transferLog, visited, t.getSender(), token, amount, false);
+            List<BranchEnd> tails = extend(transferLog, visited, t.getReceiver(), token, amount, true);
 
-            // 向后延伸：从 receiver 端继续找资金的下一站，同步收窄 bottleneck
-            String tailAddr = t.getReceiver();
-            while (true) {
-                TransferEvent next = findNextChainHop(transferLog, visited, tailAddr, token, bottleneck);
-                if (next == null) break;
-                visited.add(next);
-                chain.addLast(next);
-                tailAddr = tailAddr.equals(next.getSender()) ? next.getReceiver() : next.getSender();
-                bottleneck = bottleneck.min(next.getAmount());
-            }
-
-            // 向前延伸：从 sender 端回溯资金的上一站，继续沿用同一个 bottleneck 收窄
-            String headAddr = t.getSender();
-            while (true) {
-                TransferEvent prev = findNextChainHop(transferLog, visited, headAddr, token, bottleneck);
-                if (prev == null) break;
-                visited.add(prev);
-                chain.addFirst(prev);
-                headAddr = headAddr.equals(prev.getSender()) ? prev.getReceiver() : prev.getSender();
-                bottleneck = bottleneck.min(prev.getAmount());
-            }
-
-            // 整条链（含 t 自身）统一按最终 bottleneck 扣减，金额更大的那几跳保留剩余，留给后续迭代单独处理
-            for (TransferEvent hop : chain) {
-                consumeAmount(transferLog, hop, bottleneck);
-            }
-
-            UniswapEvent build = UniswapEvent.builder()
-                    .protocol("transferOut")
-                    .version("transferOut")
-                    .amountIn(bottleneck)
-                    .amountOut(new BigInteger("0"))
-                    .tokenIn(token)
-                    .tokenOut(conf.getWCoinAddress())
-                    .pair(Lists.newArrayList(token, conf.getWCoinAddress()))
-                    .connectedPools(new ArrayList<>())
-                    .sender(headAddr)
-                    .to(tailAddr)
-                    .build();
-            eventLists.add(build);
-            count.getAndIncrement();
+            count.addAndGet(emitBranchPairs(conf, eventLists, token, heads, tails));
         }
         log.debug("******* 将 {} 条 transferOut 中的转化为 Swap 事件", count.get());
     }
 
+    /**
+     * 从 frontierAddr 出发，沿 forward 方向（true=顺着 sender 往后找、false=逆着 receiver 往前找）
+     * 尝试把 amount 这笔资金继续往下追。若 frontierAddr 上没有未访问的同 token 候选边，
+     * 或候选边总额达不到 amount 的 80%（视为噪音），则在 frontierAddr 处终止，返回这一个分支终点。
+     * 若有候选边，则按各自的金额（不超过剩余待分配的 amount）逐条切走、消费、递归展开 ——
+     * 这样同一地址上的多条候选边会被当成 fan-out/fan-in 的多个独立分支分别处理，而不是只认第一条。
+     */
+    private static List<BranchEnd> extend(List<TransferEvent> transferLog, List<TransferEvent> visited, String frontierAddr, String token, BigInteger amount, boolean forward) {
+        if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) {
+            return Collections.emptyList();
+        }
+        BigInteger need = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
+        List<TransferEvent> candidates = transferLog.stream()
+                .filter(c -> !visited.contains(c))
+                .filter(c -> c.getAmount() != null)
+                .filter(c -> c.getContractAddress().equals(token))
+                .filter(c -> forward ? frontierAddr.equals(c.getSender()) : frontierAddr.equals(c.getReceiver()))
+                .collect(Collectors.toList());
+
+        BigInteger sum = candidates.stream().map(TransferEvent::getAmount).reduce(BigInteger.ZERO, BigInteger::add);
+        if (candidates.isEmpty() || sum.compareTo(need) < 0) {
+            return Collections.singletonList(new BranchEnd(frontierAddr, amount));
+        }
+
+        List<BranchEnd> ends = new ArrayList<>();
+        BigInteger remaining = amount;
+        for (TransferEvent c : candidates) {
+            if (remaining.compareTo(BigInteger.ZERO) <= 0) break;
+            visited.add(c);
+            BigInteger branchAmount = c.getAmount().min(remaining);
+            consumeAmount(transferLog, c, branchAmount);
+            remaining = remaining.subtract(branchAmount);
+            String nextAddr = forward ? c.getReceiver() : c.getSender();
+            ends.addAll(extend(transferLog, visited, nextAddr, token, branchAmount, forward));
+        }
+        return ends;
+    }
+
+    /**
+     * 把向前展开得到的多个起点(heads)和向后展开得到的多个终点(tails)按金额贪心配对，
+     * 生成对应的 transferOut 记录。多数情况下 heads/tails 各只有一个，退化为原先的单条记录；
+     * fan-out/fan-in 场景下按金额顺序切分匹配，保证每一份 head 金额和 tail 金额都被用掉且不重复。
+     */
+    private static int emitBranchPairs(ChainConfig conf, List<UniswapEvent> eventLists, String token, List<BranchEnd> heads, List<BranchEnd> tails) {
+        int emitted = 0;
+        int hi = 0, ti = 0;
+        while (hi < heads.size() && ti < tails.size()) {
+            BranchEnd head = heads.get(hi);
+            BranchEnd tail = tails.get(ti);
+            BigInteger amt = head.amount.min(tail.amount);
+            if (amt.compareTo(BigInteger.ZERO) > 0) {
+                UniswapEvent build = UniswapEvent.builder()
+                        .protocol("transferOut")
+                        .version("transferOut")
+                        .amountIn(amt)
+                        .amountOut(new BigInteger("0"))
+                        .tokenIn(token)
+                        .tokenOut(conf.getWCoinAddress())
+                        .pair(Lists.newArrayList(token, conf.getWCoinAddress()))
+                        .connectedPools(new ArrayList<>())
+                        .sender(head.addr)
+                        .to(tail.addr)
+                        .build();
+                eventLists.add(build);
+                emitted++;
+            }
+            head.amount = head.amount.subtract(amt);
+            tail.amount = tail.amount.subtract(amt);
+            if (head.amount.compareTo(BigInteger.ZERO) <= 0) hi++;
+            if (tail.amount.compareTo(BigInteger.ZERO) <= 0) ti++;
+        }
+        return emitted;
+    }
+
+    private static class BranchEnd {
+        String addr;
+        BigInteger amount;
+
+        BranchEnd(String addr, BigInteger amount) {
+            this.addr = addr;
+            this.amount = amount;
+        }
+    }
     @Data
     @Builder
     public static class TokenBalance {
