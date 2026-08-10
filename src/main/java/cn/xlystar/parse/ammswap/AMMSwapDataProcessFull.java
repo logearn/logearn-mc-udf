@@ -1251,10 +1251,11 @@ public class AMMSwapDataProcessFull {
      */
     private static void settleRemainingTransfersAsSwap(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
         AtomicInteger count = new AtomicInteger();
-        List<TransferEvent> visited = new ArrayList<>();
-        // 用快照迭代，避免下面 consumeAmount 从 transferLog 中移除元素时触发 ConcurrentModificationException
+        // 用快照迭代，避免下面 consumeAmount 从 transferLog 中移除元素时触发 ConcurrentModificationException；
+        // 快照里的 TransferEvent 和 transferLog 是同一批对象引用，amount 的实时扣减对两边可见。
         for (TransferEvent t : new ArrayList<>(transferLog)) {
-            if (visited.contains(t)) continue;
+            // 如果这条边已经被前面某个起点的展开彻底消费完（归 0 后从 transferLog 移除），这里就跳过
+            if (!transferLog.contains(t)) continue;
             // transferOut 事件构造成 Uniswap Sell 操作；amount 为 null 说明这笔 transfer 本身无效，直接跳过
             if (t.getAmount() == null || t.getAmount().equals(BigInteger.ZERO)) continue;
             // from是0地址，表示增加总供应，实际并没有转账，所以过滤
@@ -1263,9 +1264,12 @@ public class AMMSwapDataProcessFull {
 
             String token = t.getContractAddress();
             BigInteger amount = t.getAmount();
-            visited.add(t);
             consumeAmount(transferLog, t, amount);
 
+            // visited 只在本次起点(t)展开的这一棵树内生效，防止 A↔B 之类的环形转账在树内被反复摘取、
+            // 递归不到头（栈溢出）；不同起点各自新建一份，因此不会重现"多对多场景下边被永久锁死"的问题。
+            List<TransferEvent> visited = new ArrayList<>();
+            visited.add(t);
             List<BranchEnd> heads = extend(transferLog, visited, t.getSender(), token, amount, false);
             List<BranchEnd> tails = extend(transferLog, visited, t.getReceiver(), token, amount, true);
 
@@ -1287,8 +1291,9 @@ public class AMMSwapDataProcessFull {
         }
         BigInteger need = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
         List<TransferEvent> candidates = transferLog.stream()
-                .filter(c -> !visited.contains(c))
                 .filter(c -> c.getAmount() != null)
+                .filter(c -> !c.getSender().equals(c.getReceiver()))
+                .filter(c -> !visited.contains(c))
                 .filter(c -> c.getContractAddress().equals(token))
                 .filter(c -> forward ? frontierAddr.equals(c.getSender()) : frontierAddr.equals(c.getReceiver()))
                 .collect(Collectors.toList());
