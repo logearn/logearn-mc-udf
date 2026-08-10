@@ -1002,8 +1002,8 @@ public class AMMSwapDataProcessFull {
                 finalSwap.add(netSwap);
                 // 把已被净额兜底消费的资金流转链从 transferEvents 中消费掉，
                 // 避免下面 transferToUniswapSell 再把它们重复包装成单腿碎片记录
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn(), true);
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut(), false);
+                consumeTransferChain(netSwap, rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn(), true);
+                consumeTransferChain(netSwap, rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut(), false);
             }
             transferToUniswap(conf, rawTransferEvents, finalSwap);
             finalSwap.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
@@ -1190,7 +1190,7 @@ public class AMMSwapDataProcessFull {
      * outgoing=false 表示 startAddr 是接收方（逆着 receiver 往前找上一站，对应 tokenOut 收进来的场景）——
      * 必须区分方向，否则 startAddr 若同时还有转给其他地址的独立转账（fan-out），会被误当成同一条链。
      */
-    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount, boolean outgoing) {
+    private static void consumeTransferChain(UniswapEvent finalSwap, List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount, boolean outgoing) {
         if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) return;
         List<TransferEvent> visited = new ArrayList<>();
         List<TransferEvent> chain = new ArrayList<>();
@@ -1207,6 +1207,10 @@ public class AMMSwapDataProcessFull {
         }
         for (TransferEvent hop : chain) {
             consumeAmount(transferEvents, hop, bottleneck);
+        }
+        if (amount.compareTo(bottleneck) > 0) {
+            if (outgoing) finalSwap.setAmountIn(bottleneck);
+            else finalSwap.setAmountOut(bottleneck);
         }
     }
     private static void transferToUniswapSell(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
