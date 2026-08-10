@@ -940,7 +940,7 @@ public class AMMSwapDataProcessFull {
 
         // 3、将有效的内部交易添加到transfer事件
         transferEvents.addAll(validInternalTxs);
-        List<TransferEvent> rawTransferEvents = new ArrayList<>(transferEvents);
+        List<TransferEvent> rawTransferEvents = new ArrayList<>();
         transferEvents.forEach(t -> {
             try {
                 TransferEvent temp = TransferEvent.builder().build();
