@@ -1,5 +1,6 @@
 package cn.xlystar.parse.ammswap;
 
+import cn.xlystar.constants.PlatformContract;
 import cn.xlystar.entity.PumpFunTokenPool;
 import cn.xlystar.entity.TransferEvent;
 import cn.xlystar.entity.UniswapEvent;
@@ -285,7 +286,7 @@ public class AMMSwapDataProcess {
 //            });
 
             Map<String, Object> tip = allSolTransferEvents.stream().map(t -> {
-                String platformNameByFeeAddress = cn.logearn.spider.common.PlatformContract.getTipPlatformNameByContractAddress(t.getReceiver());
+                String platformNameByFeeAddress = PlatformContract.getTipPlatformNameByContractAddress(t.getReceiver());
                 if (StringUtils.isEmpty(platformNameByFeeAddress)) return null;
                 Map<String, Object> transfer = new HashMap<>();
                 transfer.put("sender", t.getSender());

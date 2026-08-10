@@ -941,6 +941,15 @@ public class AMMSwapDataProcessFull {
         // 3、将有效的内部交易添加到transfer事件
         transferEvents.addAll(validInternalTxs);
         List<TransferEvent> rawTransferEvents = new ArrayList<>(transferEvents);
+        transferEvents.forEach(t -> {
+            try {
+                TransferEvent temp = TransferEvent.builder().build();
+                BeanUtils.copyProperties(temp, t);
+                rawTransferEvents.add(temp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         log.debug("******* InnerTx 和 Transfer 合并, 当前 总共 transferEvents： {} 条。", transferEvents.size());
 
         // 4、获取 swap 事件, 且删除构建中使用的transferEvent
@@ -993,10 +1002,10 @@ public class AMMSwapDataProcessFull {
                 finalSwap.add(netSwap);
                 // 把已被净额兜底消费的资金流转链从 transferEvents 中消费掉，
                 // 避免下面 transferToUniswapSell 再把它们重复包装成单腿碎片记录
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn(), true);
-                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut(), false);
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenIn(), netSwap.getAmountIn());
+                consumeTransferChain(rawTransferEvents, originSender, netSwap.getTokenOut(), netSwap.getAmountOut());
             }
-            transferToUniswapSell(conf, rawTransferEvents, finalSwap);
+            transferToUniswap(conf, rawTransferEvents, finalSwap);
             finalSwap.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
             return finalSwap;
         }
@@ -1004,7 +1013,7 @@ public class AMMSwapDataProcessFull {
         // 10、将最终的 swap 关联上的 transfer 去掉 | 池子、token的 transfer 去除。保留没有使用的 transfer, 将这些 transfer 封装为 uniswap
 //        Map<String, Map<String, BigInteger>> finalTransfer = TransferEvent.calculateBalances(transferEvents);
 //        List<TransferEvent> getFinalTransferOutEvent = getTransferOutEvent(finalTransfer);
-        transferToUniswapSell(conf, transferEvents, fullUniswapEvents);
+        transferToUniswap(conf, transferEvents, fullUniswapEvents);
         log.debug("******* 最终有效 Swap： {} 条", fullUniswapEvents.size());
         fullUniswapEvents.forEach(t -> t.setSwapRawSwapLog(resultEvent.getRawUniswapEvents()));
         return fullUniswapEvents;
@@ -1156,29 +1165,73 @@ public class AMMSwapDataProcessFull {
         return parseMapResult;
     }
 
-    private static List<TransferEvent> getTransferOutEvent(Map<String, Map<String, BigInteger>> finalTransfer) {
-        List<TransferEvent> list = new ArrayList<>();
-        for (Map.Entry<String, Map<String, BigInteger>> entry : finalTransfer.entrySet()) {
-            String address = entry.getKey();
-            Map<String, BigInteger> tokens = entry.getValue();
-            for (Map.Entry<String, BigInteger> tokenEntry : tokens.entrySet()) {
-                if (tokenEntry.getValue().compareTo(BigInteger.ZERO) < 0) {
-                    list.add(TransferEvent.builder()
-                            .amount(tokenEntry.getValue().multiply(new BigInteger("-1")))
-                            .sender(address)
-                            .contractAddress(tokenEntry.getKey())
-                            .build());
-                }
-            }
+    /**
+     * 从 addr 出发，在 transferEvents 中找同一 token、且不在 excluded 里的下一跳 transfer。
+     * 同时匹配 sender=addr（资金流出）和 receiver=addr（资金流入）两个方向，命中金额需 >= amount 的 80%
+     * （容忍 dust/税费）。是否延续、往哪个方向延续完全由实际连上的边决定，而不是提前固定死一个方向 ——
+     * 否则中途方向一旦反转（比如经过一个既转入又转出的中转地址）就会断链，
+     * 导致本应属于同一条资金流的边找不到，被误当作独立的碎片记录，最终帐不平。
+     */
+    private static TransferEvent findNextChainHop(List<TransferEvent> transferEvents, List<TransferEvent> excluded, String addr, String token, BigInteger amount) {
+        BigInteger need = amount.multiply(BigInteger.valueOf(80)).divide(BigInteger.valueOf(100));
+        return transferEvents.stream()
+                .filter(t -> !excluded.contains(t))
+                .filter(t -> t.getContractAddress().equals(token))
+                .filter(t -> addr.equals(t.getSender()) || addr.equals(t.getReceiver()))
+                .filter(t -> t.getAmount().compareTo(need) >= 0)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 消费掉一笔 transfer 中被链条实际用掉的 amount 部分：一个 TransferEvent 可能承载了不止一条资金流
+     * （比如池子把多个用户的资金合并成一笔转出），不能因为它被某条链用到了就整笔从 transferEvents 中
+     * 移除 —— 只应扣减本次实际用掉的金额，只有扣到 <= 0（归 0）才真正移除，剩余部分留给后面别的链继续消费。
+     */
+    private static void consumeAmount(List<TransferEvent> transferEvents, TransferEvent t, BigInteger amount) {
+        BigInteger remaining = t.getAmount().subtract(amount);
+        if (remaining.compareTo(BigInteger.ZERO) <= 0) {
+            transferEvents.remove(t);
+        } else {
+            t.setAmount(remaining);
         }
-        return list;
+    }
+
+    /**
+     * 从 startAddr 持有的一笔 token 资金开始，沿着 transfer 图逐跳串联，找出实际构成这笔资金流转的
+     * 完整 transfer 链。分两步：
+     * 1) 先只查找、不消费，把链上每一跳都走一遍，同时把 bottleneck（链上出现过的最小金额）
+     *    一路取 min 记录下来 —— 因为链条中途只要有一跳金额变小（税费/dust），说明这条资金流
+     *    实际能端到端流转的金额就是这个更小值，前面已经"找到"的那几跳里超出 bottleneck 的部分
+     *    根本没有真正参与这条链，不能被当成已消费。
+     * 2) 再用这个统一的 bottleneck 对链上每一跳做真正的扣减（consumeAmount，归 0 才移除），
+     *    金额大于 bottleneck 的那一跳会留下 (原金额 - bottleneck) 的剩余，交给 transferToUniswapSell
+     *    按同样的逻辑单独处理，而不是被这条链错误地整笔吃掉。
+     */
+    private static void consumeTransferChain(List<TransferEvent> transferEvents, String startAddr, String token, BigInteger amount) {
+        if (amount == null || amount.compareTo(BigInteger.ZERO) <= 0) return;
+        List<TransferEvent> visited = new ArrayList<>();
+        List<TransferEvent> chain = new ArrayList<>();
+        String currentAddr = startAddr;
+        BigInteger bottleneck = amount;
+        while (true) {
+            TransferEvent next = findNextChainHop(transferEvents, visited, currentAddr, token, bottleneck);
+            if (next == null) break;
+            visited.add(next);
+            chain.add(next);
+            currentAddr = currentAddr.equals(next.getSender()) ? next.getReceiver() : next.getSender();
+            bottleneck = bottleneck.min(next.getAmount());
+        }
+        for (TransferEvent hop : chain) {
+            consumeAmount(transferEvents, hop, bottleneck);
+        }
     }
 
     private static void transferToUniswapSell(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
         AtomicInteger count = new AtomicInteger();
         transferLog.forEach(t -> {
             // transferOut 事件构造成 Uniswap Sell 操作
-            if (t.getAmount().equals(BigInteger.ZERO)) return;
+            if (t.getAmount() == null || t.getAmount().equals(BigInteger.ZERO)) return;
             // from是0地址，表示增加总供应，实际并没有转账，所以过滤
 //            if (t.getSender().equals(AMMSwapDataProcess.ZEROADDR)) return;
             if (conf.getWCoinAddress().equals(t.getContractAddress())) return;
@@ -1197,6 +1250,71 @@ public class AMMSwapDataProcessFull {
             eventLists.add(build);
             count.getAndIncrement();
         });
+        log.debug("******* 将 {} 条 transferOut 中的转化为 Swap 事件", count.get());
+    }
+
+
+    private static void transferToUniswap(ChainConfig conf, List<TransferEvent> transferLog, List<UniswapEvent> eventLists) {
+        AtomicInteger count = new AtomicInteger();
+        List<TransferEvent> visited = new ArrayList<>();
+        // 用快照迭代，避免下面 consumeAmount 从 transferLog 中移除元素时触发 ConcurrentModificationException
+        for (TransferEvent t : new ArrayList<>(transferLog)) {
+            if (visited.contains(t)) continue;
+            // transferOut 事件构造成 Uniswap Sell 操作
+            if (t.getAmount() == null || t.getAmount().equals(BigInteger.ZERO)) continue;
+            // from是0地址，表示增加总供应，实际并没有转账，所以过滤
+//            if (t.getSender().equals(AMMSwapDataProcess.ZEROADDR)) continue;
+            if (conf.getWCoinAddress().equals(t.getContractAddress())) continue;
+
+            String token = t.getContractAddress();
+            visited.add(t);
+
+            LinkedList<TransferEvent> chain = new LinkedList<>();
+            chain.add(t);
+            BigInteger bottleneck = t.getAmount();
+
+            // 向后延伸：从 receiver 端继续找资金的下一站，同步收窄 bottleneck
+            String tailAddr = t.getReceiver();
+            while (true) {
+                TransferEvent next = findNextChainHop(transferLog, visited, tailAddr, token, bottleneck);
+                if (next == null) break;
+                visited.add(next);
+                chain.addLast(next);
+                tailAddr = tailAddr.equals(next.getSender()) ? next.getReceiver() : next.getSender();
+                bottleneck = bottleneck.min(next.getAmount());
+            }
+
+            // 向前延伸：从 sender 端回溯资金的上一站，继续沿用同一个 bottleneck 收窄
+            String headAddr = t.getSender();
+            while (true) {
+                TransferEvent prev = findNextChainHop(transferLog, visited, headAddr, token, bottleneck);
+                if (prev == null) break;
+                visited.add(prev);
+                chain.addFirst(prev);
+                headAddr = headAddr.equals(prev.getSender()) ? prev.getReceiver() : prev.getSender();
+                bottleneck = bottleneck.min(prev.getAmount());
+            }
+
+            // 整条链（含 t 自身）统一按最终 bottleneck 扣减，金额更大的那几跳保留剩余，留给后续迭代单独处理
+            for (TransferEvent hop : chain) {
+                consumeAmount(transferLog, hop, bottleneck);
+            }
+
+            UniswapEvent build = UniswapEvent.builder()
+                    .protocol("transferOut")
+                    .version("transferOut")
+                    .amountIn(bottleneck)
+                    .amountOut(new BigInteger("0"))
+                    .tokenIn(token)
+                    .tokenOut(conf.getWCoinAddress())
+                    .pair(Lists.newArrayList(token, conf.getWCoinAddress()))
+                    .connectedPools(new ArrayList<>())
+                    .sender(headAddr)
+                    .to(tailAddr)
+                    .build();
+            eventLists.add(build);
+            count.getAndIncrement();
+        }
         log.debug("******* 将 {} 条 transferOut 中的转化为 Swap 事件", count.get());
     }
 

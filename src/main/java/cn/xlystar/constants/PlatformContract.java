@@ -1,10 +1,12 @@
-package cn.logearn.spider.common;
+package cn.xlystar.constants;
 
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 public class PlatformContract {
-    public static  Set<String> jitoTipContractAddresses = Set.of(
+    public static  Set<String> jitoTipContractAddresses = new HashSet<>(Arrays.asList(
             "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5", // jito 1
             "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe", // jito 2
             "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY", // jito 3
@@ -13,8 +15,8 @@ public class PlatformContract {
             "ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt", // jito 6
             "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL", // jito 7
             "3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT" // jito 8
-    );
-    public static  Set<String> flashTipContractAddresses = Set.of(
+    ));
+    public static  Set<String> flashTipContractAddresses = new HashSet<>(Arrays.asList(
             "FLaShB3iXXTWE1vu9wQsChUKq3HFtpMAhb8kAh1pf1wi",
             "FLashhsorBmM9dLpuq6qATawcpqk1Y2aqaZfkd48iT3W",
             "FLaSHJNm5dWYzEgnHJWWJP5ccu128Mu61NJLxUf7mUXU",
@@ -25,8 +27,8 @@ public class PlatformContract {
             "FLasHXTqrbNvpWFB6grN47HGZfK6pze9HLNTgbukfPSk",
             "FLAshyAyBcKb39KPxSzXcepiS8iDYUhDGwJcJDPX4g2B",
             "FLAsHZTRcf3Dy1APaz6j74ebdMC6Xx4g6i9YxjyrDybR"
-    );
-    public static  Set<String> axiomTipContractAddresses = Set.of(
+    ));
+    public static  Set<String> axiomTipContractAddresses = new HashSet<>(Arrays.asList(
             "AJwrjU2n7ac7Ho318pUyKfKhpH3JwX2MEpv3cyR8E3rk",
             "8d5jPhXwjEa9cPkQG2aFHw5cwE6KjytnPFJbmH1RgN1M",
             "FTkHWtbM8ouMhkiY8Pu9XnN6NMafgsiqtCnQdzo5eHnA",
@@ -40,11 +42,11 @@ public class PlatformContract {
             "7tgbPNtTrVTfgi7DDMeiEjtTuy7wReDhTpayF3c5Jhxo",
             "6TYd5ytzKVDUP4jsuXyUA6BA8SmN57mzwJjw5XvnXqmG",
             "5ZYrecfeS7dwA18LPqhAYVpLUUUsjuFpY1sE2VQmEVqW"
-    );
-    public static  Set<String> zanTipContractAddresses = Set.of(
+    ));
+    public static  Set<String> zanTipContractAddresses = new HashSet<>(Arrays.asList(
             "7HkiWXe5deJvzn4D6kgMUFCADwX9Z4DMrdjNSSxN6bPp"
-    );
-    public static  Set<String> bloxRouteTipContractAddresses = Set.of(
+    ));
+    public static  Set<String> bloxRouteTipContractAddresses = new HashSet<>(Arrays.asList(
             "3UQUKjhMKaY2S6bjcQD6yHB7utcZt5bfarRCmctpRtUd",
             "FogxVNs6Mm2w9rnGL1vkARSwJxvLE8mujTv3LK8RnUhF",
             "bLx7MvxGaKdKL7mEbpk9tC79z6MnBSJoJkuaEAPu6Nd",
@@ -62,9 +64,9 @@ public class PlatformContract {
             "bLxuETxd2tgWxBALNwPzAfHhsik4BzD3nrEBCiPNZQD",
             "bLxuL2gK5FW7xfahvwLrxLyW76vcCpNsKQY2CmnE6kV",
             "bLxv4Hnub7nDJWHs8s17o9bGU65Bnx6Yqp2fqtMgHmm"
-    );
+    ));
 
-    public static  Set<String> blockrazorTipContractAddresses = Set.of(
+    public static  Set<String> blockrazorTipContractAddresses = new HashSet<>(Arrays.asList(
             "FjmZZrFvhnqqb9ThCuMVnENaM3JGVuGWNyCAxRJcFpg9",
             "6No2i3aawzHsjtThw81iq1EXPJN6rh8eSJCLaYZfKDTG",
             "A9cWowVAiHe9pJfKAj3TJiN9VpbzMUq6E4kEvf5mUT22",
@@ -79,22 +81,22 @@ public class PlatformContract {
             "BnGKHAC386n4Qmv9xtpBVbRaUTKixjBe3oagkPFKtoy6",
             "Dd7K2Fp7AtoN8xCghKDRmyqr5U169t48Tw5fEd3wT9mq",
             "AP6qExwrbRgBAVaehg4b5xHENX815sMabtBzUzVB4v8S"
-    );
-    public static  Set<String> slot0TipContractAddresses = Set.of(
+    ));
+    public static  Set<String> slot0TipContractAddresses = new HashSet<>(Arrays.asList(
             "Eb2KpSC8uMt9GmzyAEm5Eb1AAAgTjRaXWFjKyFXHZxF3",
             "FCjUJZ1qozm1e8romw216qyfQMaaWKxWsuySnumVCCNe",
             "ENxTEjSQ1YabmUpXAdCgevnHQ9MHdLv8tzFiuiYJqa13",
             "6rYLG55Q9RpsPGvqdPNJs4z5WTxJVatMB8zV3WJhs5EK",
             "Cix2bHfqPcKcM233mzxbLk14kSggUUiz2A87fJtGivXr"
-    );
-    public static  Set<String> platformContractAddresses = Set.of(
+    ));
+    public static  Set<String> platformContractAddresses = new HashSet<>(Arrays.asList(
             "troyXT7Ty3s2rjJe4bqWaroUrS4Fjd8rbHHNHxcACF4", // trojan
             "FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9", // axiom
             "GMgnVFR8Jb39LoXsEVzb3DvBy3ywCmdmJquHUy1Lrkqb", // gmgn
             "BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW", // photon
             "term9YPb9mzAsABaqN71A4xdbxHmpBNZavpBiQKZzN3" //parde
-    );
-    public static Set<String> platformGasAddresses = Set.of(
+    ));
+    public static Set<String> platformGasAddresses = new HashSet<>(Arrays.asList(
             "9yMwSPk9mrXSN7yDHUuZurAh1sjbJsfpUqjZ7SvVtdco", // trojan
             "5BqYhuD4q1YD3DMAYkc1FeTu9vqQVYYdfBAmkZjamyZg", // axiom
             "8vFGAKdwpn4hk7kc1cBgfWZzpyW3MEMDATDzVZhddeQb", // axiom
@@ -126,8 +128,8 @@ public class PlatformContract {
             "AVUCZyuT35YSuj4RH7fwiyPu82Djn2Hfg7y2ND2XcnZH", // photon
             "J5XGHmzrRmnYWbmw45DbYkdZAU2bwERFZ11qCDXPvFB5", //parde
             "DoAsxPQgiyAxyaJNvpAAUb2ups6rbJRdYrCPyWxwRxBb" //parde
-    );
-    public static Set<String> axiomFeeAddress = Set.of(
+    ));
+    public static Set<String> axiomFeeAddress = new HashSet<>(Arrays.asList(
             "5BqYhuD4q1YD3DMAYkc1FeTu9vqQVYYdfBAmkZjamyZg", // axiom
             "8vFGAKdwpn4hk7kc1cBgfWZzpyW3MEMDATDzVZhddeQb", // axiom
             "86Vh4XGLW2b6nvWbRyDs4ScgMXbuvRCHT7WbUT3RFxKG", // axiom
@@ -147,8 +149,8 @@ public class PlatformContract {
             "9kPrgLggBJ69tx1czYAbp7fezuUmL337BsqQTKETUEhP", // axiom
             "7oi1L8U9MRu5zDz5syFahsiLUric47LzvJBQX6r827ws", // axiom
             "DKyUs1xXMDy8Z11zNsLnUg3dy9HZf6hYZidB6WodcaGy" // axiom
-    );
-    public static Set<String> gmgnFeeAddress = Set.of(
+    ));
+    public static Set<String> gmgnFeeAddress = new HashSet<>(Arrays.asList(
             "7sHXjs1j7sDJGVSMSPjD1b4v3FD6uRSvRWfhRdfv5BiA", // gmgn
             "HeZVpHj9jLwTVtMMbzQRf6mLtFPkWNSg11o68qrbUBa3", // gmgn
             "ByRRgnZenY6W2sddo1VJzX9o4sMU4gPDUkcmgrpGBxRy", // gmgn
@@ -157,20 +159,20 @@ public class PlatformContract {
             "DymeoWc5WLNiQBaoLuxrxDnDRvLgGZ1QGsEoCAM7Jsrx", // gmgn
             "dBhdrmwBkRa66XxBuAK4WZeZnsZ6bHeHCCLXa3a8bTJ", // gmgn
             "6TxjC5wJzuuZgTtnTMipwwULEbMPx5JPW3QwWkdTGnrn" // gmgn
-    );
-    public static Set<String> pardeFeeAddress = Set.of(
+    ));
+    public static Set<String> pardeFeeAddress = new HashSet<>(Arrays.asList(
             "J5XGHmzrRmnYWbmw45DbYkdZAU2bwERFZ11qCDXPvFB5", //parde
             "DoAsxPQgiyAxyaJNvpAAUb2ups6rbJRdYrCPyWxwRxBb" //parde
-    );
-    public static Set<String> photonFeeAddress = Set.of(
+    ));
+    public static Set<String> photonFeeAddress = new HashSet<>(Arrays.asList(
             "AVUCZyuT35YSuj4RH7fwiyPu82Djn2Hfg7y2ND2XcnZH"
-    );
-    public static Set<String> trojanFeeAddress = Set.of(
+    ));
+    public static Set<String> trojanFeeAddress = new HashSet<>(Arrays.asList(
             "9yMwSPk9mrXSN7yDHUuZurAh1sjbJsfpUqjZ7SvVtdco"
-    );
-    public static Set<String> logearnFeeAddress = Set.of(
+    ));
+    public static Set<String> logearnFeeAddress = new HashSet<>(Arrays.asList(
             "6fS236VWeqoUziTj8zEATRfK7ad9SsNcJbgjbmmkMaj1"
-    );
+    ));
 
     public static boolean isPlatformContract(String contractAddress) {
         return platformContractAddresses.contains(contractAddress);
